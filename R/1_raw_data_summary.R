@@ -1,0 +1,296 @@
+#========================================================================================================================
+# GPS raw data summary 
+#========================================================================================================================
+
+# Summary
+# 1. Data available
+# 2. Data until 
+# 3. Data linked to nests
+
+# Packages
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak'),
+        require, character.only = TRUE)
+
+# Projection
+PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+
+# Data
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+d = dbq(con, 'select * FROM NANO_TAGS')
+d = d[ID != 999] # exclude test data
+d[is.na(lon)] # check that no NA
+
+dc = dbq(con, 'select * FROM CAPTURES')
+dn = dbq(con, 'select * FROM NESTS')
+
+#------------------------------------------------------------------------------------------------------------------------
+# 1. Data available
+#------------------------------------------------------------------------------------------------------------------------
+
+# Number of tags attached on REPH
+dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2018]$gps_tag %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2019]$gps_tag %>% unique %>% length
+
+# Number of REPH with tags
+dc[!is.na(gps_tag)]$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique %>% length
+
+# ID's tagged in both years
+ID_tagged_18 = dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique
+ID_tagged_19 = dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique
+ID_tagged_19[ID_tagged_19 %in% ID_tagged_18]
+
+# Tags that never send data (while on bird)
+d[, ID_tagID := paste0(ID, '_', tagID)]
+dc[, ID_tagID := paste0(ID, '_', gps_tag)]
+
+dc_ID_tagged = dc[!is.na(gps_tag)]$ID_tagID %>% unique
+d_ID_tagged = d$ID_tagID %>% unique
+
+d_no_data = dc_ID_tagged[!(dc_ID_tagged %in% d_ID_tagged)]
+d_no_data %>% length
+ds = dc[ID_tagID %in% d_no_data]
+
+# include tags with no data with capture location
+ds = ds[, .(year_, tagID = gps_tag, ID, datetime_ = released_time, lat, lon, ID_tagID)]
+d = rbind(d, ds, fill = TRUE, use.names = TRUE)
+
+# timing of tag attachment
+setorder(dc, caught_time)
+ds = dc[!is.na(gps_tag)] %>% unique(., by = c('ID', 'gps_tag'))
+ds[, date_ := as.Date(caught_time)]
+
+ggplot(data = ds) +
+  geom_bar(aes(date_)) +
+  facet_grid(.~year_, scales = 'free_x')
+
+ds[, .(first  = min(date_), 
+       last   = max(date_), 
+       median = median(date_)), by = year_]
+
+# data availabilty 
+d[, ID_year := paste0(ID, '_', year_)]
+
+d[, first := min(datetime_), by = ID_year]
+d[, last := max(datetime_), by = ID_year]
+d[, days_data := as.numeric(difftime(last, first, units = 'days'))]
+setorder(d, first, ID, datetime_)
+
+ds = unique(d, by = 'ID_year')
+
+# merge with sex
+ds = merge(ds, unique(dc[, .(ID_tagID, sex = sex_observed)]), by = 'ID_tagID', all.x = TRUE)
+
+hist(ds$days_data)
+mean(ds$days_data)
+mean(ds[year_ == 2018]$days_data)
+mean(ds[year_ == 2019]$days_data)
+
+max(ds[year_ == 2018]$days_data)
+max(ds[year_ == 2019]$days_data)
+
+
+ds[year_ == 2019 & days_data > 27] %>% nrow
+
+#------------------------------------------------------------------------------------------------------------------------
+# 2. Data until 
+#------------------------------------------------------------------------------------------------------------------------
+
+ds = ds[, .(year_, ID_year, sex, first, last, days_data)]
+
+### loop by date
+dt = foreach(k = unique(ds$year_), .combine = 'rbind') %do% {
+  
+  # subset species and year
+  ps = ds[year_ == k]
+  
+  # open matrix
+  dt = data.table( date = seq( ps[, min(first)]  %>% as.Date %>% as.POSIXct,
+                               ps[, max(last)] %>% as.Date %>% as.POSIXct  + 60*60*24, by = '1 day') )
+  
+  
+  foreach(i = ps$ID_year) %do% {
+    
+    dt[, as.character(i) := ifelse(date < ps[ID_year == i, last], 1, 0)]
+    
+  }	
+  
+  # calculate survival
+  dt[, sum      := rowSums(.SD), .SDcols = grep('d', names(dt), invert = TRUE)]
+  dt[, survival := sum/max(sum)]
+  
+  dt[, year_ := k]
+  dt = dt[, .(year_, date, survival)]
+  dt
+  
+}  
+
+max_year = dt$year_ %>% max
+dt[, date2 := date + c(max_year - year_) *60*60*24*356, by = 1:nrow(dt)]
+
+# plot
+ggplot(data = dt, aes(x = date2, y = survival, col = as.character(year_))) +
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_line(size = 1.5) +
+  scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
+  labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
+  theme_classic(base_size = 24)
+
+
+### loop by days of data
+dt = foreach(k = unique(ds$year_), .combine = 'rbind') %do% {
+  
+  # subset species and year
+  ps = ds[year_ == k]
+  
+  # open matrix
+  dt = data.table( day = seq(0, max(ds$days_data) %>% as.integer + 1, by = 0.1) )
+  
+  
+  foreach(i = ps$ID_year) %do% {
+    
+    dt[, as.character(i) := ifelse(day < ps[ID_year == i, days_data], 1, 0)]
+    
+  }	
+  
+  # calculate survival
+  dt[, sum      := rowSums(.SD), .SDcols = grep('d', names(dt), invert = TRUE)]
+  dt[, survival := sum/max(sum)]
+  
+  dt[, year_ := k]
+  dt = dt[, .(year_, day, survival)]
+  dt
+  
+}  
+
+# plot
+p = 
+ggplot(data = dt, aes(x = day, y = survival, col = as.character(year_))) +
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_line(size = 1.5) +
+  scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
+  labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
+  theme_classic(base_size = 24)
+p
+
+# png('./REPORTS/Proportion_tagged.png', width = 1400, height = 1000)
+# p
+# dev.off()
+
+### loop by sex and days of data
+dts = foreach(k = unique(ds$sex), .combine = 'rbind') %do% {
+  
+  # subset species and year
+  ps = ds[sex == k]
+  
+  # open matrix
+  dt = data.table( day = seq(0, max(ds$days_data) %>% as.integer + 1, by = 0.1) )
+  
+  
+  foreach(i = ps$ID_year) %do% {
+    
+    dt[, as.character(i) := ifelse(day < ps[ID_year == i, days_data], 1, 0)]
+    
+  }	
+  
+  # calculate survival
+  dt[, sum      := rowSums(.SD), .SDcols = grep('d', names(dt), invert = TRUE)]
+  dt[, survival := sum/max(sum)]
+  
+  dt[, sex := k]
+  dt = dt[, .(sex, day, survival)]
+  dt
+  
+}  
+
+# plot
+p = 
+  ggplot(data = dts, aes(x = day, y = survival, col = as.character(sex))) +
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_line(size = 1.5) +
+  scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
+  labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
+  theme_classic(base_size = 24)
+p
+
+# png('./REPORTS/Proportion_tagged_sex.png', width = 1400, height = 1000)
+# p
+# dev.off()
+
+
+#------------------------------------------------------------------------------------------------------------------------
+# 3. Data linked to nests
+#------------------------------------------------------------------------------------------------------------------------
+
+# prepare data for merge
+dn = dn[year_ > 2017]
+dn[, maleID_year   := paste0(male_id, '_', year_)]
+dn[, femaleID_year := paste0(female_id, '_', year_)]
+dn[, initiation := as.POSIXct(initiation)]
+dn[, nest_state_date := as.POSIXct(nest_state_date)]
+
+du = unique(d, by = 'ID_year')
+dn[, first := as.POSIXct(first)]
+dn[, last := as.POSIXct(last)]
+
+# merge nest's with GPS data
+ds = merge(dn[, .(year_, nest, male_id, maleID_year, female_id, femaleID_year, initiation, nest_state_date)], 
+           du[, .(ID_year, m_first = first, m_last = last, m_days_data = days_data)], by.x = 'maleID_year', by.y = 'ID_year', all.x = TRUE)
+
+ds = merge(ds, du[, .(ID_year, f_first = first, f_last = last, f_days_data = days_data)], by.x = 'femaleID_year', by.y = 'ID_year', all.x = TRUE)
+
+# assign multiple clutches
+ds[, male_N_clutch   := .N, by = .(maleID_year, year_)]
+ds[, female_N_clutch := .N, by = .(femaleID_year, year_)]
+
+# exclude both NA
+ds = ds[!(is.na(m_first) & is.na(f_first))]
+ds[, m_first := as.POSIXct(m_first)]
+ds[, m_last := as.POSIXct(m_last)]
+ds[, f_first := as.POSIXct(f_first)]
+ds[, f_last := as.POSIXct(f_last)]
+
+# check what' there
+ds[!is.na(m_first)] %>% nrow 
+ds[!is.na(f_first)] %>% nrow
+
+# summary 
+ds[, m_before_initiation := ifelse(m_first < initiation, TRUE, FALSE)]
+ds[, f_before_initiation := ifelse(f_first < initiation, TRUE, FALSE)]
+ds[, m_after_initiation := ifelse(initiation < m_last, TRUE, FALSE)]
+ds[, f_after_initiation := ifelse(initiation < f_last, TRUE, FALSE)]
+ds[, m_after_initiation5 := ifelse(initiation + 5*86400 < m_last, TRUE, FALSE)]
+ds[, f_after_initiation5 := ifelse(initiation + 5*86400 < f_last, TRUE, FALSE)]
+
+# before and after initiation
+ds[, m_initiation := ifelse(m_before_initiation == TRUE & m_after_initiation == TRUE, TRUE, FALSE)]
+ds[, f_initiation := ifelse(f_before_initiation == TRUE & f_after_initiation == TRUE, TRUE, FALSE)]
+ds[, m_initiation5 := ifelse(m_before_initiation == TRUE & m_after_initiation5 == TRUE, TRUE, FALSE)]
+ds[, f_initiation5 := ifelse(f_before_initiation == TRUE & f_after_initiation5 == TRUE, TRUE, FALSE)]
+
+ds[, .N, by = m_initiation]
+ds[, .N, by = f_initiation]
+
+ds[, .N, by = m_initiation5]
+ds[, .N, by = f_initiation5]
+
+# both sexes
+ds[, mf_initiation := ifelse(m_initiation == TRUE & f_initiation == TRUE, TRUE, FALSE)]
+ds[, mf_initiation5 := ifelse(m_initiation5 == TRUE & f_initiation == TRUE, TRUE, FALSE)]
+
+ds[, .N, by = mf_initiation]
+ds[, .N, by = mf_initiation5]
+
+ds[male_N_clutch == 2]
+ds[female_N_clutch == 2, .(nest, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
+
+
+
+
+
+
+
+
+
