@@ -7,7 +7,7 @@
 # 2. 
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'trip'), 
         require, character.only = TRUE)
 
 # Projection
@@ -19,32 +19,141 @@ d = dbq(con, 'select * FROM NANO_TAGS')
 d = d[ID != 999] # exclude test data
 d[is.na(lon)] # check that no NA
 d[, datetime_ := anytime(datetime_)]
-d[, datetime_y := anytime(paste0('2020-', substr(datetime_, 6, 19)) )]
+# d[, datetime_y := anytime(paste0('2020-', substr(datetime_, 6, 19)) )]
 
 dc = dbq(con, 'select * FROM CAPTURES')
 dn = dbq(con, 'select * FROM NESTS')
+dn = dn[year_ > 2016]
 DBI::dbDisconnect(con)
 
 # Change projection
 st_transform_DT(d)
-st_transform_DT(dn)
+# st_transform_DT(dn)
 
 #------------------------------------------------------------------------------------------------------------------------
-# 1. Calculate basic track characteristics
+# 1. Apply speed filter
 #------------------------------------------------------------------------------------------------------------------------
+
+# unique ID and order
+d[, ID_year := paste0(ID, '_', year_)]
+setorder(d, year_, ID_year, datetime_)
+
+# distance between consecutive points
+d[, lon2         := data.table::shift(lon, type = 'lead'), by = ID_year]
+d[, lat2         := data.table::shift(lat, type = 'lead'), by = ID_year]
+d[, distance_btw := sqrt(sum((c(lon, lat) - c(lon2, lat2))^2)) , by = 1:nrow(d)]
+
+# time between consecutive points
+d[, datetime_2   := data.table::shift(datetime_, type = 'lead'), by = ID_year]
+d[, time_btw     := as.numeric(difftime(datetime_2, datetime_, units = 'sec'))]
+
+# speed
+d[, speed := distance_btw / time_btw]
+hist(d$speed*3.6)
+hist(d[speed > 5 & speed < 50]$speed*3.6, breaks = 40)
+
+# values above threshold
+speed_filter(d, ID = 'ID_year', speed = 'speed', max_speed = 30)
+
+# d[, speed_over_threshold := speed > 30]
+# d[, bout := windR::bCounter(speed_over_threshold), by = ID_year]
+# d[, seq := seq_len(.N), by = .(ID_year, bout)]
+# d[, error := seq == 2 & speed_over_threshold == TRUE]
+
+# d[error == TRUE]
+
+# d = d[is.na(error)]
+
+DT = copy(d)
+ID = 'ID_year' 
+speed = 'speed'
+max_speed = 30
+
+
+
+
+speed_filter <- function(DT, ID, speed, max_speed){
+  
+  if(nrow(DT) > 0) {
+    setnames(DT, c(ID, speed), c('IDu', 'speed'))
+    
+    # speed over may
+    DT[, speed_over_threshold := speed > max_speed]
+    
+    # select couts
+    bCounter <- function(x){
+      n = length(x)
+      y = x[-1] != x[-n]
+      i = c(which(y | is.na(y)), n)
+      lengths = diff(c(0L, i))
+      bout_length = rep(lengths, lengths)
+      ids = 1:length(lengths)
+      bout_id = rep(ids, lengths)
+      bout_id 
+      }
+    
+    DT[, bout := bCounter(speed_over_threshold), by = IDu]
+    
+    # select only outlier
+    DT[, seq := seq_len(.N), by = .(IDu, bout)]
+    DT[, error := seq == 2 & speed_over_threshold == TRUE]
+    
+    # delete unwanted columns
+    DT[ ,c('bout','seq') := NULL]
+    
+    setnames(DT, c('IDu', 'speed'), c(ID, speed))
+    
+  }
+}
+
+
+
+d[, .N, speed_over_threshold]
+
+
+# check with example
+ds = d[ID == 270170245]
+
+setorder(ds, datetime_)
+
+ds[speed_over_threshold == TRUE]
+
+ds[bout < 3]
+
+
+ggplot(ds) +
+  geom_path(aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(aes(lon, lat, color = speed_over_threshold), size = 1.5) + 
+  theme_bw()
+
+
+ggplot(ds) +
+  geom_path(aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(aes(lon, lat, color = error), size = 1.5) + 
+  geom_point(data = ds[error == TRUE], aes(lon, lat), color = 'red', size = 1.5)
+  theme_bw()
+
+ds[speed > 50]
+
+50*3.6
+
+
+
+
+
 
 # unique ID
-d[, year_ID := paste0(year_, '_', ID)]
+d[, ID_year := paste0(year_, '_', ID)]
 
 # distance between points
-d[, lon2     := data.table::shift(lon, type = 'lead'), by = year_ID]
-d[, lat2     := data.table::shift(lat, type = 'lead'), by = year_ID]
-d[, dist   := sqrt(sum((c(lon, lat) - c(lon2, lat2))^2)) , by = 1:nrow(d)]
+d[, lon2     := data.table::shift(lon, type = 'lead'), by = ID_year]
+d[, lat2     := data.table::shift(lat, type = 'lead'), by = ID_year]
+d[, dist     := sqrt(sum((c(lon, lat) - c(lon2, lat2))^2)) , by = 1:nrow(d)]
 
 # flight time
-d[, datetime_2  := data.table::shift(datetime_, type = 'lead'), by = year_ID]
+d[, datetime_2  := data.table::shift(datetime_, type = 'lead'), by = ID_year]
 d[, TbtwPoints  := as.numeric(difftime(datetime_2, datetime_, units = 'sec'))]
-d[, flight_time := as.numeric(difftime(datetime_[c(.N)], datetime_[c(1)], units = 'hours')), by = year_ID]
+d[, flight_time := as.numeric(difftime(datetime_[c(.N)], datetime_[c(1)], units = 'hours')), by = ID_year]
 hist(d$flight_time)
 
 # ground speed
