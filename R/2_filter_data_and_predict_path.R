@@ -7,8 +7,11 @@
 # 2. 
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'trip'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'trip', 'foreach'), 
         require, character.only = TRUE)
+
+# Functions
+source('./R/0_functions.R')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -26,89 +29,144 @@ dn = dbq(con, 'select * FROM NESTS')
 dn = dn[year_ > 2016]
 DBI::dbDisconnect(con)
 
-# Change projection
+# Change projection to equal area
 st_transform_DT(d)
 # st_transform_DT(dn)
+
+d_save = copy(d)
 
 #------------------------------------------------------------------------------------------------------------------------
 # 1. Apply speed filter
 #------------------------------------------------------------------------------------------------------------------------
 
+# step to not always load data again 
+d = copy(d_save)
+
+
 # unique ID and order
 d[, ID_year := paste0(ID, '_', year_)]
 setorder(d, year_, ID_year, datetime_)
 
-# distance between consecutive points
-d[, lon2         := data.table::shift(lon, type = 'lead'), by = ID_year]
-d[, lat2         := data.table::shift(lat, type = 'lead'), by = ID_year]
-d[, distance_btw := sqrt(sum((c(lon, lat) - c(lon2, lat2))^2)) , by = 1:nrow(d)]
+# calculate track characteristics
+track_characteristics(d, ID = 'ID_year')
 
-# time between consecutive points
-d[, datetime_2   := data.table::shift(datetime_, type = 'lead'), by = ID_year]
-d[, time_btw     := as.numeric(difftime(datetime_2, datetime_, units = 'sec'))]
-
-# speed
-d[, speed := distance_btw / time_btw]
+# plot speed
 hist(d$speed*3.6)
 hist(d[speed > 5 & speed < 50]$speed*3.6, breaks = 40)
+quantile(d$speed, probs = c(0.99), na.rm = TRUE)
 
-# values above threshold
+# assign values above threshold
 speed_filter(d, ID = 'ID_year', speed = 'speed', max_speed = 30)
+d[, .N, error]
 
-# d[, speed_over_threshold := speed > 30]
-# d[, bout := windR::bCounter(speed_over_threshold), by = ID_year]
-# d[, seq := seq_len(.N), by = .(ID_year, bout)]
-# d[, error := seq == 2 & speed_over_threshold == TRUE]
+# visual check of the errors
+de = d[error == TRUE]
 
-# d[error == TRUE]
-
-# d = d[is.na(error)]
-
-DT = copy(d)
-ID = 'ID_year' 
-speed = 'speed'
-max_speed = 30
-
-
-
-
-speed_filter <- function(DT, ID, speed, max_speed){
+foreach(i = 1:nrow(de)) %do% {
   
-  if(nrow(DT) > 0) {
-    setnames(DT, c(ID, speed), c('IDu', 'speed'))
-    
-    # speed over may
-    DT[, speed_over_threshold := speed > max_speed]
-    
-    # select couts
-    bCounter <- function(x){
-      n = length(x)
-      y = x[-1] != x[-n]
-      i = c(which(y | is.na(y)), n)
-      lengths = diff(c(0L, i))
-      bout_length = rep(lengths, lengths)
-      ids = 1:length(lengths)
-      bout_id = rep(ids, lengths)
-      bout_id 
-      }
-    
-    DT[, bout := bCounter(speed_over_threshold), by = IDu]
-    
-    # select only outlier
-    DT[, seq := seq_len(.N), by = .(IDu, bout)]
-    DT[, error := seq == 2 & speed_over_threshold == TRUE]
-    
-    # delete unwanted columns
-    DT[ ,c('bout','seq') := NULL]
-    
-    setnames(DT, c('IDu', 'speed'), c(ID, speed))
-    
-  }
+  # subset
+  ID_ = de[i, ]$ID
+  dt_ = de[i, ]$datetime_
+  ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+  
+  # plot
+  bm = create_bm(ds)
+  bm + 
+    geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+    geom_point(data = ds, aes(lon, lat, color = speed), size = 1.5) +
+    scale_color_viridis(direction = -1)
+  
+  ggsave(paste0('./OUTPUTS/FIGURES/error/', ID_, '.png'), plot = last_plot(),  
+         width = 177, height = 177, units = c('mm'), dpi = 'print')
+  
+}
+
+
+# ggplot(data = d[!is.na(speed)]) +
+#   geom_point(aes(speed, gps_speed, color = error))
+
+# remove errors
+d = d[error == FALSE]
+
+# calculate track characteristics again without errors
+track_characteristics(d, ID = 'ID_year')
+
+# assign values above threshold
+speed_filter(d, ID = 'ID_year', speed = 'speed', max_speed = 20)
+d[, .N, error]
+
+# remove errors
+d = d[error == FALSE]
+
+# calculate track characteristics again without errors
+track_characteristics(d, ID = 'ID_year')
+
+# assign values above threshold
+speed_filter(d, ID = 'ID_year', speed = 'speed', max_speed = 20)
+d[, .N, error]
+
+# visual check of the errors
+de = d[error == TRUE]
+de = d[speed20 == TRUE]
+
+foreach(i = 1:nrow(de)) %do% {
+  
+  # subset
+  ID_ = de[i, ]$ID
+  dt_ = de[i, ]$datetime_
+  sp_ = de[i, ]$speed
+  ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+  
+  # plot
+  bm = create_bm(ds)
+  bm + 
+    geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+    geom_point(data = ds, aes(lon, lat, color = speed), size = 1.5) +
+    ggtitle(sp_) +
+    scale_color_viridis(direction = -1)
+  
+  ggsave(paste0('./OUTPUTS/FIGURES/error/', ID_, '.png'), plot = last_plot(),  
+         width = 177, height = 177, units = c('mm'), dpi = 'print')
+  
 }
 
 
 
-d[, .N, speed_over_threshold]
+
+ggplot(data = d[!is.na(speed)]) +
+  geom_point(aes(speed, gps_speed, color = error))
+
+
+
+d[, speed20 := speed > 20]
+
+d[speed20 == TRUE]
+
+
+d[, .N, error]
+
+# went this fast
+ID_ = 270170765
+dt_ = anytime('2018-07-14 03:01:25')
+
+ID_ = 270170073
+dt_ = anytime('2018-06-18 11:56:05')
+
+
+ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+
+bm = create_bm(ds)
+
+bm + 
+  geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = speed), size = 1.5) +
+  scale_color_viridis(direction = -1)
+
+
+ggplot(ds) +
+  geom_path(aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(aes(lon, lat, color = speed), size = 1.5) + 
+  theme_bw()
 
 
 # check with example
