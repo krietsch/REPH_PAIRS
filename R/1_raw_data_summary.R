@@ -175,9 +175,7 @@ ggplot(data = dt, aes(x = day, y = survival, col = as.character(year_))) +
   theme_classic(base_size = 24)
 p
 
-# png('./REPORTS/Proportion_tagged.png', width = 1400, height = 1000)
-# p
-# dev.off()
+# ggsave('./OUTPUTS/FIGURES/Proportion_tagged_year.png.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 ### loop by sex and days of data
 dts = foreach(k = unique(ds$sex), .combine = 'rbind') %do% {
@@ -215,9 +213,7 @@ p =
   theme_classic(base_size = 24)
 p
 
-# png('./REPORTS/Proportion_tagged_sex.png', width = 1400, height = 1000)
-# p
-# dev.off()
+# ggsave('./OUTPUTS/FIGURES/Proportion_tagged_sex.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 #------------------------------------------------------------------------------------------------------------------------

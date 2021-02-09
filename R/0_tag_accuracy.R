@@ -92,7 +92,7 @@ ggplot(data = d[dist_each_m < 40]) +
   theme_bw(base_size = 18)
 p 
 
-ggsave('./OUTPUTS/FIGURES/Error_positions_on_roof.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/Error_positions_on_roof.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 quantile(d$dist_each_m, probs = seq(0, 1, 0.05))
 quantile(d$dist, probs = seq(0, 1, 0.05))
@@ -172,7 +172,7 @@ p =
   scale_colour_manual(values = c('dodgerblue4', 'firebrick3'), labels = c('off nest', 'on nest'), name = c('T>30°C'))
 p
 
-# ggsave('./REPORTS/Error_positions_on_nest_map.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/Error_positions_on_nest_map.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 # calculate distance to nest
 n[, .(lon, lat)]
