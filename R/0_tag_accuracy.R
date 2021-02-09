@@ -8,7 +8,7 @@
 # 3. Quantify the error
 
 # Packages
-sapply( c('data.table', 'sdb','foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2'),
+sapply( c('data.table', 'sdb','foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf'),
         require, character.only = TRUE)
 
 # Projection
@@ -17,8 +17,6 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 # Data
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 d = dbq(con, 'select * FROM NANO_TAGS')
-DBI::dbDisconnect(con)
-
 d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
 
 #-------------------------------------------------------------------------------------------------------------------------
@@ -27,6 +25,7 @@ d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building
 
 g  = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
                lat, lon FROM FIELD_2018_REPHatBARROW.GPS_POINTS")
+DBI::dbDisconnect(con)
 
 dl = data.table(gps_id = rep(2, 10),
                 gps_point = rep(85:89, each = 2),
@@ -93,7 +92,7 @@ ggplot(data = d[dist_each_m < 40]) +
   theme_bw(base_size = 18)
 p 
 
-ggsave('./REPORTS/Error_positions_on_roof.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/Error_positions_on_roof.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 quantile(d$dist_each_m, probs = seq(0, 1, 0.05))
 quantile(d$dist, probs = seq(0, 1, 0.05))
@@ -106,12 +105,6 @@ points(lat_m ~ lon_m, d1, col = 'red')
 plot(lat ~ lon, d)
 points(lat_wp ~ lon_wp, d1, col = 'blue')
 points(lat_m ~ lon_m, d1, col = 'red')
-
-# Data
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
-
 
 #-------------------------------------------------------------------------------------------------------------------------
 # 4. Accuracy with real incubation data
@@ -211,7 +204,7 @@ ggplot(data = d[inc_t == 1 & dist < 40]) +
   theme_bw(base_size = 18)
 p
 
-# ggsave('./REPORTS/Error_positions_on_nest.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/Error_positions_on_nest.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 d[inc_t == 1 & dist <10] %>% nrow / d[inc_t == 1] %>% nrow
 d[inc_t == 1 & dist <15] %>% nrow / d[inc_t == 1] %>% nrow
