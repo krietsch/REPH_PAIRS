@@ -42,7 +42,7 @@ DBI::dbDisconnect(con)
 st_transform_DT(d)
 
 #--------------------------------------------------------------------------------------------------------------
-# 1. Apply speed filter 
+#' # 1. Apply speed filter 
 #--------------------------------------------------------------------------------------------------------------
 
 # unique ID and order
@@ -59,7 +59,7 @@ d[speed > 200] %>% nrow # exclude from plot
 
 ggplot(data = d[speed > 10 & speed < 200]) +
   geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
-  xlab('speed (km/h)') +
+  xlab('Speed (km/h)') +
   theme_classic()
 
 # found fastest speed within a real track = 104 km/h
@@ -115,11 +115,11 @@ d[, speed := speed * 3.6] # m/s to km/h
 
 ggplot(data = d[speed > 10 & speed < 200]) +
   geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
-  xlab('speed (km/h)') +
+  xlab('Speed (km/h)') +
   theme_classic()
 
 #--------------------------------------------------------------------------------------------------------------
-# 2. Apply distance filter 
+#' # 2. Apply distance filter 
 #--------------------------------------------------------------------------------------------------------------
 
 # assign values above thresholds
@@ -161,21 +161,22 @@ d[, speed := speed * 3.6] # m/s to km/h
 
 ggplot(data = d[speed > 10]) +
   geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
-  xlab('speed (km/h)') +
+  xlab('Speed (km/h)') +
   theme_classic()
 
 ggplot(data = d[!is.na(speed)]) +
   geom_point(aes(speed, gps_speed)) +
+  xlab('Speed (km/h)') +
   theme_classic()
 
 #--------------------------------------------------------------------------------------------------------------
-# 3. Check altitude
+#' # 3. Check altitude
 #--------------------------------------------------------------------------------------------------------------
 
 # plot raw data
 ggplot(data = d[altitude > 200]) +
   geom_histogram(aes(x = altitude), fill = 'grey50', color = 'grey20', binwidth = 10) +
-  xlab('altitude (m)') +
+  xlab('Altitude (m)') +
   theme_classic()
 
 # visual check of high altitudes
