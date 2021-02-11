@@ -1,16 +1,31 @@
+#' ---
+#' title: Filter GPS data using a speed and distance filter
+#' subtitle: 
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
+
 #==============================================================================================================
 # Filter GPS data using a speed and distance filter
 #==============================================================================================================
 
 # Summary
 # 1. Apply speed filter 
+# 2. Apply distance filter 
+# 3. Check altitudes
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr'), 
         require, character.only = TRUE)
 
 # Functions
 source('./R/0_functions.R')
+
+# Lines to run to create html output
+opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+# rmarkdown::render('./R/2_speed_and_distance_filter.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -111,29 +126,28 @@ ggplot(data = d[speed > 10 & speed < 200]) +
 distance_filter(d, ID = 'ID_year', distance_btw = 'distance_btw', max_distance = 2500, max_distance_before_after = 100)
 d[, .N, error]
 
-# visual check of the errors (showed 2.5 km and 100 m work to remove clear errors)
-de = d[error == TRUE]
-
-foreach(i = 1:nrow(de)) %do% {
-
-  # subset
-  ID_ = de[i, ]$ID
-  dt_ = de[i, ]$datetime_
-  ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
-
-  # plot
-  bm = create_bm(ds)
-  bm +
-    ggtitle(paste0(de[i, ]$speed %>% round(., 2), ' km/h ', de[i, ]$distance_btw %>% round(., 2), ' m')) +
-    geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
-    geom_point(data = ds[error == FALSE], aes(lon, lat), color = 'dodgerblue4', size = 1.5) +
-    geom_point(data = ds[error == TRUE], aes(lon, lat), color = 'firebrick2', size = 1.5)
-
-  ggsave(paste0('./OUTPUTS/INSPECTION/error_distance/', ID_, '.png'), plot = last_plot(),
-         width = 177, height = 177, units = c('mm'), dpi = 'print')
-
-}
-
+# # visual check of the errors (showed 2.5 km and 100 m work to remove clear errors)
+# de = d[error == TRUE]
+# 
+# foreach(i = 1:nrow(de)) %do% {
+# 
+#   # subset
+#   ID_ = de[i, ]$ID
+#   dt_ = de[i, ]$datetime_
+#   ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+# 
+#   # plot
+#   bm = create_bm(ds)
+#   bm +
+#     ggtitle(paste0(de[i, ]$speed %>% round(., 2), ' km/h ', de[i, ]$distance_btw %>% round(., 2), ' m')) +
+#     geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
+#     geom_point(data = ds[error == FALSE], aes(lon, lat), color = 'dodgerblue4', size = 1.5) +
+#     geom_point(data = ds[error == TRUE], aes(lon, lat), color = 'firebrick2', size = 1.5)
+# 
+#   ggsave(paste0('./OUTPUTS/INSPECTION/error_distance/', ID_, '.png'), plot = last_plot(),
+#          width = 177, height = 177, units = c('mm'), dpi = 'print')
+# 
+# }
 
 # visual inspection shows all clear errors
 paste0(d[error == TRUE] %>% nrow, '/', d %>% nrow)
@@ -151,142 +165,109 @@ ggplot(data = d[speed > 10]) +
   theme_classic()
 
 ggplot(data = d[!is.na(speed)]) +
-  geom_point(aes(speed, gps_speed, color = error)) +
+  geom_point(aes(speed, gps_speed)) +
   theme_classic()
 
 #--------------------------------------------------------------------------------------------------------------
 # 3. Check altitude
 #--------------------------------------------------------------------------------------------------------------
 
-d_save = copy(d)
-
-
+# plot raw data
 ggplot(data = d[altitude > 200]) +
   geom_histogram(aes(x = altitude), fill = 'grey50', color = 'grey20', binwidth = 10) +
   xlab('altitude (m)') +
   theme_classic()
 
+# visual check of high altitudes
+de = d[altitude > 2000]
+
+# foreach(i = 1:nrow(de)) %do% {
+# 
+#   # subset
+#   ID_ = de[i, ]$ID
+#   dt_ = de[i, ]$datetime_
+#   ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+# 
+#   # plot along time
+#   ggplot() +
+#     ggtitle(paste0(ds$altitude %>% max %>% round(., 2), ' m')) +
+#     geom_path(data = ds, aes(datetime_, altitude, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
+#     geom_point(data = ds, aes(datetime_, altitude, color = altitude), size = 1.5) +
+#     scale_color_viridis(direction = -1) +
+#     theme_classic()
+# 
+#   ggsave(paste0('./OUTPUTS/INSPECTION/high_altitude/', ID_, '.png'), plot = last_plot(),
+#          width = 177, height = 177, units = c('mm'), dpi = 'print')
+# 
+#   # plot on map
+#   bm = create_bm(ds)
+# 
+#   bm +
+#     ggtitle(paste0(ds$altitude %>% max %>% round(., 2), ' m')) +
+#     geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
+#     geom_point(data = ds, aes(lon, lat, color = altitude), size = 1.5) +
+#     scale_color_viridis(direction = -1)
+# 
+#   ggsave(paste0('./OUTPUTS/INSPECTION/high_altitude/', ID_, '_map.png'), plot = last_plot(),
+#          width = 177, height = 177, units = c('mm'), dpi = 'print')
+# 
+# }
+
+# could all be real! 70532 left in strong headwind and turned. Might have reached 7600 m!
 
 
-d[altitude > 6000]
-
-
+# subset highest flight
 ID_ = 270170532
 dt_ = anytime('2019-07-11 14:33:56')
 ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
 
+# plot on map
+bm = create_bm(ds)
 
+bm + 
+  ggtitle(paste0(ds$altitude %>% max %>% round(., 2), ' m')) +
+  geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = altitude), size = 1.5) +
+  scale_color_viridis(direction = -1)
+
+# plot along time
 ggplot() +
-  ggtitle(paste0(ds[altitude > 6000]$altitude %>% round(., 2), ' km/h')) +
+  ggtitle(paste0(ds$altitude %>% max %>% round(., 2), ' m')) +
   geom_path(data = ds, aes(datetime_, altitude, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
   geom_point(data = ds, aes(datetime_, altitude, color = altitude), size = 1.5) +
   scale_color_viridis(direction = -1) +
   theme_classic()
 
+# subset what happend afterwards
+ID_ = 270170532
+ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-11 11:33:56')]
+
+# last position
+d[ID == 270170532]$datetime_ %>% max
+
+# plot on map
 bm = create_bm(ds)
 
 bm + 
-  ggtitle(paste0(ds[altitude > 6000]$altitude %>% round(., 2), ' m')) +
+  ggtitle(paste0(ds$altitude %>% max %>% round(., 2), ' m')) +
   geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
-  geom_point(data = ds, aes(lon, lat, color = altitude), size = 1.5) +
+  geom_point(data = ds, aes(lon, lat, color = speed), size = 1.5) +
   scale_color_viridis(direction = -1)
 
-
-
-
-
-bm = create_bm(ds)
-
-bm + 
-  ggtitle(paste0(ds[altitude > 6000]$altitude %>% round(., 2), ' km/h')) +
-  geom_path(data = ds, aes(datetime_, altitude, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
-  geom_point(data = ds, aes(datetime_, altitude, color = altitude), size = 1.5) +
-  scale_color_viridis()
-
-
+# plot along time
 ggplot() +
-  ggtitle(paste0(ds[altitude > 6000]$altitude %>% round(., 2), ' km/h')) +
-  geom_path(data = ds, aes(datetime_, altitude, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
-  geom_point(data = ds, aes(datetime_, altitude, color = altitude), size = 1.5)
+  geom_path(data = ds, aes(datetime_, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(datetime_, lat, color = speed), size = 1.5) +
+  scale_color_viridis(direction = -1) +
+  theme_classic()
 
+# checked db, male had chicks hatched at 30 June 
+# how long did he drift?
+ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-17 11:33:56') & lat > -2075000]
+ds$datetime_ %>% max - ds$datetime_ %>% min
 
-
-
-require(tsoutliers)
-
-setorder(d, ID, datetime_)
-d[, tagID_ID := paste0(tagID, '_', ID)]
-d[, pointID  := seq_len(.N), by = tagID_ID]
-
-d[pointID == 1 & altitude > 100]
-
-d[, altitude_2  := data.table::shift(altitude, type = 'lead'), by = ID]
-d[, delta_alt   := abs(altitude - altitude_2), by = ID]
-d[, altitude_3  := data.table::shift(altitude, type = 'lag'), by = ID]
-d[, delta_alt_2 := abs(altitude - altitude_3), by = ID]
-
-d[delta_alt > 1300 & delta_alt_2 > 1300, outlier := TRUE]
-
-
-ds = d[ID == 270170245]
-
-ds = d[ID == 270170050]
-
-ds = d[ID == 270170764]
-
-ds = d[ID == 270170715]
-
-ds = d[ID == 270170765]
-
-ds = d[ID == 270170720]
-ds = d[ID == 270170754]
-
-
-ggplot(ds) +
-  geom_path(aes(lon, lat, color = altitude), size = 0.5) + 
-  geom_point(aes(lon, lat, color = altitude), size = 1.5) + 
-  scale_color_viridis() +
-  theme_bw()
-
-ggplot() +
-  geom_point(data = ds, aes(datetime_, altitude)) +
-  geom_point(data = ds[delta_alt > 1000], aes(datetime_, delta_alt), color = 'red')
-
-ggplot() +
-  geom_point(data = ds, aes(datetime_, altitude)) +
-  geom_point(data = ds[outlier == TRUE], aes(datetime_, altitude), color = 'red')
-
-
-
-
-
-ggplot() +
-  geom_point(data = ds, aes(datetime_, speed)) 
-
-
-
-ggplot() +
-  geom_point(data = d, aes(datetime_y, altitude)) +
-  geom_point(data = d[delta_alt > 700], aes(datetime_y, altitude), color = 'red')
-
-
-ggplot() +
-  geom_point(data = d, aes(datetime_y, altitude)) +
-  geom_point(data = d[outlier == TRUE], aes(datetime_y, altitude), color = 'red')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# version information
+sessionInfo()
 
 
 

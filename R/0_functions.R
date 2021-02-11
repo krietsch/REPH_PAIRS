@@ -229,7 +229,7 @@ distance_filter <- function(DT, ID, distance_btw, max_distance, max_distance_bef
     
     # delete unwanted columns
     DT[, c('bout','bout_lengths', 'seq', 'distance_over_threshold', 'lon_before', 'lat_before', 
-           'lon_after', 'lat_after', 'distance_over_threshold_ab') := NULL]
+           'lon_after', 'lat_after', 'distance_btw_ab', 'distance_over_threshold_ab') := NULL]
     
     setnames(DT, c('IDu', 'distance_btw'), c(ID, distance_btw))
     
