@@ -210,6 +210,88 @@ ggplot(data = d[!is.na(speed)]) +
 hist(d[speed > 5 & speed < 50]$speed*3.6, breaks = 40)
 
 
+d[speed > 20]
+
+
+
+
+
+# step to not always load data again 
+d = copy(d_save)
+
+
+# unique ID and order
+d[, ID_year := paste0(ID, '_', year_)]
+setorder(d, year_, ID_year, datetime_)
+
+# calculate track characteristics
+track_characteristics(d, ID = 'ID_year')
+
+# How to separate errors and and true positions
+distance_filter(d, ID = 'ID_year', distance_btw = 'distance_btw', max_distance = 1500, max_distance_before_after = 100)
+
+d[error == TRUE]
+
+# visual check of the errors
+de = d[error == TRUE]
+
+foreach(i = 1:nrow(de)) %do% {
+  
+  # subset
+  ID_ = de[i, ]$ID
+  dt_ = de[i, ]$datetime_
+  ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+  
+  # plot
+  bm = create_bm(ds)
+  bm +
+    geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
+    geom_point(data = ds[error == FALSE], aes(lon, lat), color = 'dodgerblue4', size = 1.5) +
+    geom_point(data = ds[error == TRUE], aes(lon, lat), color = 'firebrick2', size = 1.5)
+  
+  ggsave(paste0('./OUTPUTS/FIGURES/error_distance_only/', ID_, '.png'), plot = last_plot(),
+         width = 177, height = 177, units = c('mm'), dpi = 'print')
+  
+}
+
+
+
+# remove errors
+d = d[error == FALSE]
+
+# calculate track characteristics
+track_characteristics(d, ID = 'ID_year')
+
+ggplot(data = d[!is.na(speed)]) +
+  geom_point(aes(speed, gps_speed, color = error))
+
+hist(d[speed > 5 & speed < 50]$speed*3.6, breaks = 40)
+
+d[speed > 20]
+
+# went this fast
+ID_ = 270170765
+dt_ = anytime('2018-07-14 03:01:25')
+
+ID_ = 273145068
+dt_ = anytime('2019-06-19 23:07:22')
+
+ID_ = 273145087
+dt_ = anytime('2019-06-20 21:55:42')
+
+
+ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+
+bm = create_bm(ds)
+
+bm + 
+  geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = speed), size = 1.5) +
+  scale_color_viridis(direction = -1)
+
+
+
+
 
 # create test data
 d1 = data.table(ID = 'bird1', lat = 1:10, lon = 1:10, 
