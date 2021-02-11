@@ -1,6 +1,7 @@
 #' ---
 #' title: Analyse the accuracy of the tags
 #' subtitle: 
+#' author: Johannes Krietsch
 #' output:
 #'    html_document:
 #'      toc: true
@@ -12,12 +13,11 @@
 #=========================================================================================================================
 
 # Summary
-# 1. Get GPS locations of the test tags (average way point)
-# 2. Merge actual location with all points
-# 3. Quantify the error
+# 1. Tag accuracy based on test data
+# 2. Tag accuracy based on incubation data
 
 # Packages
-sapply( c('data.table', 'sdb','foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf'),
+sapply( c('data.table', 'sdb', 'anytime', 'foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf', 'knitr'),
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -27,9 +27,8 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
-
 #-------------------------------------------------------------------------------------------------------------------------
-#' # 1. Tag accuracy based on test data
+#' # Tag accuracy based on test data
 #-------------------------------------------------------------------------------------------------------------------------
 
 # Data
@@ -82,9 +81,9 @@ ggplot(data = d[dist_each_m < 50]) +
   ggtitle('Distance test location') +
   geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50') +
   geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 8, color = 'firebrick3') +
+  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 5, color = 'firebrick3') +
   geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 8, color = 'dodgerblue4') +
+  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 5, color = 'dodgerblue4') +
   xlab('Distance (m)') +
   theme_classic(base_size = 18)
 
@@ -102,7 +101,7 @@ bm +
   geom_point(data = ds, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 1)
 
 #-------------------------------------------------------------------------------------------------------------------------
-#' # 2. Tag accuracy based on incubation data
+#' # Tag accuracy based on incubation data
 #-------------------------------------------------------------------------------------------------------------------------
 
 # Data
@@ -111,7 +110,7 @@ d = dbq(con, 'select * FROM NANO_TAGS')
 dn = dbq(con, 'select * FROM NESTS')
 DBI::dbDisconnect(con)
 
-d[, datetime_ := as.POSIXct(datetime_)]
+d[, datetime_ := anytime(datetime_)]
 d = d[tagID == 92]
 d = d[datetime_ > as.POSIXct('2018-06-20 12:22:00')]
 
@@ -123,7 +122,7 @@ dn = dn[!is.na(lon)]
 st_transform_DT(dn)
 
 # Incubation data
-b = fread('//ds/raw_data_kemp/FIELD/Barrow/2018/DATA/RAW_DATA/MSR/R203_2018_07_16_MSR323219_180625_155302.csv', skip = 27, header = FALSE, sep = ';')
+b = fread('./DATA/R203_2018_07_16_MSR323219_180625_155302.csv', skip = 27, header = FALSE, sep = ';')
 
 b = data.table(datetime_  = as.POSIXct(b$V1),
                t_surface = as.numeric(b$V2),
@@ -140,9 +139,7 @@ closestDatetime(datetime_ = d$datetime_[1000], datetimes = b$datetime_)
 datetime_ = d$datetime_[1000]
 datetimes = b$datetime_
 
-
-cN = which(abs(datetimes - datetime_) == min(abs(datetimes - 
-                                                   datetime_)))
+cN = which(abs(datetimes - datetime_) == min(abs(datetimes - datetime_)))
 cD = as.POSIXct(datetimes[cN])
 cD[1]
 
@@ -160,57 +157,39 @@ n = dn[nestID == 'R203_18']
 # plot data 
 bm = create_bm(d[!is.na(inc_t)], buffer = 10, sc_dist = 10)
 
-p = 
-  bm +
+bm +
   geom_point(data = d[!is.na(inc_t)], aes(lon, lat, color = factor(inc_t)), size = 0.2) +
   geom_point(data = n, aes(lon, lat), color = 'black', size = 2, alpha = 0.5) +
   scale_colour_manual(values = c('dodgerblue4', 'firebrick3'), labels = c('off nest', 'on nest'), name = c('T>30°C'))
-p
-
-# ggsave('./OUTPUTS/FIGURES/Error_positions_on_nest_map.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 # calculate distance to nest
 n[, .(lon, lat)]
 d[, dist := sqrt(sum((c(lon, lat) - c(-403.5346, -2076970))^2)) , by = 1:nrow(d)]
 
 # plot distance
-median_ = median(d[inc_t == 1]$dist)
-q95 = quantile(d[inc_t == 1]$dist, probs = c(0.95))
+median_ = median(d[inc_t == 1]$dist) %>% round(., 1)
+q95 = quantile(d[inc_t == 1]$dist, probs = c(0.95)) %>% round(., 1)
 
-ggplot(data = d[inc_t == 1]) +
+# exclude distance over 50 m for plot
+d[inc_t == 1 & dist > 50] %>% nrow
+
+ggplot(data = d[inc_t == 1 & dist < 50]) +
   ggtitle('Distance from nest R203_18 while T>30°C') +
   geom_histogram(aes(dist), bins = 60, fill = 'grey85', color = 'grey50') +
   geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = round(median_, 1)), vjust = 1, hjust = -1, size = 8, color = 'firebrick3') +
+  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 5, color = 'firebrick3') +
   geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = round(q95, 1)), vjust = 1, hjust = -1, size = 8, color = 'dodgerblue4') +
+  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 5, color = 'dodgerblue4') +
   xlab('Distance (m)') +
-  theme_bw(base_size = 18)
+  theme_classic(base_size = 18)
 
-p = 
-ggplot(data = d[inc_t == 1 & dist < 40]) +
-  ggtitle('Distance from nest R203_18 while T>30°C') +
-  geom_histogram(aes(dist), bins = 60, fill = 'grey85', color = 'grey50') +
-  geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = round(median_, 1)), vjust = 1, hjust = -1, size = 8, color = 'firebrick3') +
-  geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = round(q95, 1)), vjust = 1, hjust = -1, size = 8, color = 'dodgerblue4') +
-  xlab('Distance (m)') +
-  theme_bw(base_size = 18)
-p
-
-# ggsave('./OUTPUTS/FIGURES/Error_positions_on_nest.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
-
-d[inc_t == 1 & dist <10] %>% nrow / d[inc_t == 1] %>% nrow
-d[inc_t == 1 & dist <15] %>% nrow / d[inc_t == 1] %>% nrow
-
-
-
-d[inc_t == 0 & dist <10] %>% nrow / d[inc_t == 0] %>% nrow
-d[inc_t == 0 & dist <15] %>% nrow / d[inc_t == 0] %>% nrow
-
-
-
+# all around nest on map
+bm = create_bm(d[inc_t == 1 & dist < 50], buffer = 10)
+bm + 
+  geom_point(data = d[!is.na(inc_t)], aes(lon, lat, color = factor(inc_t)), size = 0.2) +
+  geom_point(data = n, aes(lon, lat), color = 'black', size = 3) +
+  scale_colour_manual(values = c('dodgerblue4', 'firebrick3'), labels = c('off nest', 'on nest'), name = c('T>30°C'))
+  
 
 # version information
 sessionInfo()

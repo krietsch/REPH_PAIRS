@@ -1,6 +1,16 @@
-#========================================================================================================================
+#' ---
+#' title: Filter GPS data using a speed and distance filter
+#' subtitle: 
+#' author: Johannes Krietsch
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
+
+#==============================================================================================================
 # GPS raw data summary 
-#========================================================================================================================
+#==============================================================================================================
 
 # Summary
 # 1. Data available
@@ -8,8 +18,12 @@
 # 3. Data linked to nests
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak'),
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr'),
         require, character.only = TRUE)
+
+# Lines to run to create html output
+opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+# rmarkdown::render('./R/1_raw_data_summary.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -19,13 +33,14 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 d = dbq(con, 'select * FROM NANO_TAGS')
 d = d[ID != 999] # exclude test data
 d[is.na(lon)] # check that no NA
+d[, datetime_ := anytime(datetime_)]
 
 dc = dbq(con, 'select * FROM CAPTURES')
 dn = dbq(con, 'select * FROM NESTS')
 
-#------------------------------------------------------------------------------------------------------------------------
-# 1. Data available
-#------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------
+#' # Data available
+#--------------------------------------------------------------------------------------------------------------
 
 # Number of tags attached on REPH
 dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
@@ -54,17 +69,19 @@ d_no_data %>% length
 ds = dc[ID_tagID %in% d_no_data]
 
 # include tags with no data with capture location
-ds = ds[, .(year_, tagID = gps_tag, ID, datetime_ = released_time, lat, lon, ID_tagID)]
+ds = ds[, .(year_, tagID = gps_tag, ID, datetime_ = anytime(released_time), lat, lon, ID_tagID)]
 d = rbind(d, ds, fill = TRUE, use.names = TRUE)
 
 # timing of tag attachment
 setorder(dc, caught_time)
 ds = dc[!is.na(gps_tag)] %>% unique(., by = c('ID', 'gps_tag'))
 ds[, date_ := as.Date(caught_time)]
+ds[, date_y := as.Date(paste0('2021-', substr(date_, 6, 10)))]
 
 ggplot(data = ds) +
-  geom_bar(aes(date_)) +
-  facet_grid(.~year_, scales = 'free_x')
+  geom_bar(aes(date_y), fill = 'grey85', color = 'grey50') +
+  facet_grid(.~year_, scales = 'fixed') +
+  theme_classic()
 
 ds[, .(first  = min(date_), 
        last   = max(date_), 
@@ -83,20 +100,15 @@ ds = unique(d, by = 'ID_year')
 # merge with sex
 ds = merge(ds, unique(dc[, .(ID_tagID, sex = sex_observed)]), by = 'ID_tagID', all.x = TRUE)
 
-hist(ds$days_data)
-mean(ds$days_data)
-mean(ds[year_ == 2018]$days_data)
-mean(ds[year_ == 2019]$days_data)
-
-max(ds[year_ == 2018]$days_data)
-max(ds[year_ == 2019]$days_data)
-
-
+ds[year_ == 2018]$days_data %>% mean
+ds[year_ == 2019]$days_data %>% mean
+ds[year_ == 2018]$days_data %>% max
+ds[year_ == 2019]$days_data %>% max
 ds[year_ == 2019 & days_data > 27] %>% nrow
 
-#------------------------------------------------------------------------------------------------------------------------
-# 2. Data until 
-#------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------
+#' # Data until 
+#--------------------------------------------------------------------------------------------------------------
 
 ds = ds[, .(year_, ID_year, sex, first, last, days_data)]
 
@@ -136,7 +148,7 @@ ggplot(data = dt, aes(x = date2, y = survival, col = as.character(year_))) +
   geom_line(size = 1.5) +
   scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
   labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
-  theme_classic(base_size = 24)
+  theme_classic(base_size = 18)
 
 
 ### loop by days of data
@@ -172,10 +184,9 @@ ggplot(data = dt, aes(x = day, y = survival, col = as.character(year_))) +
   geom_line(size = 1.5) +
   scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
   labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
-  theme_classic(base_size = 24)
+  theme_classic(base_size = 18)
 p
 
-# ggsave('./OUTPUTS/FIGURES/Proportion_tagged_year.png.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 ### loop by sex and days of data
 dts = foreach(k = unique(ds$sex), .combine = 'rbind') %do% {
@@ -204,21 +215,16 @@ dts = foreach(k = unique(ds$sex), .combine = 'rbind') %do% {
 }  
 
 # plot
-p = 
-  ggplot(data = dts, aes(x = day, y = survival, col = as.character(sex))) +
+ggplot(data = dts, aes(x = day, y = survival, col = as.character(sex))) +
   scale_y_continuous(limits = c(0, 1)) +
   geom_line(size = 1.5) +
   scale_color_manual(name = 'Year', values = c('firebrick3', 'dodgerblue2')) +
   labs(x = 'Days of data', y = 'Proportion of tagged individuals') +
-  theme_classic(base_size = 24)
-p
+  theme_classic(base_size = 18)
 
-# ggsave('./OUTPUTS/FIGURES/Proportion_tagged_sex.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
-
-
-#------------------------------------------------------------------------------------------------------------------------
-# 3. Data linked to nests
-#------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------
+#' # Data linked to nests
+#--------------------------------------------------------------------------------------------------------------
 
 # prepare data for merge
 dn = dn[year_ > 2017]
@@ -228,8 +234,8 @@ dn[, initiation := as.POSIXct(initiation)]
 dn[, nest_state_date := as.POSIXct(nest_state_date)]
 
 du = unique(d, by = 'ID_year')
-dn[, first := as.POSIXct(first)]
-dn[, last := as.POSIXct(last)]
+du[, first := as.POSIXct(first)]
+du[, last := as.POSIXct(last)]
 
 # merge nest's with GPS data
 ds = merge(dn[, .(year_, nest, male_id, maleID_year, female_id, femaleID_year, initiation, nest_state_date)], 
@@ -283,7 +289,8 @@ ds[male_N_clutch == 2]
 ds[female_N_clutch == 2, .(nest, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
 
 
-
+# version information
+sessionInfo()
 
 
 

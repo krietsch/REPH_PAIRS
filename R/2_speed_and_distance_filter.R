@@ -1,6 +1,7 @@
 #' ---
 #' title: Filter GPS data using a speed and distance filter
 #' subtitle: 
+#' author: Johannes Krietsch
 #' output:
 #'    html_document:
 #'      toc: true
@@ -42,7 +43,7 @@ DBI::dbDisconnect(con)
 st_transform_DT(d)
 
 #--------------------------------------------------------------------------------------------------------------
-#' # 1. Apply speed filter 
+#' # Apply speed filter 
 #--------------------------------------------------------------------------------------------------------------
 
 # unique ID and order
@@ -58,7 +59,7 @@ d[speed < 10] %>% nrow # exclude from plot
 d[speed > 200] %>% nrow # exclude from plot
 
 ggplot(data = d[speed > 10 & speed < 200]) +
-  geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
+  geom_histogram(aes(x = speed), fill = 'grey85', color = 'grey50', binwidth = 5) +
   xlab('Speed (km/h)') +
   theme_classic()
 
@@ -114,12 +115,12 @@ track_characteristics(d, ID = 'ID_year')
 d[, speed := speed * 3.6] # m/s to km/h
 
 ggplot(data = d[speed > 10 & speed < 200]) +
-  geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
+  geom_histogram(aes(x = speed), fill = 'grey85', color = 'grey50', binwidth = 5) +
   xlab('Speed (km/h)') +
   theme_classic()
 
 #--------------------------------------------------------------------------------------------------------------
-#' # 2. Apply distance filter 
+#' # Apply distance filter 
 #--------------------------------------------------------------------------------------------------------------
 
 # assign values above thresholds
@@ -160,7 +161,7 @@ track_characteristics(d, ID = 'ID_year')
 d[, speed := speed * 3.6] # m/s to km/h
 
 ggplot(data = d[speed > 10]) +
-  geom_histogram(aes(x = speed), fill = 'grey50', color = 'grey20', binwidth = 5) +
+  geom_histogram(aes(x = speed), fill = 'grey85', color = 'grey50', binwidth = 5) +
   xlab('Speed (km/h)') +
   theme_classic()
 
@@ -170,12 +171,12 @@ ggplot(data = d[!is.na(speed)]) +
   theme_classic()
 
 #--------------------------------------------------------------------------------------------------------------
-#' # 3. Check altitude
+#' # Check altitude
 #--------------------------------------------------------------------------------------------------------------
 
 # plot raw data
 ggplot(data = d[altitude > 200]) +
-  geom_histogram(aes(x = altitude), fill = 'grey50', color = 'grey20', binwidth = 10) +
+  geom_histogram(aes(x = altitude), fill = 'grey85', color = 'grey50', binwidth = 10) +
   xlab('Altitude (m)') +
   theme_classic()
 
