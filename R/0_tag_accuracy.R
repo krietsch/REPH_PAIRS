@@ -1,5 +1,14 @@
+#' ---
+#' title: Analyse the accuracy of the tags
+#' subtitle: 
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
+
 #=========================================================================================================================
-# Check the accuracy of the tags
+# Analyse the accuracy of the tags
 #=========================================================================================================================
 
 # Summary
@@ -11,36 +20,38 @@
 sapply( c('data.table', 'sdb','foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf'),
         require, character.only = TRUE)
 
+# Lines to run to create html output
+opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+# rmarkdown::render('./R/0_tag_accuracy.R', output_dir = './OUTPUTS/R_COMPILED')
+
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+
+
+#-------------------------------------------------------------------------------------------------------------------------
+#' # 1. Tag accuracy based on test data
+#-------------------------------------------------------------------------------------------------------------------------
 
 # Data
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 d = dbq(con, 'select * FROM NANO_TAGS')
 d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
-
-#-------------------------------------------------------------------------------------------------------------------------
-# 1. Get GPS locations of the test tags (average way point)
-#-------------------------------------------------------------------------------------------------------------------------
-
-g  = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
+g = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
                lat, lon FROM FIELD_2018_REPHatBARROW.GPS_POINTS")
 DBI::dbDisconnect(con)
 
+# table with tagID and GPS waypoints
 dl = data.table(gps_id = rep(2, 10),
                 gps_point = rep(85:89, each = 2),
                 tagID = 91:100)
 
 dl = merge(dl, g, by = c('gps_point', 'gps_id') )
 
-#-------------------------------------------------------------------------------------------------------------------------
-# 2. Merge actual location with all points
-#-------------------------------------------------------------------------------------------------------------------------
-
 # transform in equal area projection
 st_transform_DT(dl)
 st_transform_DT(d)
 
+# merge actual location with all points
 d = merge(d, dl[, .(tagID, lat_wp = lat, lon_wp = lon)], by = 'tagID', all.x = TRUE)
 
 # calculate difference between WP and Nanotag
@@ -49,8 +60,8 @@ d[, dist := sqrt(sum((c(lat, lon) - c(lat_wp, lon_wp))^2)) , by = 1:nrow(d)]
 # exclude some data from tag 94 that had many totally wrong positions
 d = d[dist < 1000]
 
-# mean tag position
-d[, lat_m  := median(lat),  by = tagID]
+# median tag position
+d[, lat_m := median(lat), by = tagID]
 d[, lon_m := median(lon), by = tagID]
 
 # calculate difference between WP and mean Nanotag position
@@ -58,56 +69,40 @@ d[, dist_m := sqrt(sum((c(lat_m, lon_m) - c(lat_wp, lon_wp))^2)) , by = 1:nrow(d
 
 # calculate difference mean Nanotag position and each Nanotag position
 d[, dist_each_m := sqrt(sum((c(lat, lon) - c(lat_m, lon_m))^2)) , by = 1:nrow(d)]
+d1 = d[, .SD[1], by = tagID] # table with first point
 
-d = d[dist < 1000]
+# plot data 
+median_ = median(d$dist_each_m) %>% round(., 1)
+q95 = quantile(d$dist_each_m, probs = c(0.95)) %>% round(., 1)
 
-d1 = d[, .SD[1], by = tagID]
+# exclude distance over 50 m for plot
+d[dist_each_m > 50] %>% nrow
 
-#-------------------------------------------------------------------------------------------------------------------------
-# 3. Quantify the error with test locations
-#-------------------------------------------------------------------------------------------------------------------------
-
-median_ = median(d$dist_each_m)
-q95 = quantile(d$dist_each_m, probs = c(0.95))
-
-ggplot(data = d) +
+ggplot(data = d[dist_each_m < 50]) +
   ggtitle('Distance test location') +
   geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50') +
   geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = round(median_, 1)), vjust = 1, hjust = -1, size = 8, color = 'firebrick3') +
+  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 8, color = 'firebrick3') +
   geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = round(q95, 1)), vjust = 1, hjust = -1, size = 8, color = 'dodgerblue4') +
+  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 8, color = 'dodgerblue4') +
   xlab('Distance (m)') +
-  theme_bw(base_size = 18)
+  theme_classic(base_size = 18)
 
-p = 
-ggplot(data = d[dist_each_m < 40]) +
-  ggtitle('Distance test location') +
-  geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50') +
-  geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = round(median_, 1)), vjust = 1, hjust = -1, size = 8, color = 'firebrick3') +
-  geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = round(q95, 1)), vjust = 1, hjust = -1, size = 8, color = 'dodgerblue4') +
-  xlab('Distance (m)') +
-  theme_bw(base_size = 18)
-p 
+# all points on map
+bm = create_bm(d, buffer = 10)
+bm + 
+  geom_point(data = d, aes(lon, lat), color = 'firebrick3', size = 0.8, alpha = 0.3) +
+  geom_point(data = d, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 1)
 
-# ggsave('./OUTPUTS/FIGURES/Error_positions_on_roof.png', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
-
-quantile(d$dist_each_m, probs = seq(0, 1, 0.05))
-quantile(d$dist, probs = seq(0, 1, 0.05))
-
-
-plot(lat_wp ~ lon_wp, d1, col = 'blue')
-points(lat_m ~ lon_m, d1, col = 'red')
-
-
-plot(lat ~ lon, d)
-points(lat_wp ~ lon_wp, d1, col = 'blue')
-points(lat_m ~ lon_m, d1, col = 'red')
+# median vs. GPS waypoint 
+ds = d1[, .(tagID, year_,  ID, lat_m, lon_m, lat_wp, lon_wp )]
+bm = create_bm(ds, lat = 'lat_m', lon = 'lon_m', buffer = 5)
+bm +
+  geom_point(data = ds, aes(lon_m, lat_m), color = 'firebrick3', size = 0.8, alpha = 0.3) +
+  geom_point(data = ds, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 1)
 
 #-------------------------------------------------------------------------------------------------------------------------
-# 4. Accuracy with real incubation data
+#' # 2. Tag accuracy based on incubation data
 #-------------------------------------------------------------------------------------------------------------------------
 
 # Data
@@ -128,7 +123,7 @@ dn = dn[!is.na(lon)]
 st_transform_DT(dn)
 
 # Incubation data
-b = read.table('//ds/raw_data_kemp/FIELD/Barrow/2018/DATA/RAW_DATA/MSR/R203_2018_07_16_MSR323219_180625_155302.csv', skip = 27, header = FALSE, sep = ';')
+b = fread('//ds/raw_data_kemp/FIELD/Barrow/2018/DATA/RAW_DATA/MSR/R203_2018_07_16_MSR323219_180625_155302.csv', skip = 27, header = FALSE, sep = ';')
 
 b = data.table(datetime_  = as.POSIXct(b$V1),
                t_surface = as.numeric(b$V2),
@@ -217,4 +212,5 @@ d[inc_t == 0 & dist <15] %>% nrow / d[inc_t == 0] %>% nrow
 
 
 
-
+# version information
+sessionInfo()
