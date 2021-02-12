@@ -268,6 +268,15 @@ ggplot() +
 ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-17 11:33:56') & lat > -2075000]
 ds$datetime_ %>% max - ds$datetime_ %>% min
 
+#--------------------------------------------------------------------------------------------------------------
+
+# subset relevant data
+d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
+
+# save data
+fwrite(d, './DATA/NANO_TAGS_FILTERED.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+
 # version information
 sessionInfo()
 
