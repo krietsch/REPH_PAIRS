@@ -56,15 +56,12 @@ d = d[, .(year_ = c(1), datetime_ = mean(datetime_), lat = mean(lat), lon = mean
 anyDuplicated(d, by = c('ID', 'datetime_10min'))
 
 
-
-# calculate distance between all points for each time point
-
 # register cores
 require(doFuture)
 registerDoFuture()
 plan(multiprocess)
 
-
+# calculate distance between all points for each time point
 setkey(d, datetime_)
 xt = unique(d[, datetime_10min])
 dp = foreach(i = xt, .combine = 'rbind', .packages = c('sf', 'data.table')) %dopar% {
@@ -82,73 +79,57 @@ dp = foreach(i = xt, .combine = 'rbind', .packages = c('sf', 'data.table')) %dop
   
   # create pair wise table
   d_paired = as.table(d_distance_matrix) %>% data.table
-  setnames(d_paired, c('ID', 'ID2', 'distance'))
+  setnames(d_paired, c('ID1', 'ID2', 'distance'))
   
   d_paired[, datetime_10min := i]
   d_paired
   
 }
 
+# exclude duplicates 
+dp = dp[ID1 < ID2]
+dp = dp[ID1 != ID2]
+
+# save data
+# fwrite(dp, './DATA/PAIR_WISE_DIST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+
+# read data
+dp = fread('./DATA/PAIR_WISE_DIST.txt', sep = '\t', header = TRUE) %>% data.table
 
 
 
 
+# interaction
+dp[, interaction := distance < 15]
 
+dp[, .N, interaction]
 
+dp[, date_ := as.Date(datetime_10min)]
 
-ds = d[datetime_10min == d[30, datetime_10min]]
+du = unique(dp, by = c('ID1', 'ID2', 'date_'))
+du = unique(dp, by = c('ID1', 'ID2'))
 
-d_sf = st_as_sf(ds, crs = PROJ, coords = c('lon', 'lat'), row.names = 'ID')
+ds = dp[interaction == TRUE]
+ds = du[interaction == TRUE]
 
-d_distance_matrix = st_distance(d_sf, which = 'Euclidean') %>% as.matrix
-rownames(d_distance_matrix) = ds[, ID]
-colnames(d_distance_matrix) = ds[, ID]
+ds[, .N, ID1]
 
-dw = as.table(d_distance_matrix) %>% data.table
-setnames(dw, c('ID', 'ID2', 'distance'))
+ds[, obs_id := 1:nrow(ds)]
+ds = rbind(ds[, .(ID = ID1, obs_id)], ds[, .(ID = ID2, obs_id)])
 
+require(asnipe)
+require(igraph)
 
+# create matrix with observation ID by individual
+gbi = get_group_by_individual(ds[, .(ID, obs_id)], data_format = 'individuals')
 
+# calculate a network
+netw = get_network(gbi, data_format = 'GBI', association_index = 'SRI')
 
-
-d[, ID_dt_10min := paste0(ID, '_', datetime_10min)]
-
-d[]
-
-ds = d[ID_dt_10min %in% d[duplicated == TRUE]$ID_dt_10min]
-
-ds = ds[, .(ID, datetime_, datetime_10min, duplicated)]
-
-
-ID_ = 270170063
-dt_ = as.POSIXct('2019-06-14 00:17:45')
-dss = d[ID == ID_ & datetime_ > c(dt_ - 3600) & datetime_ < c(dt_ + 3600)]
-dss 
-
-
-d$datetime_
-
-unique(d, by = c('tagID', 'datetime_10min'))
-
-d_sf = st_as_sf(d, crs = PROJ, coords = c('lon', 'lat'))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# plot network
+pn = graph.adjacency(netw, mode = 'undirected', weighted = TRUE, diag = FALSE)
+plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, vertex.size = 4, edge.color = 'black')
 
 
 
