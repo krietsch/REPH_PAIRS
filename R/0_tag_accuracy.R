@@ -20,6 +20,9 @@
 sapply( c('data.table', 'sdb', 'anytime', 'foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf', 'knitr'),
         require, character.only = TRUE)
 
+# Functions
+source('./R/0_functions.R')
+
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/0_tag_accuracy.R', output_dir = './OUTPUTS/R_COMPILED')
@@ -75,7 +78,7 @@ median_ = median(d$dist_each_m) %>% round(., 1)
 q95 = quantile(d$dist_each_m, probs = c(0.95)) %>% round(., 1)
 
 # exclude distance over 50 m for plot
-d[dist_each_m > 50] %>% nrow
+d[dist_each_m > 50] %>% nrow / d %>% nrow * 100
 
 ggplot(data = d[dist_each_m < 50]) +
   ggtitle('Distance test location') +
@@ -97,8 +100,8 @@ bm +
 ds = d1[, .(tagID, year_,  ID, lat_m, lon_m, lat_wp, lon_wp )]
 bm = create_bm(ds, lat = 'lat_m', lon = 'lon_m', buffer = 5)
 bm +
-  geom_point(data = ds, aes(lon_m, lat_m), color = 'firebrick3', size = 0.8, alpha = 0.3) +
-  geom_point(data = ds, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 1)
+  geom_point(data = ds, aes(lon_m, lat_m), color = 'firebrick3', size = 2, alpha = 0.5) +
+  geom_point(data = ds, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 2)
 
 #-------------------------------------------------------------------------------------------------------------------------
 #' # Tag accuracy based on incubation data
@@ -171,7 +174,7 @@ median_ = median(d[inc_t == 1]$dist) %>% round(., 1)
 q95 = quantile(d[inc_t == 1]$dist, probs = c(0.95)) %>% round(., 1)
 
 # exclude distance over 50 m for plot
-d[inc_t == 1 & dist > 50] %>% nrow
+d[inc_t == 1 & dist > 50] %>% nrow / d[inc_t == 1] %>% nrow * 100
 
 ggplot(data = d[inc_t == 1 & dist < 50]) +
   ggtitle('Distance from nest R203_18 while T>30°C') +

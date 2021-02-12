@@ -21,6 +21,9 @@
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr'),
         require, character.only = TRUE)
 
+# Functions
+source('./R/0_functions.R')
+
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/1_raw_data_summary.R', output_dir = './OUTPUTS/R_COMPILED')
