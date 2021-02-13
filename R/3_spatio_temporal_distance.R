@@ -100,18 +100,67 @@ dp = fread('./DATA/PAIR_WISE_DIST.txt', sep = '\t', header = TRUE) %>% data.tabl
 
 
 
-# interaction
-dp[, interaction := distance < 15]
 
+
+
+ds = dp[date_ == dp[4000, date_]]
+
+ggplot(data = ds) +
+  geom_histogram(aes(distance))
+
+
+# interactions
+dp[, interaction := distance < 15]
 dp[, .N, interaction]
+ds = dp[interaction == TRUE]
+
+
+dss = ds[, .N, by = .(ID1, ID2)]
+
+ggplot(data = dss) +
+  geom_histogram(aes(N))
+
+dss[N > 500]
+
+
+# found fastest speed within a real track = 104 km/h
+ID_ = 270170763
+dt_ = anytime('2019-06-19 23:07:22')
+ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
+ds = d[ID == ID_]
+
+bm = create_bm(ds)
+
+bm + 
+  geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = ID), size = 1.5) +
+  scale_color_viridis(direction = -1)
+
+
+ds = dp[ID1 == 270170763 & ID2 == 270170764]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_10min, distance))
+
+
+d[, date_ := as.Date(datetime_10min)]
+
+dss = d[, .N, datetime_10min]
+dss[, year_ := year(datetime_10min)]
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_10min, N)) +
+  facet_wrap(.~year_, scales = 'free')
+
+
+
+
 
 dp[, date_ := as.Date(datetime_10min)]
-
 du = unique(dp, by = c('ID1', 'ID2', 'date_'))
-du = unique(dp, by = c('ID1', 'ID2'))
-
-ds = dp[interaction == TRUE]
 ds = du[interaction == TRUE]
+
+ds$ID1 %>% unique %>% length
 
 ds[, .N, ID1]
 
