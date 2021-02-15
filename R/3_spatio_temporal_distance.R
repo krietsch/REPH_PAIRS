@@ -97,7 +97,7 @@ dp = dp[ID1 != ID2]
 # read data
 dp = fread('./DATA/PAIR_WISE_DIST.txt', sep = '\t', header = TRUE) %>% data.table
 
-
+dp[, date_ := as.Date(datetime_10min)]
 
 
 
@@ -107,6 +107,24 @@ ds = dp[date_ == dp[4000, date_]]
 
 ggplot(data = ds) +
   geom_histogram(aes(distance))
+
+
+
+
+# round times to 10 min intervalls
+d[, datetime_ := as.POSIXct(datetime_)]
+d[, datetime_10min := round(datetime_, '10 mins')]
+d[, datetime_ := datetime_ %>% as.character %>% as.POSIXct]
+d[, datetime_10min := datetime_10min %>% as.character %>% as.POSIXct]
+
+ds = d[datetime_10min == d[4000, datetime_10min]]
+
+bm = create_bm(ds)
+
+bm + 
+  geom_path(data = ds, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = as.character(ID)), size = 1.5) 
+
 
 
 # interactions
@@ -157,12 +175,22 @@ ggplot(data = dss) +
 
 
 dp[, date_ := as.Date(datetime_10min)]
-du = unique(dp, by = c('ID1', 'ID2', 'date_'))
-ds = du[interaction == TRUE]
+du = unique(dp[interaction == TRUE], by = c('ID1', 'ID2', 'date_'))
 
-ds$ID1 %>% unique %>% length
 
-ds[, .N, ID1]
+
+dp[, ID1] %>% unique %>% length
+du[, ID1] %>% unique %>% length
+
+
+
+
+
+
+
+ds = copy(dp)
+ds[, year_ := year(date_)]
+ds = ds[year_ == 2018]
 
 ds[, obs_id := 1:nrow(ds)]
 ds = rbind(ds[, .(ID = ID1, obs_id)], ds[, .(ID = ID2, obs_id)])
