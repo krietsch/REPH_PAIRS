@@ -120,33 +120,39 @@ ds = copy(dp[interaction == TRUE])
 ds[, year_ := year(date_)]
 ds = ds[year_ == 2019]
 
-dss = ds[, .N, by = .(ID1, ID2)]
-setorder(dss, N)
-dss[, N := log(N)]
+# dss = ds[, .N, by = .(ID1, ID2)]
+# setorder(dss, N)
+# dss[, N := log(N)]
+# 
+# hist(dss[N > 30]$N)
+# dss[N > 200]
+# dss[N == 1]
 
-hist(dss[N > 30]$N)
-dss[N > 200]
-dss[N == 1]
-
-ds[, obs_id := 1:nrow(ds)]
+ds[, obs_id := paste0('int_', 1:nrow(ds))]
 ds = rbind(ds[, .(ID = ID1, obs_id)], ds[, .(ID = ID2, obs_id)])
 
+# include single observations
+dsf = dp[interaction == FALSE]
+dsf = unique(dsf, by = c('ID1', 'datetime_10min'))
+dsf[, obs_id := paste0('lone_', 1:nrow(dsf))]
+
+ds = rbind(ds, dsf[, .(ID = ID1, obs_id)])
 
 
-an <- with(dss, sort(unique(c(as.character(ID1),
-                              as.character(ID2)))))
-M <- array(0, c(length(an), length(an)), list(an, an))
-i <- match(dss$ID1, an)
-j <- match(dss$ID2, an)
-M[cbind(i,j)] <- M[cbind(j,i)] <- dss$N
-
-
-# plot network
-pn = graph.adjacency(M, mode = 'undirected', weighted = TRUE, diag = FALSE)
-plot(pn, vertex.label = NA, edge.width = E(pn)$weight/15, vertex.size = 4, edge.color = 'black')
-
-l <- layout_in_circle(pn)
-plot(pn, layout=l)
+# an <- with(dss, sort(unique(c(as.character(ID1),
+#                               as.character(ID2)))))
+# M <- array(0, c(length(an), length(an)), list(an, an))
+# i <- match(dss$ID1, an)
+# j <- match(dss$ID2, an)
+# M[cbind(i,j)] <- M[cbind(j,i)] <- dss$N
+# 
+# 
+# # plot network
+# pn = graph.adjacency(M, mode = 'undirected', weighted = TRUE, diag = FALSE)
+# plot(pn, vertex.label = NA, edge.width = E(pn)$weight/15, vertex.size = 4, edge.color = 'black')
+# 
+# l <- layout_in_circle(pn)
+# plot(pn, layout=l)
 
 # create matrix with observation ID by individual
 gbi = get_group_by_individual(ds[, .(ID, obs_id)], data_format = 'individuals')
@@ -208,6 +214,32 @@ dw = merge(dw, dss, by = c('ID1', 'ID2'))
 
 ggplot(data = dw) +
   geom_point(aes(N, association))
+
+
+hist(dw$association)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
