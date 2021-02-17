@@ -26,20 +26,22 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/1_raw_data_summary.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/2_data_summary.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-d = d[ID != 999] # exclude test data
-d[is.na(lon)] # check that no NA
+d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 d[, datetime_ := anytime(datetime_)]
 
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dc = dbq(con, 'select * FROM CAPTURES')
 dn = dbq(con, 'select * FROM NESTS')
+dr = dbq(con, 'select * FROM RESIGHTINGS')
+dr[, year_ := year(datetime_)]
+dr = dr[year_ > 2017]
+DBI::dbDisconnect(con)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Data available
@@ -291,12 +293,56 @@ ds[, .N, by = mf_initiation5]
 ds[male_N_clutch == 2]
 ds[female_N_clutch == 2, .(nest, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Proportion of individuals seen/tagged in the study site 
+#--------------------------------------------------------------------------------------------------------------
 
-# version information
-sessionInfo()
+# change projection
+st_transform_DT(dr)
+
+# assign locations in the study area 
+point_over_poly_DT(dr, poly = study_site, buffer = 10)
+setnames(dr, 'poly_overlap', 'study_site')
+
+point_over_poly_DT(d, poly = study_site, buffer = 10)
+setnames(d, 'poly_overlap', 'study_site')
+
+# date
+dr[, date_ := as.Date(datetime_)]
+d[, date_ := as.Date(datetime_)]
+
+# subset study site
+drs = dr[study_site == TRUE]
+ds = d[study_site == TRUE]
+dso = d[study_site == FALSE]
+
+# unique by date
+drs = dr[!is.na(ID)]
+dru = unique(drs, by = c('ID', 'date_'))
+du = unique(ds, by = c('ID', 'date_'))
+duo = unique(dso, by = c('ID', 'date_'))
+
+dss = merge(dru[, .(ID, date_, seen = TRUE)], du[, .(ID, date_, tagged = TRUE)], by = c('ID', 'date_'), all = TRUE)
+
+dss[seen == TRUE & tagged == TRUE, type := 'seen/tagged']
+dss[is.na(type) & seen == TRUE, type := 'seen']
+dss[is.na(type) & tagged == TRUE, type := 'tagged']
+
+dss = merge(dss, duo[, .(ID, date_, tagged_out = TRUE)], by = c('ID', 'date_'), all = TRUE)
+dss[is.na(type), type := 'only_outside']
+
+dss[, year_ := year(date_)]
+dss[, .N, type]
+
+ggplot(data = dss[year_ == 2019]) +
+  geom_bar(aes(x = date_, fill = type), stat = 'count') +
+  scale_x_date(date_breaks = "weeks", date_labels = "%d-%m") +
+  theme_classic()
 
 
-
+ggplot(data = dss[year_ == 2018]) +
+  geom_bar(aes(x = date_, fill = type), stat = 'count') +
+  scale_x_date(date_breaks = "weeks", date_labels = "%d-%m")
 
 
 
