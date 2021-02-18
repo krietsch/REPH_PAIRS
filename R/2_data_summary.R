@@ -87,9 +87,9 @@ dss = ds[, .N, year_]
 
 p1 = 
 ggplot(data = ds[year_ == 2018]) +
-  geom_bar(aes(date_y), fill = 'grey85', color = 'grey50') +
+  geom_bar(aes(date_y), fill = 'grey80', color = 'grey50', size = 0.2) +
   geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
-  scale_y_continuous(limits = c(0, 35), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
   xlab('Date') + ylab('Tags') +
   theme_classic(base_size = 11) +
@@ -97,9 +97,9 @@ ggplot(data = ds[year_ == 2018]) +
 
 p2 = 
 ggplot(data = ds[year_ == 2019]) +
-  geom_bar(aes(date_y), fill = 'grey85', color = 'grey50') +
+  geom_bar(aes(date_y), fill = 'grey80', color = 'grey50', size = 0.2) +
   geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
-  scale_y_continuous(limits = c(0, 35), expand = c(0, 0)) +
+  scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
   xlab('Date') + ylab('Tags') +
   theme_classic(base_size = 11) +
@@ -337,7 +337,7 @@ ds = d[study_site == TRUE]
 dso = d[study_site == FALSE]
 
 # unique by date
-drs = dr[!is.na(ID)]
+drs = drs[!is.na(ID)]
 dru = unique(drs, by = c('ID', 'date_'))
 du = unique(ds, by = c('ID', 'date_'))
 duo = unique(dso, by = c('ID', 'date_'))
@@ -361,20 +361,27 @@ dss[, date_y := as.Date(paste0(y, substr(date_, 5, 10)))]
 min_date = dss[, date_y] %>% min
 max_date = dss[, date_y] %>% max
 
+# sample size
+dssn = unique(dss, by = c('ID', 'year_'))
+dssn = dssn[, .N, year_]
+
+
 p3 = 
   ggplot(data = dss[year_ == 2018]) +
-  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.9) +
+  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dssn[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
   scale_y_continuous(limits = c(0, 160), expand = c(0, 0)) +
   scale_fill_grey(labels = c('Observed without tag', 'Observed with tag', 'With tag but not observed'), start = 0.4, end = 0.8) +
   xlab('Date') + ylab('Number of individuals') +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.8, 0.8), legend.title = element_blank(), 
+  theme(legend.position = c(0.3, 0.87), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), legend.key.height = unit(0.4, 'cm'), 
         legend.background = element_rect(fill = alpha('white', 0)), axis.title.x = element_blank(), axis.text.x=element_blank())
 
 p4 = 
 ggplot(data = dss[year_ == 2019]) +
-  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.9) +
+  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dssn[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
   scale_y_continuous(limits = c(0, 160), expand = c(0, 0)) +
   scale_fill_grey(labels = c('Observed without tag', 'Observed with tag', 'With tag but not observed'), start = 0.4, end = 0.8) +
@@ -383,6 +390,7 @@ ggplot(data = dss[year_ == 2019]) +
   theme(legend.position = 'none', axis.title.x = element_blank(), axis.text.x=element_blank(),
         axis.title.y = element_blank())
 
+ggplot_build(p4)$data 
 
 # link to nest initiation 
 dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
@@ -401,7 +409,7 @@ dss = ds[, .(median = median(initiation_y), q25 = quantile(initiation_y, probs =
 
 p5 = 
 ggplot(data = ds[year_ == 2018]) +
-  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey85') +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey80', color = 'grey50', size = 0.2) +
   geom_point(data = dss[year_ == 2018], aes(median, as.character(year_)), size = 2) +
   geom_linerange(data = dss[year_ == 2018], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
   geom_text(data = dss[year_ == 2018], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
@@ -414,7 +422,7 @@ ggplot(data = ds[year_ == 2018]) +
 
 p6 = 
 ggplot(data = ds[year_ == 2019]) +
-  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey85') +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey80', color = 'grey50', size = 0.2) +
   geom_point(data = dss[year_ == 2019], aes(median, as.character(year_)), size = 2) +
   geom_linerange(data = dss[year_ == 2019], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
   geom_text(data = dss[year_ == 2019], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
@@ -429,7 +437,141 @@ require(patchwork)
 patchwork = (p3 + p4) / (p1 + p2) / (p5 + p6)
 patchwork + plot_layout(heights = c(3, 0.4, 0.4))
 
-ggsave('./OUTPUTS/FIGURES/N_ID_observed_tagged.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/N_ID_observed_tagged.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # GPS tagged breeders and non-breeders
+#--------------------------------------------------------------------------------------------------------------
+
+# Data
+d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
+d[, datetime_ := anytime(datetime_)]
+
+dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
+dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation)]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+
+# assign locations in the study area 
+point_over_poly_DT(d, poly = study_site, buffer = 10)
+setnames(d, 'poly_overlap', 'study_site')
+
+# date
+d[, date_ := as.Date(datetime_)]
+y = format(Sys.Date(), '%Y') # current year
+d[, date_y := as.Date(paste0(y, substr(date_, 5, 10)))]
+
+# unique by date
+du = unique(d, by = c('ID', 'date_'))
+
+# ID breeders
+dID = rbind(dn[, .(year_, ID = male_id, breeder = TRUE, polyandrous)], dn[, .(year_, ID = female_id, breeder = TRUE, polyandrous)])
+
+# merge nest info
+du = merge(du, dID, by = c('year_', 'ID'), all.x = TRUE)
+du[is.na(breeder), breeder := FALSE]
+
+
+# plot settings
+min_date = du[, date_y] %>% min
+max_date = du[, date_y] %>% max
+
+# sample size
+dss = unique(du, by = c('ID', 'year_'))
+dss = dss[, .N, year_]
+
+p1 = 
+ggplot(data = du[year_ == 2018]) +
+  ggtitle('2018') +
+  geom_bar(aes(x = date_y, fill = breeder), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  scale_y_continuous(limits = c(0, 170), expand = c(0, 0)) +
+  scale_fill_grey(labels = c('Unknown if breeder', 'Known breeder'), start = 0.4, end = 0.8) +
+  xlab('Date') + ylab('Number of individuals') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.3, 0.87), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.4, 'cm'), legend.background = element_rect(fill = alpha('white', 0)), 
+        axis.title.x = element_blank(), axis.text.x=element_blank(), plot.title = element_text(hjust = 0.5))
+
+p2 = 
+ggplot(data = du[year_ == 2019]) +
+  ggtitle('2019') +
+  geom_bar(aes(x = date_y, fill = breeder), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  scale_y_continuous(limits = c(0, 170), expand = c(0, 0)) +
+  scale_fill_grey(labels = c('Unknown if breeder', 'Known breeder'), start = 0.4, end = 0.8) +
+  xlab('Date') + ylab('Number of individuals') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = 'none', axis.title.x = element_blank(), axis.text.x=element_blank(),
+        axis.title.y = element_blank(), plot.title = element_text(hjust = 0.5))
+
+
+# link to nest initiation 
+dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
+dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation)]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+
+# subset data from tagged birds
+dID = unique(d, by = c('year_', 'ID'))
+dn = merge(dn, dID[, .(year_, female_id = ID, female_tagged = TRUE)], by = c('year_', 'female_id'), all.x = TRUE)
+dn = merge(dn, dID[, .(year_, male_id = ID, male_tagged = TRUE)], by = c('year_', 'male_id'), all.x = TRUE)
+
+dn[female_tagged == TRUE & male_tagged == TRUE, tagged := 'both']
+dn[is.na(female_tagged) & male_tagged == TRUE, tagged := 'male']
+dn[is.na(male_tagged) & female_tagged == TRUE, tagged := 'female']
+dn[is.na(tagged), tagged := 'none']
+
+# subset nest with at least one bird tagged
+ds = dn[tagged != 'none']
+
+# sample size
+dss = ds[, .(median = median(initiation_y), q25 = quantile(initiation_y, probs = c(0.25)),
+             q75 = quantile(initiation_y, probs = c(0.75)), .N, max = max(initiation_y)), by = year_]
+
+p3 = 
+ggplot(data = ds[year_ == 2018]) +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey80', color = 'grey50', size = 0.2) +
+  geom_point(data = dss[year_ == 2018], aes(median, as.character(year_)), size = 2) +
+  geom_linerange(data = dss[year_ == 2018], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
+  geom_text(data = dss[year_ == 2018], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
+            hjust = 0.2, vjust = -1.1, size = 3) +
+  scale_x_datetime(limits = c(as.POSIXct(min_date), as.POSIXct(max_date)), date_breaks = "2 weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('Nests') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.8, 0.8), legend.title = element_blank(), 
+        legend.background = element_rect(fill = alpha('white', 0)), axis.text.y = element_blank())
+
+p4 = 
+ggplot(data = ds[year_ == 2019]) +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey80', color = 'grey50', size = 0.2) +
+  geom_point(data = dss[year_ == 2019], aes(median, as.character(year_)), size = 2) +
+  geom_linerange(data = dss[year_ == 2019], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
+  geom_text(data = dss[year_ == 2019], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
+            hjust = 0.2, vjust = -1.1, size = 3) +
+  scale_x_datetime(limits = c(as.POSIXct(min_date), as.POSIXct(max_date)), date_breaks = "2 weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('Nests') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.8, 0.8), legend.title = element_blank(), 
+        legend.background = element_rect(fill = alpha('white', 0)), axis.text.y = element_blank())
+
+
+
+
+patchwork = (p1 + p2) / (p3 + p4)
+patchwork + plot_layout(heights = c(3, 0.4))
+
+ggsave('./OUTPUTS/FIGURES/N_ID_nest_tagged.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
 
 
 
