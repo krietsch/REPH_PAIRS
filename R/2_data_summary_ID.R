@@ -41,6 +41,7 @@ dn = dbq(con, 'select * FROM NESTS')
 dr = dbq(con, 'select * FROM RESIGHTINGS')
 dr[, year_ := year(datetime_)]
 dr = dr[year_ > 2017]
+dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
 #--------------------------------------------------------------------------------------------------------------
@@ -120,21 +121,67 @@ ggplot(data = ds[year_ == 2019]) +
 # ggsave('./OUTPUTS/FIGURES/ID_tenure_2019.tiff', plot = last_plot(),  width = 177, height = 250, units = c('mm'), dpi = 'print')
 
 
+# tenure days
+du = unique(ds, by = c('ID', 'year_'))
+
+# merge with sex
+du = merge(du, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
+
+ggplot(data = du) +
+  geom_density(aes(x = tenure, color = as.character(year_))) +
+  facet_grid(.~sex) +
+  scale_color_manual(values = c('dodgerblue2', 'firebrick3')) +
+  theme_classic(base_size = 11)
 
 
+# merge with nests
+# subset data from tagged birds
+dID = unique(d, by = c('year_', 'ID'))
+
+dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+
+dnID = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
+
+# subset nest with tagged birds
+dnID = dnID[ID %in% dID$ID]
 
 
+# merge with nests - will create duplicate ID's
+da = merge(d, dnID, by = c('year_', 'ID'), all = TRUE, allow.cartesian = TRUE)
+
+# remove NA
+da = da[!is.na(tagID)]
+
+# nest_ID_bird
+da[, nestID_ID := paste0(nestID, '_', ID)]
+da[, datetime_y := as.POSIXct(format(datetime_, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+da[, initiation := as.POSIXct(initiation)]
+da[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+
+ggplot(data = da[year_ == 2018 & !is.na(nestID)]) +
+  ggtitle('2018') +
+  geom_point(aes(datetime_y, nestID_ID, color = sex), size = 0.7) +
+  geom_point(aes(initiation_y, nestID_ID), size = 4, shape = 3) +
+  scale_x_datetime(date_breaks = "weeks", date_labels = "%d %b") +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  theme_classic(base_size = 11) +
+  xlab('Date') +
+  theme(legend.position = c(0.9, 0.9), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.4, 'cm'), legend.background = element_rect(fill = alpha('white', 0)), 
+        plot.title = element_text(hjust = 0.5))
 
 
-
-
-
-
-
-
-
-
-
+ggplot(data = da[year_ == 2019 & !is.na(nestID)]) +
+  ggtitle('2019') +
+  geom_point(aes(datetime_y, nestID_ID, color = sex), size = 0.7) +
+  geom_point(aes(initiation_y, nestID_ID), size = 4, shape = 3) +
+  scale_x_datetime(date_breaks = "weeks", date_labels = "%d %b") +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  theme_classic(base_size = 11) +
+  xlab('Date') +
+  theme(legend.position = c(0.9, 0.9), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.4, 'cm'), legend.background = element_rect(fill = alpha('white', 0)), 
+        plot.title = element_text(hjust = 0.5))
 
 
 
