@@ -83,10 +83,30 @@ ds = dc[!is.na(gps_tag)] %>% unique(., by = c('ID', 'gps_tag'))
 ds[, date_ := as.Date(caught_time)]
 ds[, date_y := as.Date(paste0('2021-', substr(date_, 6, 10)))]
 
-ggplot(data = ds) +
+dss = ds[, .N, year_]
+
+p1 = 
+ggplot(data = ds[year_ == 2018]) +
   geom_bar(aes(date_y), fill = 'grey85', color = 'grey50') +
-  facet_grid(.~year_, scales = 'fixed') +
-  theme_classic()
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
+  scale_y_continuous(limits = c(0, 35), expand = c(0, 0)) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('Tags') +
+  theme_classic(base_size = 11) +
+  theme(axis.title.x = element_blank(), axis.text.x=element_blank())
+
+p2 = 
+ggplot(data = ds[year_ == 2019]) +
+  geom_bar(aes(date_y), fill = 'grey85', color = 'grey50') +
+  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
+  scale_y_continuous(limits = c(0, 35), expand = c(0, 0)) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('Tags') +
+  theme_classic(base_size = 11) +
+  theme(axis.title.x = element_blank(), axis.text.x=element_blank(), axis.title.y = element_blank())
+
+
+
 
 ds[, .(first  = min(date_), 
        last   = max(date_), 
@@ -328,21 +348,89 @@ dss[seen == TRUE & tagged == TRUE, type := 'seen/tagged']
 dss[is.na(type) & seen == TRUE, type := 'seen']
 dss[is.na(type) & tagged == TRUE, type := 'tagged']
 
-dss = merge(dss, duo[, .(ID, date_, tagged_out = TRUE)], by = c('ID', 'date_'), all = TRUE)
-dss[is.na(type), type := 'only_outside']
+# add positions outside study site
+# dss = merge(dss, duo[, .(ID, date_, tagged_out = TRUE)], by = c('ID', 'date_'), all = TRUE)
+# dss[is.na(type), type := 'only_outside']
 
 dss[, year_ := year(date_)]
 dss[, .N, type]
+y = format(Sys.Date(), '%Y') # current year
+dss[, date_y := as.Date(paste0(y, substr(date_, 5, 10)))]
 
+# plot settings
+min_date = dss[, date_y] %>% min
+max_date = dss[, date_y] %>% max
+
+p3 = 
+  ggplot(data = dss[year_ == 2018]) +
+  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.9) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  scale_y_continuous(limits = c(0, 160), expand = c(0, 0)) +
+  scale_fill_grey(labels = c('Observed without tag', 'Observed with tag', 'With tag but not observed'), start = 0.4, end = 0.8) +
+  xlab('Date') + ylab('Number of individuals') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.8, 0.8), legend.title = element_blank(), 
+        legend.background = element_rect(fill = alpha('white', 0)), axis.title.x = element_blank(), axis.text.x=element_blank())
+
+p4 = 
 ggplot(data = dss[year_ == 2019]) +
-  geom_bar(aes(x = date_, fill = type), stat = 'count') +
-  scale_x_date(date_breaks = "weeks", date_labels = "%d-%m") +
-  theme_classic()
+  geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.9) +
+  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
+  scale_y_continuous(limits = c(0, 160), expand = c(0, 0)) +
+  scale_fill_grey(labels = c('Observed without tag', 'Observed with tag', 'With tag but not observed'), start = 0.4, end = 0.8) +
+  xlab('Date') + ylab('Number of individuals') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = 'none', axis.title.x = element_blank(), axis.text.x=element_blank(),
+        axis.title.y = element_blank())
 
 
-ggplot(data = dss[year_ == 2018]) +
-  geom_bar(aes(x = date_, fill = type), stat = 'count') +
-  scale_x_date(date_breaks = "weeks", date_labels = "%d-%m")
+# link to nest initiation 
+dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
+dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation)]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+
+# subset data from intensive study site with initiation date
+ds = dn[data_type == 'study_site' & !is.na(initiation_y)]
+ds[, initiation_date := as.Date(initiation)]
+
+# sample size
+dss = ds[, .(median = median(initiation_y), q25 = quantile(initiation_y, probs = c(0.25)),
+             q75 = quantile(initiation_y, probs = c(0.75)), .N, max = max(initiation_y)), by = year_]
+
+
+p5 = 
+ggplot(data = ds[year_ == 2018]) +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey85') +
+  geom_point(data = dss[year_ == 2018], aes(median, as.character(year_)), size = 2) +
+  geom_linerange(data = dss[year_ == 2018], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
+  geom_text(data = dss[year_ == 2018], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
+            hjust = 0.2, vjust = -1.1, size = 3) +
+  scale_x_datetime(limits = c(as.POSIXct(min_date), as.POSIXct(max_date)), date_breaks = "2 weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('Nests') +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.8, 0.8), legend.title = element_blank(), 
+        legend.background = element_rect(fill = alpha('white', 0)), axis.text.y = element_blank())
+
+p6 = 
+ggplot(data = ds[year_ == 2019]) +
+  geom_violin(aes(initiation_y, as.character(year_)), show.legend = FALSE, fill = 'grey85') +
+  geom_point(data = dss[year_ == 2019], aes(median, as.character(year_)), size = 2) +
+  geom_linerange(data = dss[year_ == 2019], aes(y = as.character(year_), xmin = q75, xmax = q25), size = 0.5) +
+  geom_text(data = dss[year_ == 2019], aes(as.POSIXct(min_date), as.character(year_), label = paste0('N = ', N)), 
+            hjust = 0.2, vjust = -1.1, size = 3) +
+  scale_x_datetime(limits = c(as.POSIXct(min_date), as.POSIXct(max_date)), date_breaks = "2 weeks", date_labels = "%d %b") +
+  xlab('Date') + ylab('') +
+  theme_classic(base_size = 11) +
+  theme(axis.text.y = element_blank())
+
+
+require(patchwork)
+patchwork = (p3 + p4) / (p1 + p2) / (p5 + p6)
+patchwork + plot_layout(heights = c(3, 0.4, 0.4))
+
+ggsave('./OUTPUTS/FIGURES/N_ID_observed_tagged.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
 
 
 
