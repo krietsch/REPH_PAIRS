@@ -197,6 +197,11 @@ plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30
      edge.color = 'black', vertex.color = c('red', 'blue')[1+(V(pn)$sex == 'M')])
 
 
+plot(pn, vertex.label = NA, edge.width = 120*E(pn)$weight, edge.color = 'grey30', edge.curved = .2, 
+     vertex.size = V(pn)$size+2,
+     edge.color = 'black', vertex.color = c('red', 'blue')[1+(V(pn)$sex == 'M')])
+
+
 
 
 plot(pn, vertex.label = NA, edge.width = 20*E(pn)$weight, edge.color = 'grey30', vertex.size = V(pn)$size+2,

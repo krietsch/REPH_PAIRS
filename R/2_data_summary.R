@@ -368,6 +368,7 @@ dssn = dssn[, .N, year_]
 
 p3 = 
   ggplot(data = dss[year_ == 2018]) +
+  ggtitle('2018') +
   geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
   geom_text(aes(min_date, Inf), label = paste0('N = ', dssn[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
@@ -376,10 +377,12 @@ p3 =
   xlab('Date') + ylab('Number of individuals') +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.3, 0.87), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), legend.key.height = unit(0.4, 'cm'), 
-        legend.background = element_rect(fill = alpha('white', 0)), axis.title.x = element_blank(), axis.text.x=element_blank())
+        legend.background = element_rect(fill = alpha('white', 0)), axis.title.x = element_blank(), 
+        axis.text.x=element_blank(), plot.title = element_text(hjust = 0.5))
 
 p4 = 
 ggplot(data = dss[year_ == 2019]) +
+  ggtitle('2019') +
   geom_bar(aes(x = date_y, fill = type), stat = 'count', width = 0.95, color = 'grey50', size = 0.2) +
   geom_text(aes(min_date, Inf), label = paste0('N = ', dssn[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
   scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
@@ -388,7 +391,7 @@ ggplot(data = dss[year_ == 2019]) +
   xlab('Date') + ylab('Number of individuals') +
   theme_classic(base_size = 11) +
   theme(legend.position = 'none', axis.title.x = element_blank(), axis.text.x=element_blank(),
-        axis.title.y = element_blank())
+        axis.title.y = element_blank(), plot.title = element_text(hjust = 0.5))
 
 ggplot_build(p4)$data 
 
