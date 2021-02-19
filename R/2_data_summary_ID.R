@@ -38,6 +38,7 @@ d[, datetime_ := anytime(datetime_)]
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dc = dbq(con, 'select * FROM CAPTURES')
 dn = dbq(con, 'select * FROM NESTS')
+dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dr = dbq(con, 'select * FROM RESIGHTINGS')
 dr[, year_ := year(datetime_)]
 dr = dr[year_ > 2017]
@@ -121,6 +122,55 @@ ggplot(data = ds[year_ == 2019]) +
 # ggsave('./OUTPUTS/FIGURES/ID_tenure_2019.tiff', plot = last_plot(),  width = 177, height = 250, units = c('mm'), dpi = 'print')
 
 
+
+# color by breeder / non-breeder
+dnID = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
+dnID[, ID := factor(ID)]
+dnID = unique(dnID, by = c('year_', 'ID'))
+
+ds = merge(ds, dnID[, .(year_, ID, status = 'breeder')], by = c('year_', 'ID'), all.x = TRUE)
+ds[is.na(status), status := 'non-breeder']
+
+ggplot(data = ds[year_ == 2018]) +
+  ggtitle('2018') +
+  geom_point(aes(datetime_y, ID, color = status), size = 0.7) +
+  scale_x_datetime(date_breaks = "weeks", date_labels = "%d %b") +
+  scale_color_manual(values = c('cadetblue3', 'tan1')) +
+  theme_classic(base_size = 11) +
+  xlab('Date') +
+  theme(legend.position = c(0.1, 0.9), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.4, 'cm'), legend.background = element_rect(fill = alpha('white', 0)), 
+        axis.text.y=element_blank(), plot.title = element_text(hjust = 0.5))
+
+# ggsave('./OUTPUTS/FIGURES/ID_tenure_2018_breeder.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+
+ds[year_ == 2019 & status == 'non-breeder' & tenure > 30]$ID %>% unique
+
+
+ggplot(data = ds[year_ == 2019]) +
+  ggtitle('2019') +
+  geom_point(aes(datetime_y, ID, color = status), size = 0.7) +
+  scale_x_datetime(date_breaks = "weeks", date_labels = "%d %b") +
+  scale_color_manual(values = c('cadetblue3', 'tan1')) +
+  theme_classic(base_size = 11) +
+  xlab('Date') +
+  theme(legend.position = c(0.1, 0.9), legend.title = element_blank(), legend.key.width = unit(0.4, 'cm'), 
+        legend.key.height = unit(0.4, 'cm'), legend.background = element_rect(fill = alpha('white', 0)), 
+        axis.text.y=element_blank(), plot.title = element_text(hjust = 0.5))
+
+# ggsave('./OUTPUTS/FIGURES/ID_tenure_2019_breeder.tiff', plot = last_plot(),  width = 177, height = 250, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
 # tenure days
 du = unique(ds, by = c('ID', 'year_'))
 
@@ -138,7 +188,7 @@ ggplot(data = du) +
 # subset data from tagged birds
 dID = unique(d, by = c('year_', 'ID'))
 
-dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+
 
 dnID = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
 
