@@ -86,11 +86,12 @@ dp = foreach(i = xt, .combine = 'rbind', .packages = c('sf', 'data.table')) %dop
 }
 
 # exclude duplicates 
-dp = dp[ID1 < ID2]
+# dp = dp[ID1 < ID2]
 dp = dp[ID1 != ID2]
 
 # save data
 # fwrite(dp, './DATA/PAIR_WISE_DIST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(dp, './DATA/PAIR_WISE_DIST_DUP.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Distance of all locations to nests
