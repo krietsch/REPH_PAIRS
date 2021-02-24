@@ -9,7 +9,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr', 'foreach',
-          'sdbvis', 'viridis'),
+          'sdbvis', 'viridis', 'patchwork'),
         require, character.only = TRUE)
 
 # Functions
@@ -17,6 +17,13 @@ source('./R/0_functions.R')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Mmate guarding and nest distance
+#--------------------------------------------------------------------------------------------------------------
+
 
 # read data
 # dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
@@ -29,6 +36,10 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 # d[, type := ifelse(ID2 %like% 'R', 'nest', 'individual')]
 # fwrite(d, './DATA/PAIR_WISE_DIST_NESTS_AND_ID_DUP.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 d = fread('./DATA/PAIR_WISE_DIST_NESTS_AND_ID_DUP.txt', sep = '\t', header = TRUE) %>% data.table
+
+d_ = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
+d_[, datetime_ := as.POSIXct(datetime_)]
+d_[, datetime_ := as.POSIXct(format(datetime_, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
@@ -149,6 +160,60 @@ ggplot(data = dss) +
   theme_classic()
 
 
+# merge positions with sex
+d_[, ID := as.character(ID)]
+d_ = merge(d_, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
+
+
+# loop for nest attendance and mate guarding 
+
+foreach(i = unique(dnID[, nestID])) %do%{
+
+  ds = dnID[nestID == i]
+  
+  # map with tracks
+  dm = d_[ID %in% ds[, ID]]
+  bm = create_bm(dm, buffer = 1000)
+  
+  p1 = 
+  bm + 
+    ggtitle(i) +
+    geom_path(data = dm, aes(lon, lat, group = ID, color = datetime_), size = 0.7, alpha = 0.5) + 
+    geom_point(data = dm, aes(lon, lat, color = datetime_, fill = sex), size = 1, shape = 21) +
+    scale_color_viridis( trans = scales::time_trans(), name = 'Date')
+  
+  
+  # bars with overlap
+  dss = o[nestID == i]
+
+  p2 = 
+  ggplot(data = dss) +
+  geom_point(aes(datetime_y, type2, color = percentage), shape = '|', size = 5) +
+  geom_vline(data = ds[1, ], aes(xintercept = initiation_y), color = 'firebrick2', size = 3, alpha = 0.3) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '%') +
+  xlab('Date') + ylab('') +
+  theme_classic()
+  
+  patchwork = p1 / p2 
+  patchwork + plot_layout(heights = c(4, 1))
+  
+  
+  ggsave(paste0('./OUTPUTS/MAP_PAIRS/', i, '.png'), plot = last_plot(),
+         width = 177, height = 177, units = c('mm'), dpi = 'print')
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
 ini_u = unique(dnID, by = 'nestID')
 o = merge(o, ini_u[, .(nestID, initiation_y)], by = 'nestID', all.x = TRUE)
 
@@ -187,6 +252,37 @@ ggplot(data = o[type2 == 'Male-Female']) +
   theme_classic()
 
 
+o[, data_during_initiation := any(percentage > 0 & datetime_y < initiation_y), by = nestID]
+
+
+
+ds = o[type2 == 'Male-Female' & data_during_initiation == TRUE]
+ds2 = o[type2 == 'Female' & data_during_initiation == TRUE]
+ds[, ID1 := factor(ID1, levels = unique(ID1[order(initiation_y)]))]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_y, ID1, color = percentage), shape = '|', size = 5) +
+  geom_point(aes(initiation_y, ID1), color = 'firebrick3', shape = '|', size = 5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100)) +
+  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
+  theme_classic()
+
+
+ggplot() +
+  geom_point(data = ds2, aes(datetime_y, nestID), color = 'grey90', shape = '|', size = 5) +
+  geom_point(data = ds, aes(datetime_y, nestID, color = percentage), shape = '|', size = 5) +
+  geom_point(data = ds, aes(initiation_y, nestID), color = 'firebrick3', shape = '|', size = 5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100)) +
+  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
+  theme_classic()
+
+
+
+
+
+
+
+
 o[nestID == 'R320_19']
 
 
@@ -195,11 +291,108 @@ ds = o [type2 == 'Male-Female']
 ds = unique(ds, by = c('nestID', 'ID1', 'date_'))
 
 
-ggplot(data = ds, aes(datetime_rel, percentage)) +
+ggplot(data = ds, aes(datetime_rel, percentage, color = percentage)) +
   geom_point() +
   geom_smooth(data = ds, aes(datetime_rel, percentage), method = 'loess') +
   geom_path(aes(group = nestID)) +
-  
+  scale_color_viridis(direction = -1, limits = c(0, 100)) +
   geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
   theme_classic()
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Only mate guarding
+#--------------------------------------------------------------------------------------------------------------
+
+# Data
+d = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
+d[, date_ := as.Date(datetime_10min)]
+d[, year_ := year(date_)]
+  
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+dn = dbq(con, 'select * FROM NESTS')
+dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation)]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+dg = dbq(con, 'select * FROM SEX')
+DBI::dbDisconnect(con)
+
+
+# interactions
+d[, interaction := distance < 20]
+
+# nest data
+dnID = dn[, .(year_, IDm = male_id, IDf = female_id, nestID, initiation, initiation_y)]
+
+# subset both tagged 
+IDu = unique(d[, ID1])
+dnID = dnID[IDm %in% IDu]
+dnID = dnID[IDf %in% IDu]
+
+# subset birds with nest
+IDu = unique(c(dnID[, IDm], dnID[, IDf]))
+d = d[ID1 %in% IDu & ID2 %in% IDu]
+
+# merge with nest data
+setnames(d, c('ID1', 'ID2'), c('IDm', 'IDf'))
+d = merge(d, dnID, by = c('year_', 'IDm', 'IDf'), all = TRUE, allow.cartesian = TRUE)
+
+# subset actually breeding pairs
+d = d[!is.na(nestID)]
+
+# date without year
+d[, datetime_y := as.POSIXct(format(datetime_10min, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+d[, date_y := as.Date(datetime_y)]
+d[, initiation_dy := as.Date(initiation_y)]
+
+# relative nest initiation date
+d[, datetime_rel := difftime(datetime_y, initiation_y, units = 'days') %>% as.numeric()]
+d[, initiation_rel := difftime(date_y, initiation_dy, units = 'days') %>% as.numeric()]
+
+# daily points of both individuals
+d[, N_daily := .N, by = .(nestID, date_)]
+
+# any within three days around initiation
+d[, any_before_initiation := any(initiation_rel < 8), by = nestID]
+d[, any_after_initiation  := any(initiation_rel > 0), by = nestID]
+d[, any_around_initiation := any_before_initiation == TRUE & any_after_initiation == TRUE, by = nestID]
+
+# N daily interactions
+ds = d[any_around_initiation == TRUE & interaction == TRUE, .(N_together = .N, N_daily = mean(N_daily)), by = .(nestID, initiation_rel)]
+ds[, per_together := N_together / N_daily * 100]
+ds[, per_sampled := N_daily / 140 * 100]
+
+
+
+ds[initiation_rel > 3 & per_together > 50]
+
+ds[initiation_rel < -10]
+
+
+ggplot(data = ds[nestID == 'R232_19']) +
+  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled)) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '%') +
+  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
+  theme_classic()
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+
+ds = ds[!(nestID %in% n2)]
+
+
+ggplot(data = ds) +
+  geom_point(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 2, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '%') +
+  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
+  theme_classic()
+
+
 
