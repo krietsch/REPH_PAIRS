@@ -358,41 +358,80 @@ d[, initiation_rel := difftime(date_y, initiation_dy, units = 'days') %>% as.num
 # daily points of both individuals
 d[, N_daily := .N, by = .(nestID, date_)]
 
+# daily interactions
+d[interaction == TRUE, N_together := .N, by = .(nestID, date_)]
+d[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, date_)]
+d[is.na(N_together), N_together := 0]
+
 # any within three days around initiation
 d[, any_before_initiation := any(initiation_rel < 8), by = nestID]
 d[, any_after_initiation  := any(initiation_rel > 0), by = nestID]
 d[, any_around_initiation := any_before_initiation == TRUE & any_after_initiation == TRUE, by = nestID]
 
+# mean and median
+d[, mean_dist := mean(distance, na.rm = TRUE), by = .(nestID, date_)]
+d[, median_dist := median(distance, na.rm = TRUE), by = .(nestID, date_)]
+
 # N daily interactions
-ds = d[any_around_initiation == TRUE & interaction == TRUE, .(N_together = .N, N_daily = mean(N_daily)), by = .(nestID, initiation_rel)]
+ds = unique(d[any_around_initiation == TRUE], by = c('nestID', 'date_'))
 ds[, per_together := N_together / N_daily * 100]
 ds[, per_sampled := N_daily / 140 * 100]
 
-
-
-ds[initiation_rel > 3 & per_together > 50]
-
-ds[initiation_rel < -10]
-
-
-ggplot(data = ds[nestID == 'R232_19']) +
-  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled)) +
-  scale_color_viridis(direction = -1, limits = c(0, 100), name = '%') +
-  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
-  theme_classic()
-
 # nests to exclude
 n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
-
 ds = ds[!(nestID %in% n2)]
+
+
+dss = ds[, .N, by = initiation_rel]
 
 
 ggplot(data = ds) +
   geom_point(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 2, alpha = 0.5) +
-  scale_color_viridis(direction = -1, limits = c(0, 100), name = '%') +
-  geom_vline(aes(xintercept = 0), color = 'grey50', size = 3, alpha = 0.3) +
-  theme_classic()
+  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '% day sampled') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
+
+# ggsave('./OUTPUTS/FIGURES/Within_pair_per_together_path.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel), per_together), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8)
+
+# ggsave('./OUTPUTS/FIGURES/Within_pair_per_together.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel), mean_dist), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_hline(aes(yintercept = 20), color = 'grey50', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 4) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Within-pair mean distance') +
+  theme_classic(base_size = 8)
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel), median_dist), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_hline(aes(yintercept = 20), color = 'grey50', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Within-pair median distance') +
+  theme_classic(base_size = 8)
+
+
+# ggsave('./OUTPUTS/FIGURES/Within_pair_median_distanced.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
 
 
 
