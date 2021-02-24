@@ -62,7 +62,7 @@ dr[, year_ := year(datetime_)]
 dr[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
 
 # 2018 all interactions
-ds = dr[year_ == 2018 & study_site == TRUE, .(ID, obs_id)]
+ds = dr[year_ == 2019 & study_site == TRUE, .(ID, obs_id)]
 
 # create matrix with observation ID_year by individual
 gbi = get_group_by_individual(ds[, .(ID, obs_id)], data_format = 'individuals')
@@ -101,7 +101,28 @@ setorder(ID_pn, order)
 V(pn)$size = as.numeric(ID_pn$N) %>% log
 
 plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30', vertex.size = V(pn)$size+2,
-     edge.color = 'black', vertex.color = c('red', 'blue')[1+(V(pn)$sex == 'M')])
+     edge.color = 'black', vertex.color = c('firebrick2', 'dodgerblue3')[1+(V(pn)$sex == 'M')])
+
+
+
+# save plots
+
+# png(paste0('./OUTPUTS/FIGURES/Network_obs_2018.png'), 600, 600)
+# 
+# plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30', vertex.size = V(pn)$size+2,
+#      edge.color = 'black', vertex.color = c('firebrick2', 'dodgerblue3')[1+(V(pn)$sex == 'M')])
+# title('Obs 2018', cex.main = 2, col.main = "black")
+# 
+# dev.off()
+# 
+# png(paste0('./OUTPUTS/FIGURES/Network_obs_2019.png'), 600, 600)
+# 
+# plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30', vertex.size = V(pn)$size+2,
+#      edge.color = 'black', vertex.color = c('firebrick2', 'dodgerblue3')[1+(V(pn)$sex == 'M')])
+# title('Obs 2019', cex.main = 2, col.main = "black")
+# 
+# dev.off()
+
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -115,7 +136,7 @@ dp[, year_ := year(date_)]
 dp = dp[year_ == 2019]
 
 # interactions
-dp[, interaction := distance < 10]
+dp[, interaction := distance < 20]
 # du = unique(dp[interaction == TRUE], by = c('ID1', 'ID2', 'date_'))
 
 ds = copy(dp[interaction == TRUE])
@@ -213,15 +234,31 @@ plot(pn, vertex.label = NA, edge.width = 20*E(pn)$weight, edge.color = 'grey30',
      edge.color = c(E(pn)$color), 
      vertex.color = c('red', 'blue')[1+(V(pn)$sex == 'M')])
 
-E(pn)$color[E(pn)$weight > 0.5] <- 'red'
-E(pn)$color[E(pn)$weight < 0.5] <- 'blue'
 
 
 
-E(g)$color[E(g)$weight == 8] <- 'green'
-E(g)$lty[E(g)$weight == 8] <- 1
-E(g)$color[E(g)$weight == 3] <- 'green'
-E(g)$lty[E(g)$weight == 3] <- 2
+
+
+
+# png(paste0('./OUTPUTS/FIGURES/Network_gps_2018.png'), 600, 600)
+# 
+# plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30', vertex.size = V(pn)$size+2,
+#      edge.color = 'black', vertex.color = c('firebrick2', 'dodgerblue3')[1+(V(pn)$sex == 'M')])
+# title('GPS 2018', cex.main = 2, col.main = "black")
+# 
+# dev.off()
+# 
+# png(paste0('./OUTPUTS/FIGURES/Network_gps_2019.png'), 600, 600)
+# 
+# plot(pn, vertex.label = NA, edge.width = 10*E(pn)$weight^2, edge.color = 'grey30', vertex.size = V(pn)$size+2,
+#      edge.color = 'black', vertex.color = c('firebrick2', 'dodgerblue3')[1+(V(pn)$sex == 'M')])
+# title('GPS 2019', cex.main = 2, col.main = "black")
+# 
+# dev.off()
+
+
+
+
 
 
 
