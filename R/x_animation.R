@@ -36,13 +36,16 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
+YEAR = 2018
+YEAR = 2019
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation
 #--------------------------------------------------------------------------------------------------------------
 
 # subset year
 d[, year_ := year(datetime_)]
-d = d[year_ == 2019]
+d = d[year_ == YEAR]
 
 # merge with sex
 d[, ID := as.character(ID)]
@@ -70,7 +73,7 @@ bm
 
 
 # Set path to folder where it creates the pictures
-tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/all_reph')
+tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/all_reph/', YEAR)
 
 # register cores
 require(doFuture)
@@ -106,7 +109,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
 
     # points
     geom_point(data = ds[ds[, .I[datetime_ == max(datetime_)], by = ID]$V1], aes(lon, lat, color = sex), size = 1, show.legend = FALSE) +
-    scale_color_manual(values = c('firebrick2', 'dodgerblue3')) +
+    scale_color_manual(values = c('F' = 'firebrick2', 'M' = 'dodgerblue3')) +
     
     # datetime
     annotate('text', x = Inf, y = -Inf, hjust = 1.1,  vjust = -0.5, label = paste0(format(tmp_date, "%B %d %H:00")), size = 5)
