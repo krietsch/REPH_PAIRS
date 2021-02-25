@@ -34,10 +34,23 @@ d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.t
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
+dn = dbq(con, 'select * FROM NESTS')
+dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+dn[, initiation := as.POSIXct(initiation)]
+dn = dn[year_ > 2017]
 DBI::dbDisconnect(con)
 
 YEAR = 2018
-YEAR = 2019
+# YEAR = 2019
+
+# nest data
+dnID = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
+             dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
+dnID[, ID := factor(ID)]
+dnID = unique(dnID[!is.na(ID)], by = c('year_', 'ID', 'nestID'))
+
+setorder(dnID, initiation)
+dnIDu = unique(dnID, by = c('year_', 'ID'))
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation
@@ -51,6 +64,10 @@ d = d[year_ == YEAR]
 d[, ID := as.character(ID)]
 d = merge(d, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
 
+# merge with nest
+dnIDu[, ID := as.character(ID)]
+d = merge(d, dnIDu[, .(ID, nestID, year_)], by = c('ID', 'year_'), all.x = TRUE)
+d[, breeder := ifelse(!is.na(nestID), 'breeder', 'non-breeder'), by = ID]
 
 # create table with two points
 DT = data.table(name = c('NARL'),
@@ -96,7 +113,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   # subset data
   tmp_date = ts[i]$date   # current date
   ds = d[datetime_ <= tmp_date]
-  ds = d[datetime_ %between% c(tmp_date - 60*60*6, tmp_date)]
+  ds = d[datetime_ %between% c(tmp_date - 60*60*3, tmp_date)]
 
   # create alpha and size
   if (nrow(ds) > 0) ds[, a:=  alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
@@ -108,7 +125,9 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     geom_path(data = ds, aes(x = lon, y = lat, group = ID), color = 'grey', alpha = ds$a, size = ds$s, lineend = "round") +
 
     # points
-    geom_point(data = ds[ds[, .I[datetime_ == max(datetime_)], by = ID]$V1], aes(lon, lat, color = sex), size = 1, show.legend = FALSE) +
+    geom_point(data = ds[ds[, .I[datetime_ == max(datetime_)], by = ID]$V1], aes(lon, lat, color = sex, shape = breeder),
+               size = 1, show.legend = FALSE) +
+    scale_shape_manual(values = c('non-breeder' = 17,  'breeder' = 16)) +
     scale_color_manual(values = c('F' = 'firebrick2', 'M' = 'dodgerblue3')) +
     
     # datetime
@@ -126,7 +145,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
 # make animation
 wd = getwd()
 setwd(tmp_path)
-system("ffmpeg -framerate 20 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
+system("ffmpeg -framerate 15 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
 setwd(wd)
 
 
