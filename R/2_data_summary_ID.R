@@ -131,6 +131,10 @@ dnID = unique(dnID, by = c('year_', 'ID'))
 ds = merge(ds, dnID[, .(year_, ID, status = 'breeder')], by = c('year_', 'ID'), all.x = TRUE)
 ds[is.na(status), status := 'non-breeder']
 
+dss = unique(ds, by = c('ID', 'year_'))
+dss = dss[, .N, by = .(status, year_)]
+
+
 ggplot(data = ds[year_ == 2018]) +
   ggtitle('2018') +
   geom_point(aes(datetime_y, ID, color = status), size = 0.7) +
