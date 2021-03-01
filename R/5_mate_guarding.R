@@ -325,7 +325,7 @@ DBI::dbDisconnect(con)
 
 
 # interactions
-d[, interaction := distance < 20]
+d[, interaction := distance < 30]
 
 # nest data
 dnID = dn[, .(year_, IDm = male_id, IDf = female_id, nestID, initiation, initiation_y)]
@@ -371,6 +371,10 @@ d[, any_around_initiation := any_before_initiation == TRUE & any_after_initiatio
 # mean and median
 d[, mean_dist := mean(distance, na.rm = TRUE), by = .(nestID, date_)]
 d[, median_dist := median(distance, na.rm = TRUE), by = .(nestID, date_)]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
 
 # N daily interactions
 ds = unique(d[any_around_initiation == TRUE], by = c('nestID', 'date_'))
@@ -450,14 +454,23 @@ ggplot(data = ds) +
 
 # map with tracks
 dt_ = as.POSIXct('2021-06-22 09:50:00')
-dss = ds[datetime_y > c(dt_ - 3600*3) & datetime_y < c(dt_ + 3600*3)]
+dss = ds[datetime_y > c(dt_ - 3600*6) & datetime_y < c(dt_ + 3600*3)]
+# dss = copy(ds)
 bm = create_bm(dss, buffer = 10, lat = 'lat1', lon = 'lon1')
 
 bm + 
-  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = split), size = 0.7, alpha = 0.5) + 
-  geom_point(data = dss, aes(lon1, lat1, color = split), size = 1, shape = 21) +
-  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = split), size = 0.7, alpha = 0.5) + 
-  geom_point(data = dss, aes(lon2, lat2, color = split), size = 1, shape = 21)
+  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon1, lat1, color = interaction), size = 1, shape = 21) +
+  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon2, lat2, color = interaction), size = 1, shape = 21)
+
+bm + 
+  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = distance), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon1, lat1, color = distance), size = 1, shape = 21) +
+  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = distance), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon2, lat2, color = distance), size = 1, shape = 21) +
+  scale_color_viridis(direction = -1)
+
 
 
 
