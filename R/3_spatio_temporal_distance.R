@@ -85,6 +85,21 @@ dp = foreach(i = xt, .combine = 'rbind', .packages = c('sf', 'data.table')) %dop
   
 }
 
+
+# Merge with actual positions and dates 
+
+# dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
+
+dp = merge(dp, d[, .(ID1 = ID, datetime_10min, datetime_1 = datetime_, lat1 = lat, lon1 = lon)], 
+           by = c('ID1', 'datetime_10min'), all.x = TRUE)
+
+dp = merge(dp, d[, .(ID2 = ID, datetime_10min, datetime_2 = datetime_, lat2 = lat, lon2 = lon)], 
+           by = c('ID2', 'datetime_10min'), all.x = TRUE)
+
+
+setcolorder(dp, c('ID1', 'ID2', 'datetime_10min', 'distance', 'datetime_1', 'datetime_2', 'lat1', 'lon1', 'lat2', 'lon2'))
+
+
 # exclude duplicates 
 # dp = dp[ID1 < ID2]
 dp = dp[ID1 != ID2]
@@ -92,6 +107,15 @@ dp = dp[ID1 != ID2]
 # save data
 # fwrite(dp, './DATA/PAIR_WISE_DIST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 # fwrite(dp, './DATA/PAIR_WISE_DIST_DUP.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Merge with actual positions and dates 
+#--------------------------------------------------------------------------------------------------------------
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Distance of all locations to nests
