@@ -433,5 +433,67 @@ ggplot(data = ds) +
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+# split points
+
+
+ds = d[nestID == 'R909_18']
+
+# split points and merging points
+ds[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+ds[, split := interaction_before == TRUE & interaction == FALSE]
+ds[, merge := interaction_before == FALSE & interaction == TRUE]
+
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_y, split))
+
+# map with tracks
+dt_ = as.POSIXct('2021-06-22 09:50:00')
+dss = ds[datetime_y > c(dt_ - 3600*3) & datetime_y < c(dt_ + 3600*3)]
+bm = create_bm(dss, buffer = 10, lat = 'lat1', lon = 'lon1')
+
+bm + 
+  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = split), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon1, lat1, color = split), size = 1, shape = 21) +
+  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = split), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon2, lat2, color = split), size = 1, shape = 21)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
