@@ -175,8 +175,10 @@ di.df[, datetime_10min := date]
 
 
 
+df <- IAB(deer37, deer38, dc=50, tc=5*60, local=TRUE)
+plot(df$date, df$Iab,type='l')
 
 
-
-
+prox.df <- Prox(deer37, deer38, tc=5*60, dc=50, local=TRUE)
+plot(prox.df$date1,prox.df$prox,type="l")
 
