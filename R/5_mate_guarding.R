@@ -453,7 +453,7 @@ ggplot(data = ds) +
   geom_point(aes(datetime_y, split))
 
 # map with tracks
-dt_ = as.POSIXct('2021-06-22 09:50:00')
+dt_ = as.POSIXct('2021-06-23 12:50:00')
 dss = ds[datetime_y > c(dt_ - 3600*6) & datetime_y < c(dt_ + 3600*3)]
 # dss = copy(ds)
 bm = create_bm(dss, buffer = 10, lat = 'lat1', lon = 'lon1')
@@ -472,8 +472,20 @@ bm +
   scale_color_viridis(direction = -1)
 
 
+dss = merge(dss, di.df[, .(datetime_10min, di, smooth)], by = 'datetime_10min', all.x = TRUE)
 
 
+bm + 
+  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon1, lat1, color = di), size = 1, shape = 21) +
+  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon2, lat2, color = di), size = 1, shape = 21) +
+  scale_color_viridis(direction = -1)
+
+
+
+ggplot(data = dss) +
+  geom_point(aes(distance, di, color= interaction))
 
 
 
