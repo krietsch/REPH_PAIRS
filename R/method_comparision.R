@@ -29,16 +29,12 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
-# merge positions with sex
-d[, ID := as.character(ID)]
-d = merge(d, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
-d[, ID := as.numeric(ID)]
-
 #--------------------------------------------------------------------------------------------------------------
 #' # Example pair with good data coverage
 #--------------------------------------------------------------------------------------------------------------
 
 # subset pair
+# d = d[ID %in% c(270170763, 270170764)] # R909_18
 d = d[ID %in% c(270170746, 270170747)] # R304_18
 
 # round times to 10 min intervalls
@@ -58,9 +54,14 @@ d = d[, .(year_ = mean(year_), datetime_ = mean(datetime_), lat = mean(lat), lon
 
 anyDuplicated(d, by = c('ID', 'datetime_10min'))
 
+# merge positions with sex
+d[, ID := as.character(ID)]
+d = merge(d, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
+d[, ID := as.numeric(ID)]
 
 # plot tracks
 bm = create_bm(d, buffer = 1200, squared = TRUE)
+bm = create_bm(d, buffer = 1200)
 
 bm +
   geom_path(data = d, aes(lon, lat, group = ID, color = datetime_), size = 0.7, alpha = 0.5) + 
@@ -72,14 +73,23 @@ bm +
 #' # Proximity
 #--------------------------------------------------------------------------------------------------------------
 
-dp = dp[ID1 == 270170746 & ID2 == 270170747]
+# dp = dp[ID1 == 270170763 & ID2 == 270170764] # R909_18
+dp = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
 
 # interaction based on distance threshold
 dp[, interaction := distance < 30]
 
+# split points and merging points
+dp[, interaction_before := shift(interaction, type = 'lag'), by = ID1]
+dp[, interaction_after := shift(interaction, type = 'lead'), by = ID1]
+dp[, split := interaction == FALSE & interaction_before == TRUE & interaction_after == FALSE]
+dp[, split_simple := interaction == FALSE & interaction_before == TRUE]
+
+dp[, merge := interaction_before == FALSE & interaction == TRUE]
+
 # look at data
 ggplot(data = dp) +
-  geom_point(aes(datetime_10min, distance, color = interaction)) +
+  geom_point(aes(datetime_10min, distance, color = split)) +
   theme_classic()
 
 
@@ -131,7 +141,7 @@ dp = merge(dp, di.df[, .(datetime_10min, di, dis = smooth)], by = 'datetime_10mi
 
 
 # IAB index
-df = IAB(ID1, ID2, dc = 20, tc = 5*60, local = TRUE)
+df = IAB(ID1, ID2, dc = 50, tc = 5*60, local = TRUE)
 
 # plot
 ggplot(data = df) +
@@ -164,5 +174,67 @@ ggplot(data = dp) +
 
 
 
+
+
+
+
+# interaction based on distance threshold and error buffer
+dp[, interaction := distance < 30]
+
+
+
+dp[, split := interaction == FALSE & interaction_before == TRUE & interaction_after == FALSE]
+dp[, split_simple := interaction == FALSE & interaction_before == TRUE]
+
+dp[, merge := interaction == TRUE & interaction_before == FALSE & interaction_after == TRUE]
+
+
+ds = dp[datetime_10min > as.POSIXct('2018-06-22 05:30:00') & datetime_10min < as.POSIXct('2018-06-22 07:20:00')]
+
+bm = create_bm(ds, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+# look at data
+ggplot(data = ds) +
+  geom_point(aes(datetime_10min, distance, color = split)) +
+  theme_classic()
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_10min, distance, color = merge)) +
+  theme_classic()
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_10min, distance, color = interaction)) +
+  theme_classic()
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
+  geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) 
+
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1, color = interaction), size = 1) +
+  geom_path(data = ds, aes(lon2, lat2, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2, color = interaction), size = 1) 
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1, color = di), size = 1) +
+  geom_path(data = ds, aes(lon2, lat2, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2, color = di), size = 1) +
+  scale_color_viridis(direction = -1)
+
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1, group = ID1, color = Iab), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1, color = Iab), size = 1) +
+  scale_color_viridis(direction = -1)
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1, group = ID1, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1, color = di), size = 1) +
+  scale_color_viridis(direction = -1)
 
 
