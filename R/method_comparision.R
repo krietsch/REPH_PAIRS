@@ -1,0 +1,168 @@
+#==============================================================================================================
+# Method comparision
+#==============================================================================================================
+
+# Summary
+# 1. 
+# 2.  
+# 3. 
+
+# Packages
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr', 'foreach',
+          'sdbvis', 'viridis', 'patchwork'),
+        require, character.only = TRUE)
+
+# Functions
+source('./R/0_functions.R')
+
+# Projection
+PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+
+# Data
+d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
+
+dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, date_ := as.Date(datetime_10min)]
+dp[, year_ := year(date_)]
+
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+dg = dbq(con, 'select * FROM SEX')
+DBI::dbDisconnect(con)
+
+# merge positions with sex
+d[, ID := as.character(ID)]
+d = merge(d, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
+d[, ID := as.numeric(ID)]
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Example pair with good data coverage
+#--------------------------------------------------------------------------------------------------------------
+
+# subset pair
+d = d[ID %in% c(270170746, 270170747)] # R304_18
+
+# round times to 10 min intervalls
+d[, datetime_ := as.POSIXct(datetime_)]
+d[, datetime_10min := round(datetime_, '10 mins')]
+d[, datetime_ := datetime_ %>% as.character %>% as.POSIXct]
+d[, datetime_10min := datetime_10min %>% as.character %>% as.POSIXct]
+
+# check for duplicates by ID
+d[, duplicated := duplicated(d, by = c('ID', 'datetime_10min'))]
+d[duplicated == TRUE] %>% nrow
+
+# mean of these instances
+d = d[, .(year_ = mean(year_), datetime_ = mean(datetime_), lat = mean(lat), lon = mean(lon), 
+          gps_speed = mean(gps_speed), altitude = mean(altitude), batvolt = mean(batvolt)), 
+      by = .(ID, datetime_10min)]
+
+anyDuplicated(d, by = c('ID', 'datetime_10min'))
+
+
+# plot tracks
+bm = create_bm(d, buffer = 1200, squared = TRUE)
+
+bm +
+  geom_path(data = d, aes(lon, lat, group = ID, color = datetime_), size = 0.7, alpha = 0.5) + 
+  geom_point(data = d, aes(lon, lat, color = datetime_, fill = sex), size = 1, shape = 21) +
+  scale_color_viridis( trans = scales::time_trans(), name = 'Date')
+  
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Proximity
+#--------------------------------------------------------------------------------------------------------------
+
+dp = dp[ID1 == 270170746 & ID2 == 270170747]
+
+# interaction based on distance threshold
+dp[, interaction := distance < 30]
+
+# look at data
+ggplot(data = dp) +
+  geom_point(aes(datetime_10min, distance, color = interaction)) +
+  theme_classic()
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Dynamic interaction
+#--------------------------------------------------------------------------------------------------------------
+
+library(adehabitatLT)
+library(wildlifeDI)
+
+dt = as.ltraj(xy = d[ ,c('lon', 'lat')], date = d$datetime_10min, id = d$ID, typeII = TRUE)
+
+# seperate by ID
+ID1 = dt[1]
+ID2 = dt[2]
+
+# DI - Dynamic interaction index
+DI(ID1, ID2, tc = 5*60)
+
+# obtain the local di analysis data-frame
+di.df = DI(ID1, ID2, tc = 5*60, local = TRUE)
+
+# Examine the temporal dynamics of local di
+ggplot(data = di.df) +
+  geom_line(aes(date, di)) +
+  theme_classic()
+
+# Smoothed version of local di
+di.df$smooth <- 0
+
+# 4 fixes/hour x 6 hours on either side of 12 hour centered window
+w <- 6*3 
+n <- dim(di.df)[1]   #no. of fixes
+
+for (i in (w+1):(n-1-w)){
+  di.temp <- di.df$di[(i-w):(i+w)]
+  di.df$smooth[i] <- mean(di.temp,na.rm=T)
+}
+
+# plot smoothed data
+ggplot(data = di.df) +
+  geom_line(aes(date, smooth)) +
+  theme_classic()
+
+# merge with dp
+di.df = data.table(di.df)
+di.df[, datetime_10min := date]
+dp = merge(dp, di.df[, .(datetime_10min, di, dis = smooth)], by = 'datetime_10min', all.x = TRUE)
+
+
+# IAB index
+df = IAB(ID1, ID2, dc = 20, tc = 5*60, local = TRUE)
+
+# plot
+ggplot(data = df) +
+  geom_line(aes(date, Iab)) +
+  theme_classic()
+
+
+# merge with dp
+df = data.table(df)
+df[, datetime_10min := date]
+dp = merge(dp, df[, .(datetime_10min, Iab)], by = 'datetime_10min', all.x = TRUE)
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Compare methods
+#--------------------------------------------------------------------------------------------------------------
+
+
+# look at data
+ggplot(data = dp) +
+  geom_point(aes(datetime_10min, distance, color = di)) +
+  scale_color_viridis() +
+  theme_classic()
+
+# look at data
+ggplot(data = dp) +
+  geom_point(aes(datetime_10min, distance, color = Iab)) +
+  scale_color_viridis() +
+  theme_classic()
+
+
+
+
+
