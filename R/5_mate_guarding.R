@@ -453,10 +453,10 @@ ggplot(data = ds) +
   geom_point(aes(datetime_y, split))
 
 # map with tracks
-dt_ = as.POSIXct('2021-06-23 12:50:00')
-dss = ds[datetime_y > c(dt_ - 3600*6) & datetime_y < c(dt_ + 3600*3)]
+dt_ = as.POSIXct('2021-06-23 13:50:00')
+dss = ds[datetime_y > c(dt_ - 3600*1) & datetime_y < c(dt_ + 3600*1)]
 # dss = copy(ds)
-bm = create_bm(dss, buffer = 10, lat = 'lat1', lon = 'lon1')
+bm = create_bm(dss, buffer = 1000, lat = 'lat1', lon = 'lon1')
 
 bm + 
   geom_path(data = dss, aes(lon1, lat1, group = IDm, color = interaction), size = 0.7, alpha = 0.5) + 
@@ -477,22 +477,35 @@ dss = merge(dss, di.df[, .(datetime_10min, di, smooth)], by = 'datetime_10min', 
 
 bm + 
   geom_path(data = dss, aes(lon1, lat1, group = IDm, color = di), size = 0.7, alpha = 0.5) + 
-  geom_point(data = dss, aes(lon1, lat1, color = di), size = 1, shape = 21) +
+  geom_point(data = dss, aes(lon1, lat1, fill = interaction), size = 1, shape = 21) +
   geom_path(data = dss, aes(lon2, lat2, group = IDf, color = di), size = 0.7, alpha = 0.5) + 
-  geom_point(data = dss, aes(lon2, lat2, color = di), size = 1, shape = 21) +
+  geom_point(data = dss, aes(lon2, lat2, fill = interaction), size = 1, shape = 21) +
   scale_color_viridis(direction = -1)
 
+bm + 
+  geom_path(data = dss, aes(lon1, lat1, group = IDm, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon1, lat1, fill = di), size = 3, shape = 21) +
+  geom_path(data = dss, aes(lon2, lat2, group = IDf, color = di), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon2, lat2, fill = di), size = 3, shape = 23) +
+  scale_colour_gradient2() +
+  scale_fill_gradient2()
 
 
 ggplot(data = dss) +
-  geom_point(aes(distance, di, color= interaction))
+  geom_point(aes(distance, di, color = di)) +
+  scale_colour_gradient2()
 
 
+ggplot(data = dss) +
+  geom_point(aes(datetime_10min, distance, color = di)) +
+  scale_colour_gradient2()
 
 
+ggplot(data = dss) +
+  geom_point(aes(datetime_10min, distance, color= interaction))
 
 
-
+dss[interaction == TRUE, di := 0]
 
 
 

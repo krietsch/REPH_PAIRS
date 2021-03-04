@@ -130,11 +130,10 @@ d = d[, .(year_ = mean(year_), datetime_ = mean(datetime_), lat = mean(lat), lon
 
 anyDuplicated(d, by = c('ID', 'datetime_10min'))
 
-# subset data from breeding pair R909_18
-# male: 270170763
-# female: 270170764
+# subset data from breeding pair 
 
-d = d[ID %in% c(270170763, 270170764)]
+# d = d[ID %in% c(270170763, 270170764)] # R909_18
+d = d[ID %in% c(270170746, 270170747)] # R304_18
 
 
 dt <- as.ltraj(xy = d[,c("lon","lat")], date = d$datetime_10min,

@@ -180,7 +180,7 @@ ggplot(data = dp) +
 
 # interaction based on distance threshold and error buffer
 dp[, interaction := distance < 30]
-
+dp[interaction == FALSE & interaction_after == TRUE & interaction_before == TRUE, interaction := TRUE]
 
 
 dp[, split := interaction == FALSE & interaction_before == TRUE & interaction_after == FALSE]
@@ -193,9 +193,16 @@ ds = dp[datetime_10min > as.POSIXct('2018-06-22 05:30:00') & datetime_10min < as
 
 bm = create_bm(ds, lon = 'lon1', lat = 'lat1', buffer = 100)
 
+
+
+ds[interaction == TRUE, type := 'interaction']
+ds[interaction == FALSE, type := 'no interaction']
+ds[split == TRUE, type := 'split']
+ds[merge == TRUE, type := 'merge']
+
 # look at data
 ggplot(data = ds) +
-  geom_point(aes(datetime_10min, distance, color = split)) +
+  geom_point(aes(datetime_10min, distance, color = type)) +
   theme_classic()
 
 ggplot(data = ds) +
