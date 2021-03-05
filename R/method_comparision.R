@@ -224,15 +224,6 @@ bm +
   geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
   geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
   geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) +
-  geom_text(data = ds, aes(lon1, lat1, label = point_id), hjust = 0, vjust = 0) +
-  geom_text(data = ds, aes(lon2, lat2, label = point_id), hjust = 0, vjust = 0)
-  
-
-bm +
-  geom_path(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 0.7, alpha = 0.5) + 
-  geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
-  geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
-  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) +
   ggrepel::geom_label_repel(data = ds, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
   ggrepel::geom_label_repel(data = ds, aes(lon2, lat2, label = point_id), segment.color = 'grey50')
 
@@ -260,5 +251,66 @@ bm +
   geom_path(data = ds, aes(lon1, lat1, group = ID1, color = di), size = 0.7, alpha = 0.5) + 
   geom_point(data = ds, aes(lon1, lat1, color = di), size = 1) +
   scale_color_viridis(direction = -1)
+
+
+# spatio temproal clusters
+
+
+setorder(d, ID, datetime_)
+d[, pointID := seq_len(.N), by = ID]
+
+ID = unique(d$ID)
+
+# register cores
+
+d = foreach(i = ID, .combine = rbind, .packages = c('data.table','tdbscan') ) %do% {
+  
+  # subset individual and create track
+  ds = d[ID == i]
+  track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+  
+  z = tdbscan(track, eps = 30, minPts = 3, maxLag = 6, borderPoints = TRUE )
+  
+  ds[, clustID := z$clustID]
+  ds
+  
+}
+
+
+d[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
+
+# create dt with convex hull polygons
+dc = dt2Convexhull(d[!is.na(clustID), .(ID_clustID, lat, lon, datetime_)],
+                   pid = 'ID_clustID', y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+
+s = stoscan(dc)
+
+# merge with nests 
+# d = rbind(d, n[, .(ID_clustID = nest, datetime_ = initiation, latit, longit, NARL)], fill = TRUE)
+
+d = merge(d, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
+
+setorder(d, ID, datetime_)
+d
+
+
+
+dss = d[datetime_ > as.POSIXct('2018-06-22 05:30:00') & datetime_ < as.POSIXct('2018-06-22 07:20:00')]
+
+
+bm +
+  geom_path(data = dss, aes(lon, lat, color = NULL), col = 'grey', size = .5) +
+  geom_point(data = dss, aes(lon, lat, color = as.character(clustID)), alpha = .5, size = 2, show.legend = FALSE)
+
+
+
+
+
+
+
+
+
+
+
 
 
