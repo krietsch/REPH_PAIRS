@@ -193,12 +193,18 @@ ds = dp[datetime_10min > as.POSIXct('2018-06-22 05:30:00') & datetime_10min < as
 
 bm = create_bm(ds, lon = 'lon1', lat = 'lat1', buffer = 100)
 
-
+ds[, point_id := seq_along(ID1)]
 
 ds[interaction == TRUE, type := 'interaction']
 ds[interaction == FALSE, type := 'no interaction']
 ds[split == TRUE, type := 'split']
 ds[merge == TRUE, type := 'merge']
+
+dp[, diff_time := difftime(datetime_1, datetime_2, units = 'mins') %>% as.numeric]
+
+
+hist(dp$diff_time)
+dp[diff_time > 8]
 
 # look at data
 ggplot(data = ds) +
@@ -217,7 +223,18 @@ bm +
   geom_path(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 0.7, alpha = 0.5) + 
   geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
   geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
-  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) 
+  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) +
+  geom_text(data = ds, aes(lon1, lat1, label = point_id), hjust = 0, vjust = 0) +
+  geom_text(data = ds, aes(lon2, lat2, label = point_id), hjust = 0, vjust = 0)
+  
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
+  geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) +
+  ggrepel::geom_label_repel(data = ds, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
+  ggrepel::geom_label_repel(data = ds, aes(lon2, lat2, label = point_id), segment.color = 'grey50')
 
 
 bm +
