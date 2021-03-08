@@ -106,6 +106,22 @@ dt = as.ltraj(xy = d[ ,c('lon', 'lat')], date = d$datetime_10min, id = d$ID, typ
 ID1 = dt[1]
 ID2 = dt[2]
 
+# shift time of track by 10 min
+d[, datetime_10min_shift := datetime_10min + 600]
+
+dt = as.ltraj(xy = d[ ,c('lon', 'lat')], date = d$datetime_10min_shift, id = d$ID, typeII = TRUE)
+
+# seperate by ID
+ID1s = dt[1]
+ID2s = dt[2]
+
+# Correlation coefficient
+Cr(ID1, ID2, tc = 5*60)
+
+Cr(ID1s, ID2, tc = 5*60)
+Cr(ID1, ID2s, tc = 5*60)
+
+
 # DI - Dynamic interaction index
 DI(ID1, ID2, tc = 5*60)
 
@@ -300,7 +316,7 @@ dss = d[datetime_ > as.POSIXct('2018-06-22 05:30:00') & datetime_ < as.POSIXct('
 
 bm +
   geom_path(data = dss, aes(lon, lat, color = NULL), col = 'grey', size = .5) +
-  geom_point(data = dss, aes(lon, lat, color = as.character(clustID)), alpha = .5, size = 2, show.legend = FALSE)
+  geom_point(data = dss, aes(lon, lat, color = as.character(clustID)), alpha = .5, size = 2) # , show.legend = FALSE
 
 
 
