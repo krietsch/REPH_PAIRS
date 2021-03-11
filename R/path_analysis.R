@@ -144,6 +144,22 @@ do = foreach(i = dnID[, nestID] %>% unique, .combine = 'rbind', .packages = c('d
 
 # fwrite(do, './DATA/Path_analyis.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
+do[, delta_corr_ms := corr - corr_ms]
+do[, delta_corr_fs := corr - corr_fs]
+
+ds = rbind(do[, .(type = 'Closest time', corr)],
+           do[, .(type = 'Male +10 min', corr = corr_ms)],
+           do[, .(type = 'Female +10 min', corr = corr_fs)])
+
+ggplot(data = ds) +
+  geom_boxplot(aes(type, corr), notch = TRUE) +
+  xlab('Type') + ylab('Correlation coefficient') +
+  theme_classic()
+
+# ggsave('./OUTPUTS/FIGURES/Path_correlation.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Local track characteristics
 #--------------------------------------------------------------------------------------------------------------
