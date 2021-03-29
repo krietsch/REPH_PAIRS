@@ -81,6 +81,42 @@ dl = dr[, .(last_position = max(datetime_, na.rm = TRUE)), by = tagID]
 ds = merge(c_on, dl, by.x = 'gps_tag', by.y = 'tagID')
 ds = ds[, .(gps_tag, ID, IDC, tag_attached, last_position, last_on_bird = NA, found = NA)]
 
+###########
+
+
+# load data
+c_on = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED.xlsx') %>% data.table 
+c_on[is.na(found), found := FALSE]
+
+# merge with new data
+c_on = merge(c_on, ds[, .(gps_tag, ID, last_position_new = last_position)], by = c('gps_tag', 'ID'))
+
+c_on[, tag_attached  :=  anytime(as.character(tag_attached))]
+c_on[, last_position :=  anytime(as.character(last_position))]
+c_on[, last_on_bird  :=  anytime(as.character(last_on_bird))]
+
+# compare last position
+c_on[, last_position_compared := last_position == last_position_new]
+
+# tim additional data
+c_on[, difftime_additional := as.numeric(difftime(last_position_new, last_position, units = 'days'))]
+c_on[last_position_compared == FALSE]
+
+# time sending data
+c_on[, difftime_ := as.numeric(difftime(last_on_bird, tag_attached, units = 'days'))]
+
+plot(difftime_ ~ tag_attached, c_on)
+hist(c_on$difftime_, breaks = c(30))
+
+setorder(c_on, -difftime_)
+
+# merge data with metal ID
+dr = merge(dr, c_on[, .(gps_tag, ID, tag_attached, last_on_bird)], by.x = 'tagID', by.y = 'gps_tag', all.x = TRUE, allow.cartesian = TRUE)
+dr[, tag_on := datetime_ >= tag_attached & datetime_ <= last_on_bird, by = 1:nrow(dr)]
+dr = dr[tag_on == TRUE]
+
+
+
 
 
 
