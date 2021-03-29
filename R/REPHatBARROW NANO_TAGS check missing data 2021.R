@@ -69,7 +69,7 @@ dr = dr[tagID < 301]
 dr[tagID == 146 & datetime_ > anytime('2019-06-25 00:00:00'), tagID := 148]
 
 # exclude NA
-dr = dr[!is.na(lon)]
+# dr = dr[!is.na(lon)]
 
 # Information on tag deployment
 cdb[, IDC :=  paste0(UL, '-', UR, '/', LL, '-', LR)]
@@ -80,9 +80,6 @@ dl = dr[, .(last_position = max(datetime_, na.rm = TRUE)), by = tagID]
 
 ds = merge(c_on, dl, by.x = 'gps_tag', by.y = 'tagID')
 ds = ds[, .(gps_tag, ID, IDC, tag_attached, last_position, last_on_bird = NA, found = NA)]
-
-###########
-
 
 # load data
 c_on = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED.xlsx') %>% data.table 
@@ -101,6 +98,32 @@ c_on[, last_position_compared := last_position == last_position_new]
 # tim additional data
 c_on[, difftime_additional := as.numeric(difftime(last_position_new, last_position, units = 'days'))]
 c_on[last_position_compared == FALSE]
+c_on[last_position_compared == FALSE, sum(difftime_additional)]
+
+# transform data in table to create kml
+d_plot = function(x){
+  ds = data.table(id = x$tagID,
+                  datetime_ = x$datetime_,
+                  lat = x$lat,
+                  lon = x$lon)
+  ds
+  
+}
+
+# loop for each by ID with more data
+# bird_id = c_on[last_position_compared == FALSE]$gps_tag
+# 
+# foreach(i = bird_id) %do%
+#   kml(dat = d_plot(dr[tagID == i]), file = paste0('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/KLM_BY_ID/ID_', i,'_DATA_new.kml'), scale = 0.5)
+
+
+# load data
+c_on = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED_2.xlsx') %>% data.table 
+c_on[is.na(found), found := FALSE]
+
+c_on[, tag_attached  :=  anytime(as.character(tag_attached))]
+c_on[, last_position :=  anytime(as.character(last_position))]
+c_on[, last_on_bird  :=  anytime(as.character(last_on_bird))]
 
 # time sending data
 c_on[, difftime_ := as.numeric(difftime(last_on_bird, tag_attached, units = 'days'))]
@@ -113,11 +136,11 @@ setorder(c_on, -difftime_)
 # merge data with metal ID
 dr = merge(dr, c_on[, .(gps_tag, ID, tag_attached, last_on_bird)], by.x = 'tagID', by.y = 'gps_tag', all.x = TRUE, allow.cartesian = TRUE)
 dr[, tag_on := datetime_ >= tag_attached & datetime_ <= last_on_bird, by = 1:nrow(dr)]
-dr = dr[tag_on == TRUE]
+drx = dr[tag_on == TRUE]
 
+d = d[ID != 999]
 
-
-
+# add merge for 2018!
 
 
 
