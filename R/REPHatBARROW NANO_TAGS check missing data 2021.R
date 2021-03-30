@@ -60,6 +60,7 @@ dr = data.table(tagID = (as.integer(o[['Device ID']]) - 967000),
 # change timezone to AKDT
 dr[, datetime_ := anytime(datetime_, asUTC = TRUE, tz = 'America/Anchorage')]
 dr[, datetime_ := anytime(as.character(datetime_))]
+dr[, year_ := year(datetime_)]
 setorder(dr, tagID, datetime_)
 
 # subset REPH
@@ -75,18 +76,22 @@ dr[tagID == 146 & datetime_ > anytime('2019-06-25 00:00:00'), tagID := 148]
 cdb[, IDC :=  paste0(UL, '-', UR, '/', LL, '-', LR)]
 cdb[, tag_attached := anytime(released_time)]
 
-c_on = cdb[!is.na(gps_tag),  .(tag_attached, ID, IDC), by = gps_tag]
-dl = dr[, .(last_position = max(datetime_, na.rm = TRUE)), by = tagID]
+c_on = cdb[!is.na(gps_tag),  .(tag_attached, ID, IDC), by = .(year_, gps_tag)]
+dl = dr[, .(last_position = max(datetime_, na.rm = TRUE)), by = .(year_, tagID)]
 
-ds = merge(c_on, dl, by.x = 'gps_tag', by.y = 'tagID')
-ds = ds[, .(gps_tag, ID, IDC, tag_attached, last_position, last_on_bird = NA, found = NA)]
+ds = merge(c_on, dl, by.x = c('gps_tag', 'year_'), by.y = c('tagID', 'year_'))
+ds = ds[, .(year_, gps_tag, ID, IDC, tag_attached, last_position, last_on_bird = NA, found = NA)]
 
 # load data
-c_on = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED.xlsx') %>% data.table 
+c_on18 = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2018/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED.xlsx') %>% data.table 
+c_on18[, year_ := 2018]
+c_on19 = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED.xlsx') %>% data.table 
+c_on19[, year_ := 2019]
+c_on = rbind(c_on18, c_on19)
 c_on[is.na(found), found := FALSE]
 
 # merge with new data
-c_on = merge(c_on, ds[, .(gps_tag, ID, last_position_new = last_position)], by = c('gps_tag', 'ID'))
+c_on = merge(c_on, ds[, .(year_, gps_tag, ID, last_position_new = last_position)], by = c( 'year_', 'gps_tag', 'ID'))
 
 c_on[, tag_attached  :=  anytime(as.character(tag_attached))]
 c_on[, last_position :=  anytime(as.character(last_position))]
@@ -118,7 +123,11 @@ d_plot = function(x){
 
 
 # load data
-c_on = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED_2.xlsx') %>% data.table 
+c_on18 = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2018/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED_2.xlsx') %>% data.table 
+c_on18[, year_ := 2018]
+c_on19 = read_excel('//ds/raw_data_kemp/FIELD/Barrow/2019/DATA/RAW_DATA/NANO_TAGS_LAST_ON_BIRD_FILLED_2.xlsx') %>% data.table 
+c_on19[, year_ := 2019]
+c_on = rbind(c_on18, c_on19)
 c_on[is.na(found), found := FALSE]
 
 c_on[, tag_attached  :=  anytime(as.character(tag_attached))]
@@ -134,14 +143,18 @@ hist(c_on$difftime_, breaks = c(30))
 setorder(c_on, -difftime_)
 
 # merge data with metal ID
-dr = merge(dr, c_on[, .(gps_tag, ID, tag_attached, last_on_bird)], by.x = 'tagID', by.y = 'gps_tag', all.x = TRUE, allow.cartesian = TRUE)
+dr = merge(dr, c_on[, .(year_, gps_tag, ID, tag_attached, last_on_bird)], by.x = c('tagID', 'year_'), by.y = c('gps_tag', 'year_'), 
+           all.x = TRUE, allow.cartesian = TRUE)
 dr[, tag_on := datetime_ >= tag_attached & datetime_ <= last_on_bird, by = 1:nrow(dr)]
+
+
+
 drx = dr[tag_on == TRUE]
+drx = drx[!is.na(lon)]
 
 d = d[ID != 999]
 
 # add merge for 2018!
-
 
 
 
