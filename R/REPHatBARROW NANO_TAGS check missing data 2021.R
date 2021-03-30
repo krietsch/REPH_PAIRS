@@ -148,13 +148,84 @@ dr = merge(dr, c_on[, .(year_, gps_tag, ID, tag_attached, last_on_bird)], by.x =
 dr[, tag_on := datetime_ >= tag_attached & datetime_ <= last_on_bird, by = 1:nrow(dr)]
 
 
+# subset data "on bird"
+dr = dr[tag_on == TRUE]
+dr = dr[!is.na(lon)]
 
-drx = dr[tag_on == TRUE]
-drx = drx[!is.na(lon)]
+# Exclude total errors
+p4sold = '+proj=utm +zone=4 +datum=WGS84'
+p4sll  = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
 
+# study area
+dB_path = system.file('map_src', 'boundary.shp', package = 'wadeR')
+datBrdy = rgdal::readOGR(dB_path)
+
+del = names(datBrdy) %>% dput
+datBrdy = datBrdy[,!(names(datBrdy) %in% del[-1])]
+
+# buffer (transform projection)
+datBrdy_old = spTransform(datBrdy, CRS(p4sold)) 
+datBrdy_500  = gEnvelope(datBrdy_old) %>%  gBuffer(., width = 500000) %>% spTransform(., CRS(p4sll))
+
+# GPS points
+dr[, lat := as.numeric(lat)]
+dr[, lon := as.numeric(lon)]
+
+rs = SpatialPointsDataFrame(dr[!is.na(lon), .(lon, lat)], dr[!is.na(lon), .(ID)], proj4string = (CRS(p4sll)), match.ID = FALSE)
+plot(rs)
+plot(datBrdy_500, border = 'red', add = TRUE)
+
+plot(datBrdy_500, border = 'red')
+plot(datBrdy, border = 'green', add = TRUE)
+plot(rs, add = TRUE)
+
+# exclude total errors
+dr[!is.na(lon), datBrdy_500 := over(SpatialPoints(cbind(lon, lat), proj4string = CRS(p4sll)), datBrdy_500)]
+dr[!is.na(datBrdy_500), R500 := TRUE]
+
+# exclude duplicated rows
+dr = unique(dr, by = c('lat', 'lon', 'datetime_'))
+
+# all data
+nrow(dr) # 379601
+
+# N to exclude
+dr[is.na(R500)] %>% nrow # 821
+dr = dr[!is.na(R500)] 
+
+# check which data are already in the db 
 d = d[ID != 999]
+d[, type := 'db']
 
-# add merge for 2018!
+drs = dr[, .(year_, tagID, ID, datetime_ = as.character(datetime_), lat, lon, gps_speed, altitude, batvolt, pk, type = 'new')]
+
+# rbind
+d = rbind(d, drs)
+
+# check duplicates 
+d[, duplicated := duplicated(d, by = c('lat', 'lon', 'datetime_'))]
+
+# check how much was missing 
+ds = d[duplicated == FALSE & type == 'new', .(min = min(datetime_), max = max(datetime_)), by = .(year_, tagID, ID)]
+ds[, difftime_ := as.numeric(difftime(max, min, units = 'days'))]
+hist(ds$difftime_)
+ds[difftime_ > 20]
+
+drs = d[duplicated == FALSE & type == 'new']
+
+# delete all columns which are additional
+fd = names(drs)
+fn = fd[!(fd %in% f)]
+drs[, c(fn) := NULL, ]
+
+# align
+drs = drs[, f, with = FALSE]
+setorder(drs, tagID, datetime_, na.last = TRUE)
+drs[, pk := NA]
+
+# save missing data to database
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+dbWriteTable(con,'NANO_TAGS', drs , row.names = FALSE, append = TRUE)
 
 
 
