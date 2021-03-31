@@ -38,6 +38,21 @@ d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.t
 #' # Distance between all locations
 #--------------------------------------------------------------------------------------------------------------
 
+# check time distribution
+d[, hours := paste0(Sys.Date(), ' ', substr(datetime_, 12, 13), ':00') %>% as.POSIXct]
+
+ggplot(data = d) +
+  geom_histogram(aes(hours), stat = 'count') + 
+  scale_x_datetime(date_labels = '%H') +
+  theme_classic()
+
+d[, minutes := paste0(Sys.Date(), ' 00:', substr(datetime_, 15, 16)) %>% as.POSIXct]
+
+ggplot(data = d) +
+  geom_histogram(aes(minutes), stat = 'count') + 
+  scale_x_datetime(date_labels = '%M') +
+  theme_classic()
+
 # round times to 10 min intervalls
 d[, datetime_ := as.POSIXct(datetime_)]
 d[, datetime_10min := round(datetime_, '10 mins')]
