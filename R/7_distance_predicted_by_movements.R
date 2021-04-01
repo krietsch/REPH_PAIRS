@@ -109,29 +109,61 @@ fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, rand
 
 plot(ACF(fm, resType = 'normalized'), alpha=0.01)
 
-fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
-fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
-
-model.sel(fm, fm1, fm2)
-
-plot(ACF(fm, resType = 'normalized'), alpha=0.01)
-
-
-
+# runs forever
+# fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
+# fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
+# 
+# model.sel(fm, fm1, fm2)
+# 
+# plot(ACF(fm, resType = 'normalized'), alpha=0.01)
 
 
-plot(ACF(fm1,resType="normalized") ,alpha=0.01)
+plot(allEffects(fm))
+glht(fm) %>% summary
+summary(fm)
+
+# look at raw data
+ggplot(data = dp) +
+  geom_point(aes(delta_male_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
+
+ggplot(data = dp) +
+  geom_point(aes(delta_female_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
 
 
+# distribution delta within-pair distance
+ggplot(data = dp) +
+  geom_density(aes(delta_pair_distance)) +
+  xlim(-200, 200)
+
+# define together based on distance threshold
+dp[, interaction := distance < 30]
+dp[, interaction_next := distance_pair_next < 30]
+
+# define movements in the same way
+dp[, male_movement := delta_male_distance > 30]
+dp[, female_movement := delta_female_distance > 30]
+
+# subset splits
+ds = dp[interaction == TRUE & interaction_next == FALSE]
+
+# subset data when only one moved
+ds = ds[male_movement != female_movement]
+
+ds[, .N, by = male_movement]
+
+# model within pair distance change for splits
+fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, random =  (~1 | nestID), data = ds)
+
+plot(allEffects(fm))
+glht(fm) %>% summary
+summary(fm)
 
 
+ggplot(data = ds) +
+  geom_point(aes(delta_male_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
 
-
-
-
-
-
-
+ggplot(data = ds) +
+  geom_point(aes(delta_female_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
 
 
 
