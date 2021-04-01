@@ -100,11 +100,11 @@ dp = foreach(i = xt, .combine = 'rbind', .packages = c('sf', 'data.table')) %dop
   
 }
 
+# make ID numeric
+dp[, ID1 := as.numeric(ID1)]
+dp[, ID2 := as.numeric(ID2)]
 
 # Merge with actual positions and dates 
-
-# dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
-
 dp = merge(dp, d[, .(ID1 = ID, datetime_10min, datetime_1 = datetime_, lat1 = lat, lon1 = lon)], 
            by = c('ID1', 'datetime_10min'), all.x = TRUE)
 
