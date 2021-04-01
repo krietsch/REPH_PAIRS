@@ -151,6 +151,17 @@ ds = ds[male_movement != female_movement]
 
 ds[, .N, by = male_movement]
 
+
+# splits relative to initiation date
+ds[, datetime_y := as.POSIXct(format(datetime_10min, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+ds[, datetime_rel := difftime(datetime_y, initiation_y, units = 'days') %>% as.numeric() %>% round(0)]
+
+dss = ds[, .N, by = datetime_rel]
+
+ggplot(data = dss) +
+  geom_bar(aes(datetime_rel, N), stat = 'identity')
+
+
 # model within pair distance change for splits
 fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, random =  (~1 | nestID), data = ds)
 
@@ -166,8 +177,13 @@ ggplot(data = ds) +
   geom_point(aes(delta_female_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
 
 
+# subset merges
+ds = dp[interaction == FALSE & interaction_next == TRUE]
 
+# subset data when only one moved
+ds = ds[male_movement != female_movement]
 
+ds[, .N, by = male_movement]
 
 
 
