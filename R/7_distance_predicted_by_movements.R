@@ -18,6 +18,7 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, year_ := year(datetime_10min)]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
@@ -39,6 +40,8 @@ dID = unique(d, by = 'ID')
 
 # ID as character
 d[, ID := as.character(ID)]
+dp[, ID1 := as.character(ID1)]
+dp[, ID2 := as.character(ID2)]
 dID[, ID := as.character(ID)]
 dn[, male_id := as.character(male_id)]
 dn[, female_id := as.character(female_id)]
@@ -59,8 +62,84 @@ dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y)]
 dnID = unique(dnID, by = 'nestID')
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Define breeding pairs with both sexes tagged
+#' # Calculate delta distances
 #--------------------------------------------------------------------------------------------------------------
+
+# merge with nests
+dp = merge(dp, dnID, by.x = c('year_', 'ID1', 'ID2'), by.y = c('year_', 'male_id', 'female_id'), all.x = TRUE, allow.cartesian=TRUE)
+
+# subset data of breeding pairs
+dp = dp[!is.na(nestID)]
+
+# assign sex
+dp[, sex1 := 'M']
+dp[, sex2 := 'F']
+
+# shift positions
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distances pair next
+dp[, distance_pair_next := sqrt(sum((c(lon1_next, lat1_next) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# distance male and female next
+dp[, delta_male_distance := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, delta_female_distance := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# delta difference in pair distance
+dp[, delta_pair_distance := distance - distance_pair_next, by = 1:nrow(dp)]
+dp[, delta_pair_distance := distance - distance_pair_next, by = 1:nrow(dp)]
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Model change in within-pair distance 
+#--------------------------------------------------------------------------------------------------------------
+
+# Packages
+sapply(c('lme4', 'effects', 'multcomp', 'gtools', 'emmeans', 'broom', 'MuMIn', 'nlme'),
+       function(x) suppressPackageStartupMessages(require(x , character.only = TRUE, quietly = TRUE) ) )
+
+# exclude NA
+dp = dp[!is.na(delta_pair_distance)]
+
+# model within pair distance change
+fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, random =  (~1 | nestID), data = dp)
+
+plot(ACF(fm, resType = 'normalized'), alpha=0.01)
+
+fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
+fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
+
+model.sel(fm, fm1, fm2)
+
+plot(ACF(fm, resType = 'normalized'), alpha=0.01)
+
+
+
+
+
+plot(ACF(fm1,resType="normalized") ,alpha=0.01)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
