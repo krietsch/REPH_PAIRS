@@ -136,12 +136,14 @@ ggplot(data = dp) +
   xlim(-200, 200)
 
 # define together based on distance threshold
-dp[, interaction := distance < 30]
-dp[, interaction_next := distance_pair_next < 30]
+dist_t = 200
+
+dp[, interaction := distance < dist_t]
+dp[, interaction_next := distance_pair_next < dist_t]
 
 # define movements in the same way
-dp[, male_movement := delta_male_distance > 30]
-dp[, female_movement := delta_female_distance > 30]
+dp[, male_movement := delta_male_distance > dist_t]
+dp[, female_movement := delta_female_distance > dist_t]
 
 # subset splits
 ds = dp[interaction == TRUE & interaction_next == FALSE]
