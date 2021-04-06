@@ -322,11 +322,63 @@ bm +
 
 
 
+ds = dp[datetime_10min > as.POSIXct('2018-06-20 14:00:00') & datetime_10min < as.POSIXct('2018-06-20 16:20:00')]
+ds[, point_id := seq_along(ID1)]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_10min, distance, color = interaction)) +
+  geom_line(aes(datetime_10min, distance)) +
+  theme_classic()
+
+
+bm = create_bm(ds, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1), color = 'dodgerblue3', size = 1) +
+  geom_path(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2), color = 'firebrick3', size = 1) +
+  ggrepel::geom_label_repel(data = ds, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
+  ggrepel::geom_label_repel(data = ds, aes(lon2, lat2, label = point_id), segment.color = 'grey50')
+
+
+
+bm +
+  geom_path(data = ds, aes(lon1, lat1, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon1, lat1, color = interaction), size = 1) +
+  geom_path(data = ds, aes(lon2, lat2, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon2, lat2, color = interaction), size = 1) 
 
 
 
 
+# change projection to lon lat
+st_transform_DT(ds, lat = 'lat1', lon = 'lon1', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+st_transform_DT(ds, lat = 'lat2', lon = 'lon2', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 
 
+# transform data in table to create kml
+d_plot = function(x){
+  ds = data.table(id = x$ID1,
+                  datetime_ = x$datetime_1,
+                  lat = x$lat1,
+                  lon = x$lon1)
+  ds
+  
+}
+
+kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/M.kml'), scale = 0.5)
+
+# transform data in table to create kml
+d_plot = function(x){
+  ds = data.table(id = x$ID2,
+                  datetime_ = x$datetime_2,
+                  lat = x$lat2,
+                  lon = x$lon2)
+  ds
+  
+}
+
+kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/F.kml'), scale = 0.5)
 
 
