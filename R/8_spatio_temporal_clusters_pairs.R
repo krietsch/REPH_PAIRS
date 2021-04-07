@@ -30,6 +30,35 @@ dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
 #--------------------------------------------------------------------------------------------------------------
+#' # Define 10 min intervals
+#--------------------------------------------------------------------------------------------------------------
+
+# round times to 10 min intervals
+d[, datetime_ := as.POSIXct(datetime_)]
+d[, datetime_10min := round(datetime_, '10 mins')]
+d[, datetime_ := datetime_ %>% as.character %>% as.POSIXct]
+d[, datetime_10min := datetime_10min %>% as.character %>% as.POSIXct]
+
+# check for duplicates by ID
+d[, duplicated := duplicated(d, by = c('ID', 'datetime_10min'))]
+d[duplicated == TRUE] %>% nrow
+
+# mean of these instances
+d = d[, .(year_ = mean(year_), datetime_ = mean(datetime_), lat = mean(lat), lon = mean(lon), 
+          gps_speed = mean(gps_speed), altitude = mean(altitude), batvolt = mean(batvolt)), 
+      by = .(ID, datetime_10min)]
+
+anyDuplicated(d, by = c('ID', 'datetime_10min'))
+
+# merge positions with sex
+d[, ID := as.character(ID)]
+d = merge(d, dg[, .(ID, sex)], by = 'ID', all.x = TRUE)
+d[, ID := as.numeric(ID)]
+
+# interaction based on distance threshold
+dp[, interaction := distance < 30]
+
+#--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs with both sexes tagged
 #--------------------------------------------------------------------------------------------------------------
 
@@ -68,7 +97,7 @@ dnID = unique(dnID, by = 'nestID')
 # example pair
 dns = dnID[nestID == 'R304_18']
 ds = d[ID %in% c(dns[, male_id], dns[, female_id])]
-
+dps = dp[ID1 == dns[, male_id] & ID2 == dns[, female_id]]
 
 
 
@@ -110,6 +139,15 @@ setorder(ds, ID, datetime_)
 ds
 
 
+
+ds = merge(ds, dps[, .(datetime_10min, interaction)], by = 'datetime_10min', all.x = TRUE)
+
+
+
+
+
+
+
 ds[s_clustID == 0, s_clustID := NA]
 
 
@@ -118,19 +156,43 @@ ds[, s_clustID_forward_fill := s_clustID[1], .(ID, cumsum(!is.na(s_clustID)))]
 ds[is.na(s_clustID_forward_fill), s_clustID_forward_fill := 0]
 
 
+ds[, movement := !is.na(s_clustID)]
+
 ggplot(data = ds) +
-  geom_point(aes(datetime_, s_clustID_forward_fill, color = ID, group = ID)) +
-  geom_line(aes(datetime_, s_clustID_forward_fill, color = ID, group = ID))
+  geom_point(aes(datetime_, s_clustID_forward_fill, color = interaction, group = ID), size = 0.7, alpha = 0.5) +
+  geom_line(aes(datetime_, s_clustID_forward_fill, color = interaction, group = ID)) +
+  theme_classic()
 
 
 
 
 
+bm = create_bm(ds, buffer = 100)
+
+bm +
+  geom_path(data = ds[s_clustID_forward_fill == 0], aes(lon, lat, color = ID), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds[s_clustID_forward_fill == 0], aes(lon, lat, color = ID), size = 1) 
 
 
 
+bm +
+  geom_path(data = ds, aes(lon, lat, color = as.character(interaction)), size = 0.7, alpha = 0.5) + 
+  geom_point(data = ds, aes(lon, lat, color = as.character(interaction)), size = 1) 
 
 
+
+dss = ds[datetime_10min > as.POSIXct('2018-06-21 13:00:00') & datetime_10min < as.POSIXct('2018-06-21 15:20:00')]
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_, s_clustID, color = interaction, group = ID), size = 0.7, alpha = 0.5) +
+  geom_line(aes(datetime_, s_clustID, color = interaction, group = ID)) +
+  theme_classic()
+
+bm = create_bm(dss, buffer = 100)
+
+bm +
+  geom_path(data = dss, aes(lon, lat, color = as.character(s_clustID)), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon, lat, color = as.character(s_clustID)), size = 1) 
 
 
 
