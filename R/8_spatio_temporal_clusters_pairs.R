@@ -139,9 +139,14 @@ setorder(ds, ID, datetime_)
 ds
 
 
+# merge interactions with clusters
+dps = merge(dps, ds[, .(ID, datetime_10min, s_clustID1 = s_clustID)], by.x = c('ID1', 'datetime_10min'), by.y = c('ID', 'datetime_10min'), all.x = TRUE)
+dps = merge(dps, ds[, .(ID, datetime_10min, s_clustID2 = s_clustID)], by.x = c('ID2', 'datetime_10min'), by.y = c('ID', 'datetime_10min'), all.x = TRUE)
 
-ds = merge(ds, dps[, .(datetime_10min, interaction)], by = 'datetime_10min', all.x = TRUE)
+# same cluster
+dps[, cluster_interaction := s_clustID1 == s_clustID2]
 
+ds = merge(ds, dps[, .(datetime_10min, interaction, cluster_interaction)], by = 'datetime_10min', all.x = TRUE)
 
 
 
@@ -163,6 +168,13 @@ ggplot(data = ds) +
   geom_line(aes(datetime_, s_clustID_forward_fill, color = interaction, group = ID)) +
   theme_classic()
 
+ggplot(data = ds) +
+  geom_point(aes(datetime_, s_clustID_forward_fill, color = cluster_interaction, group = ID), size = 0.7, alpha = 0.5) +
+  geom_line(aes(datetime_, s_clustID_forward_fill, color = cluster_interaction, group = ID)) +
+  theme_classic()
+
+
+
 
 
 
@@ -181,7 +193,14 @@ bm +
 
 
 
-dss = ds[datetime_10min > as.POSIXct('2018-06-21 13:00:00') & datetime_10min < as.POSIXct('2018-06-21 15:20:00')]
+dss = ds[datetime_10min > as.POSIXct('2018-06-23 13:00:00') & datetime_10min < as.POSIXct('2018-06-29 15:20:00')]
+
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_, s_clustID_forward_fill, color = cluster_interaction, group = ID), size = 0.7, alpha = 0.5) +
+  geom_line(aes(datetime_, s_clustID_forward_fill, color = cluster_interaction, group = ID)) +
+  theme_classic()
+
 
 ggplot(data = dss) +
   geom_point(aes(datetime_, s_clustID, color = interaction, group = ID), size = 0.7, alpha = 0.5) +
