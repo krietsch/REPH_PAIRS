@@ -193,7 +193,7 @@ bm +
 
 
 
-dss = ds[datetime_10min > as.POSIXct('2018-06-23 13:00:00') & datetime_10min < as.POSIXct('2018-06-29 15:20:00')]
+dss = ds[datetime_10min > as.POSIXct('2018-06-21 13:00:00') & datetime_10min < as.POSIXct('2018-06-27 15:20:00')]
 
 
 ggplot(data = dss) +
@@ -212,6 +212,11 @@ bm = create_bm(dss, buffer = 100)
 bm +
   geom_path(data = dss, aes(lon, lat, color = as.character(s_clustID)), size = 0.7, alpha = 0.5) + 
   geom_point(data = dss, aes(lon, lat, color = as.character(s_clustID)), size = 1) 
+
+
+
+
+
 
 
 

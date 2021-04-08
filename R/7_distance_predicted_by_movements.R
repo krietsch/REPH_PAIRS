@@ -85,13 +85,66 @@ dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
 dp[, distance_pair_next := sqrt(sum((c(lon1_next, lat1_next) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # distance male and female next
-dp[, delta_male_distance := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
-dp[, delta_female_distance := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+dp[, distance_btw_1 := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance_btw_2 := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # delta difference in pair distance
-dp[, delta_pair_distance := distance - distance_pair_next, by = 1:nrow(dp)]
-dp[, delta_pair_distance := distance - distance_pair_next, by = 1:nrow(dp)]
+dp[, distance_btw_pair := abs(distance - distance_pair_next), by = 1:nrow(dp)]
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Define dynamic interaction based on speed
+#--------------------------------------------------------------------------------------------------------------
+
+# time between consecutive points
+dp[, datetime_1_next := data.table::shift(datetime_1, type = 'lead'), by = ID1]
+dp[, datetime_2_next := data.table::shift(datetime_2, type = 'lead'), by = ID2]
+dp[, time_btw_1 := as.numeric(difftime(datetime_1_next, datetime_1, units = 'sec'))]
+dp[, time_btw_2 := as.numeric(difftime(datetime_2_next, datetime_2, units = 'sec'))]
+dp[, time_btw_pair := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'sec')))]
+
+# ground speed 
+dp[, speed_1 := distance_btw_1/ time_btw_1]
+dp[, speed_2 := distance_btw_2/ time_btw_2]
+
+# how far could bird have moved in between points
+dp[, distance_travelled_1 := time_btw_pair * speed_1]
+dp[, distance_travelled_2 := time_btw_pair * speed_2]
+dp[, distance_travelled_pair := time_btw_pair * max(speed_1, speed_2), by = 1:nrow(dp)]
+
+# interaction based on distance threshold
+dp[, interaction := distance < 30]
+dp[, interaction_time_btw := distance < 30 + distance_travelled_pair]
+
+dps = dp[ID1 == 270170763 & ID2 == 270170764] # R909_18
+
+
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_10min, speed_1)) +
+  theme_classic()
+
+
+ggplot(data = dps) +
+  geom_point(aes(lon1, lat1, color = interaction_time_btw)) +
+  theme_classic()
+
+
+
+dps = dps[datetime_10min > as.POSIXct('2018-06-29 10:30:00') & datetime_10min < as.POSIXct('2018-06-29 11:30:00')]
+dps[, point_id := seq_along(ID1)]
+
+bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+ggplot(data = dps) +
+  geom_point(aes(lon1, lat1, color = interaction_time_btw)) +
+  geom_path(aes(lon1, lat1), color = 'grey') +
+  geom_point(aes(lon2, lat2, color = interaction_time_btw)) +
+  geom_path(aes(lon2, lat2), color = 'grey') +
+  ggrepel::geom_label_repel(data = dps, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
+  ggrepel::geom_label_repel(data = dps, aes(lon2, lat2, label = point_id), segment.color = 'grey50') +
+  theme_classic()
+
+dps[, .(datetime_10min, distance, time_btw_pair, distance_travelled_pair, speed_1, speed_2, interaction, interaction_time_btw)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Model change in within-pair distance 
@@ -102,10 +155,10 @@ sapply(c('lme4', 'effects', 'multcomp', 'gtools', 'emmeans', 'broom', 'MuMIn', '
        function(x) suppressPackageStartupMessages(require(x , character.only = TRUE, quietly = TRUE) ) )
 
 # exclude NA
-dp = dp[!is.na(delta_pair_distance)]
+dp = dp[!is.na(distance_btw_pair)]
 
 # model within pair distance change
-fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, random =  (~1 | nestID), data = dp)
+fm = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), data = dp)
 
 plot(ACF(fm, resType = 'normalized'), alpha=0.01)
 
@@ -124,15 +177,15 @@ summary(fm)
 
 # look at raw data
 ggplot(data = dp) +
-  geom_point(aes(delta_male_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
+  geom_point(aes(distance_btw_1, distance_btw_pair, color = nestID), show.legend = FALSE)
 
 ggplot(data = dp) +
-  geom_point(aes(delta_female_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
+  geom_point(aes(distance_btw_2, distance_btw_pair, color = nestID), show.legend = FALSE)
 
 
 # distribution delta within-pair distance
 ggplot(data = dp) +
-  geom_density(aes(delta_pair_distance)) +
+  geom_density(aes(distance_btw_pair)) +
   xlim(-200, 200)
 
 # define together based on distance threshold
@@ -142,8 +195,8 @@ dp[, interaction := distance < dist_t]
 dp[, interaction_next := distance_pair_next < dist_t]
 
 # define movements in the same way
-dp[, male_movement := delta_male_distance > dist_t]
-dp[, female_movement := delta_female_distance > dist_t]
+dp[, male_movement := distance_btw_1 > dist_t]
+dp[, female_movement := distance_btw_2 > dist_t]
 
 # subset splits
 ds = dp[interaction == TRUE & interaction_next == FALSE]
@@ -165,7 +218,7 @@ ggplot(data = dss) +
 
 
 # model within pair distance change for splits
-fm = lme(delta_pair_distance ~ delta_male_distance + delta_female_distance, random =  (~1 | nestID), data = ds)
+fm = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), data = ds)
 
 plot(allEffects(fm))
 glht(fm) %>% summary
@@ -173,10 +226,10 @@ summary(fm)
 
 
 ggplot(data = ds) +
-  geom_point(aes(delta_male_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
+  geom_point(aes(distance_btw_1, distance_btw_pair, color = nestID), show.legend = FALSE)
 
 ggplot(data = ds) +
-  geom_point(aes(delta_female_distance, delta_pair_distance, color = nestID), show.legend = FALSE)
+  geom_point(aes(distance_btw_2, distance_btw_pair, color = nestID), show.legend = FALSE)
 
 
 # subset merges
