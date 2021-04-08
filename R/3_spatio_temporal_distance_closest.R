@@ -68,13 +68,22 @@ d2 = d[ID == 270170747, .(ID2 = ID, datetime_ = datetime_)]
 setkeyv(d1, 'datetime_')
 setkeyv(d2, 'datetime_')
 
-x = d2[, nearest := (datetime_)][d1, roll = 'nearest'] #closest date
-x[, Tbtw := abs(as.numeric(difftime(datetime_, nearest, units = 'min')))]
+# join with closest date
+dt = d2[, datetime_2 := (datetime_)][d1, roll = 'nearest'] 
+dt = dt[, .(ID1, ID2, datetime_1 = datetime_, datetime_2)]
+dt[, time_btw := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'min')))]
 
+# subset unique locations
+dt = dt[, .(ID2 = ID2[c(1)], datetime_1 = datetime_1[c(1)], time_btw = min(time_btw)), by = .(ID1, datetime_2)]
+dt = dt[, .(ID1, ID2, datetime_1, datetime_2, time_btw)]
 
+d2[datetime_ == '2018-06-19 09:24:30']
+d1[datetime_ == '2018-06-19 09:24:30']
 
+d1[datetime_ == '2018-06-19 09:12:30']
 
-hist(x[Tbtw < 6, Tbtw], breaks = 20)
+# hist(x[Tbtw < 30, Tbtw], breaks = 20)
+# hist(x[Tbtw < 6, Tbtw], breaks = 20)
 
 x[, point_id := seq_along(ID1)]
 x[Tbtw > 5 & Tbtw < 6]
@@ -85,7 +94,7 @@ x[point_id > 486 & point_id < 494]
 xx = x[, .(ID2 = ID2[c(1)], datetime_ = datetime_[c(1)], Tbtw = min(Tbtw)), by = .(ID1, nearest)]
 
 
-xx[, duplicated := duplicated(nearest)]
+xx[, duplicated := duplicated(datetime_)]
 xx[duplicated == TRUE]
 xx[Tbtw > 5]
 
