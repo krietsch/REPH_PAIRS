@@ -36,7 +36,7 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 d = dbq(con, 'select * FROM NANO_TAGS')
 d = d[ID != 999] # exclude test data
 d[is.na(lon)] # check that no NA
-d[, datetime_ := as.POSIXct(datetime_)]
+d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
 DBI::dbDisconnect(con)
 
 # Change projection to equal area
@@ -65,7 +65,7 @@ ggplot(data = d[speed > 10 & speed < 200]) +
 
 # found fastest speed within a real track = 104 km/h
 ID_ = 273145068
-dt_ = as.POSIXct('2019-06-19 23:07:22')
+dt_ = as.POSIXct('2019-06-19 23:07:22', tz = 'UTC')
 ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
 
 bm = create_bm(ds)
@@ -220,7 +220,7 @@ de = d[altitude > 2000]
 
 # subset highest flight
 ID_ = 270170532
-dt_ = as.POSIXct('2019-07-11 14:33:56')
+dt_ = as.POSIXct('2019-07-11 14:33:56', tz = 'UTC')
 ds = d[ID == ID_ & datetime_ > c(dt_ - 3600*2) & datetime_ < c(dt_ + 3600*2)]
 
 # plot on map
@@ -242,7 +242,7 @@ ggplot() +
 
 # subset what happend afterwards
 ID_ = 270170532
-ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-11 11:33:56')]
+ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-11 11:33:56', tz = 'UTC')]
 
 # last position
 d[ID == 270170532]$datetime_ %>% max
@@ -265,13 +265,13 @@ ggplot() +
 
 # checked db, male had chicks hatched at 30 June 
 # how long did he drift?
-ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-17 11:33:56') & lat > -2075000]
+ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-17 11:33:56', tz = 'UTC') & lat > -2075000]
 ds$datetime_ %>% max - ds$datetime_ %>% min
 
 #--------------------------------------------------------------------------------------------------------------
 
 # subset relevant data
-d = d[, .(year_, tagID, ID, datetime_ = as.character(datetime_), lat, lon, gps_speed, altitude, batvolt)]
+d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
 
 # save data
 fwrite(d, './DATA/NANO_TAGS_FILTERED.txt', quote = TRUE, sep = '\t', row.names = FALSE)

@@ -43,6 +43,7 @@ DBI::dbDisconnect(con)
 #--------------------------------------------------------------------------------------------------------------
 
 # start and end of the data
+d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
 d[, ID_year := paste0(ID, '_', year_)]
 d[, start := min(datetime_), by = ID_year]
 d[, end   := max(datetime_), by = ID_year]
@@ -122,10 +123,6 @@ ggplot(data = dp) +
 # any duplicates?
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
-
-# dates as characters
-dp[, datetime_1 := as.character(datetime_1)]
-dp[, datetime_2 := as.character(datetime_2)]
 
 # save data
 fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)

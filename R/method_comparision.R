@@ -349,7 +349,27 @@ bm +
   geom_path(data = ds, aes(lon2, lat2, color = interaction), size = 0.7, alpha = 0.5) + 
   geom_point(data = ds, aes(lon2, lat2, color = interaction), size = 1) 
 
+# compare with closest data
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, interaction := distance_pair < 30]
+dp = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
 
+ds = dp[datetime_1 > as.POSIXct('2018-06-20 14:00:00') & datetime_1 < as.POSIXct('2018-06-20 16:20:00')]
+ds[, point_id := seq_along(ID1)]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_1, distance_pair, color = interaction)) +
+  geom_line(aes(datetime_1, distance_pair)) +
+  theme_classic()
+
+
+ds
+
+d[, datetime_ := as.character(datetime_)]
+d[ID == 270170746 & datetime_ == as.POSIXct('2018-06-20 14:08:15', tz = 'UTC')]
+d[ID == 270170746 & datetime_ == as.POSIXct('2018-06-20 14:03:21', tz = 'UTC')]
+
+dss = d[ID == 270170746]
 
 
 # change projection to lon lat
