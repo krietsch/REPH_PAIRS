@@ -87,9 +87,10 @@ dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %
   dt = dt[, .(ID1, ID2, datetime_1 = datetime_, datetime_2)]
   dt[, time_btw := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'min')))]
   
-  # subset unique locations
-  dt = dt[, .(ID2 = ID2[c(1)], datetime_1 = datetime_1[c(1)], time_btw = min(time_btw)), by = .(ID1, datetime_2)]
-  dt = dt[, .(ID1, ID2, datetime_1, datetime_2, time_btw)]
+  # subset closest position in time
+  dt[, time_btw_min := min(time_btw), by = .(ID1, datetime_2)]
+  dt = dt[time_btw == time_btw_min]
+  dt[, time_btw_min := NULL]
   
   # merge with other data
   dt = merge(dt, d1[, .(datetime_1 = datetime_, lat1, lon1, gps_speed1, altitude1)], by = 'datetime_1', all.x = TRUE)
@@ -115,17 +116,16 @@ dp = merge(dp, dg[, .(ID2 = ID, sex2 = sex)], by = 'ID2', all.x = TRUE)
 setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'time_btw', 'lat1', 'lon1', 'lat2', 'lon2', 
                   'distance_pair', 'gps_speed1', 'gps_speed2', 'altitude1', 'altitude2'))
 
-
 # check data
 ggplot(data = dp) +
   geom_histogram(aes(time_btw))
 
 # any duplicates?
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
-anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2'))
+anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
 
 # save data
-# fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 
