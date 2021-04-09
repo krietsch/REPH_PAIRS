@@ -33,7 +33,6 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-d[, datetime_ := as.POSIXct(as.character(datetime_))]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
@@ -123,6 +122,10 @@ ggplot(data = dp) +
 # any duplicates?
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
+
+# dates as characters
+dp[, datetime_1 := as.character(datetime_1)]
+dp[, datetime_2 := as.character(datetime_2)]
 
 # save data
 fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
