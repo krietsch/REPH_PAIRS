@@ -18,7 +18,7 @@
 # 3. Check altitudes
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 'windR'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'knitr'), 
         require, character.only = TRUE)
 
 # Functions
@@ -95,15 +95,15 @@ dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %
   dt = merge(dt, d1[, .(datetime_1 = datetime_, lat1, lon1, gps_speed1, altitude1)], by = 'datetime_1', all.x = TRUE)
   dt = merge(dt, d2[, .(datetime_2 = datetime_, lat2, lon2, gps_speed2, altitude2)], by = 'datetime_2', all.x = TRUE)
 
+  # calculate distance
+  dt[, distance_pair := sqrt(sum((c(lon1, lat1) - c(lon2, lat2))^2)) , by = 1:nrow(dt)]
+  
   dt
   
 }
 
 # remove rows with time difference bigger 10 min
 dp = dp[time_btw < 10]
-
-# calculate distance
-dp[, distance_pair := sqrt(sum((c(lon1, lat1) - c(lon2, lat2))^2)) , by = 1:nrow(dp)]
 
 # merge with sex
 dg[, ID := as.numeric(ID)]
@@ -120,7 +120,12 @@ setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'tim
 ggplot(data = dp) +
   geom_histogram(aes(time_btw))
 
+# any duplicates?
+anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
+anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2'))
+
 # save data
 # fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
 
 
