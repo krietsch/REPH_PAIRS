@@ -35,6 +35,10 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 d[, datetime_ := as.POSIXct(as.character(datetime_))]
 
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+dg = dbq(con, 'select * FROM SEX')
+DBI::dbDisconnect(con)
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Subset ID's with overlapping data
 #--------------------------------------------------------------------------------------------------------------
@@ -61,97 +65,62 @@ dpu = dpu[ID_year1 != ID_year2] # exclude within-individual data
 #' # Distance to all closest positions
 #--------------------------------------------------------------------------------------------------------------
 
-# example
-d1 = d[ID == 270170746, .(ID1 = ID, datetime_ = datetime_)]
-d2 = d[ID == 270170747, .(ID2 = ID, datetime_ = datetime_)]
+# register cores
+require(doFuture)
+registerDoFuture()
+plan(multiprocess)
 
-setkeyv(d1, 'datetime_')
-setkeyv(d2, 'datetime_')
+# loop for all pairwise closest data
+dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %dopar% {
 
-# join with closest date
-dt = d2[, datetime_2 := (datetime_)][d1, roll = 'nearest'] 
-dt = dt[, .(ID1, ID2, datetime_1 = datetime_, datetime_2)]
-dt[, time_btw := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'min')))]
+  # subset pair
+  dpus = dpu[i, ]
+  
+  d1 = d[year_ == dpus[1, year_1]  & ID == dpus[1, ID1], .(ID1 = ID, datetime_ = datetime_, lat1 = lat, lon1 = lon, gps_speed1 = gps_speed, altitude1 = altitude)]
+  d2 = d[year_ == dpus[1, year_2]  & ID == dpus[1, ID2], .(ID2 = ID, datetime_ = datetime_, lat2 = lat, lon2 = lon, gps_speed2 = gps_speed, altitude2 = altitude)]
+  
+  setkeyv(d1, 'datetime_')
+  setkeyv(d2, 'datetime_')
+  
+  # join with closest date
+  dt = d2[, datetime_2 := (datetime_)][d1, roll = 'nearest'] 
+  dt = dt[, .(ID1, ID2, datetime_1 = datetime_, datetime_2)]
+  dt[, time_btw := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'min')))]
+  
+  # subset unique locations
+  dt = dt[, .(ID2 = ID2[c(1)], datetime_1 = datetime_1[c(1)], time_btw = min(time_btw)), by = .(ID1, datetime_2)]
+  dt = dt[, .(ID1, ID2, datetime_1, datetime_2, time_btw)]
+  
+  # merge with other data
+  dt = merge(dt, d1[, .(datetime_1 = datetime_, lat1, lon1, gps_speed1, altitude1)], by = 'datetime_1', all.x = TRUE)
+  dt = merge(dt, d2[, .(datetime_2 = datetime_, lat2, lon2, gps_speed2, altitude2)], by = 'datetime_2', all.x = TRUE)
 
-# subset unique locations
-dt = dt[, .(ID2 = ID2[c(1)], datetime_1 = datetime_1[c(1)], time_btw = min(time_btw)), by = .(ID1, datetime_2)]
-dt = dt[, .(ID1, ID2, datetime_1, datetime_2, time_btw)]
+  dt
+  
+}
 
-d2[datetime_ == '2018-06-19 09:24:30']
-d1[datetime_ == '2018-06-19 09:24:30']
+# remove rows with time difference bigger 10 min
+dp = dp[time_btw < 10]
 
-d1[datetime_ == '2018-06-19 09:12:30']
+# calculate distance
+dp[, distance_pair := sqrt(sum((c(lon1, lat1) - c(lon2, lat2))^2)) , by = 1:nrow(dp)]
 
-# hist(x[Tbtw < 30, Tbtw], breaks = 20)
-# hist(x[Tbtw < 6, Tbtw], breaks = 20)
+# merge with sex
+dg[, ID := as.numeric(ID)]
+dg = dg[!is.na(ID)]
+dp = merge(dp, dg[, .(ID1 = ID, sex1 = sex)], by = 'ID1', all.x = TRUE)
+dp = merge(dp, dg[, .(ID2 = ID, sex2 = sex)], by = 'ID2', all.x = TRUE)
 
-x[, point_id := seq_along(ID1)]
-x[Tbtw > 5 & Tbtw < 6]
-
-
-x[point_id > 486 & point_id < 494]
-
-xx = x[, .(ID2 = ID2[c(1)], datetime_ = datetime_[c(1)], Tbtw = min(Tbtw)), by = .(ID1, nearest)]
-
-
-xx[, duplicated := duplicated(datetime_)]
-xx[duplicated == TRUE]
-xx[Tbtw > 5]
-
-hist(xx[Tbtw < 30, Tbtw], breaks = 20)
-
-
-xx[, point_id := seq_along(ID1)]
-xx[point_id > 469 - 5 & point_id < 469 + 5]
-
-d1 = merge(d1, x, by = c('ID1', 'datetime_'), all.x = TRUE)
-
-d1[datetime_ == '2018-06-19 09:24:30']
-d1[nearest == '2018-06-19 09:24:30']
-d2[datetime_ == '2018-06-19 09:24:30']
-
-hist(x[Tbtw < 30, Tbtw], breaks = 20)
-
-d1[, nearest := (datetime_)][d2, roll = Inf] 
-
-d2[, nearest := (datetime_)][d1, roll = Inf] 
-
-datetimem = d2$datetime_
-
-d1[, closest_dtm := closestDatetime(datetime_, datetimem), by = datetime_]
-d1[, TbtwPoints_m_f := as.numeric(difftime(datetime_, closest_dtm, units = 'min'))]
-d1[, TbtwPoints_m_f := abs(TbtwPoints_m_f)]
-
-plot(TbtwPoints_m_f ~ datetime_, df[TbtwPoints_m_f < 10])
-df = df[TbtwPoints_m_f < 10]
-
-dm[, datetime_m := datetime_]
+# set colorder
+setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'time_btw', 'lat1', 'lon1', 'lat2', 'lon2', 
+                  'distance_pair', 'gps_speed1', 'gps_speed2', 'altitude1', 'altitude2'))
 
 
+# check data
+ggplot(data = dp) +
+  geom_histogram(aes(time_btw))
 
-
-
-
-
-d1 <- data.table(val=seq(1:121), dates = seq.Date(as.Date('2018-12-01'), as.Date('2019-03-31'), "days"))
-d2 <- data.table(val=c(1,2,4,5), dates = c(as.Date('2018-12-14'), as.Date('2019-1-2'), as.Date('2019-2-3')))
-
-setkeyv(d1,"dates")
-setkeyv(d2,"dates")
-
-x = d2[,nearest:=(dates)][d1, roll = 'nearest'] #closest date
-x
-
-d2
-
-
-
-
-
-
-
-
-
-
+# save data
+# fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
