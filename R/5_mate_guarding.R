@@ -39,7 +39,7 @@ d = fread('./DATA/PAIR_WISE_DIST_NESTS_AND_ID_DUP.txt', sep = '\t', header = TRU
 
 d_ = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 d_[, datetime_ := as.POSIXct(datetime_)]
-d_[, datetime_ := as.POSIXct(format(datetime_, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+d_[, datetime_y := as.POSIXct(format(datetime_, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
