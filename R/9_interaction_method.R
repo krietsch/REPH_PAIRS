@@ -133,6 +133,182 @@ dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
 dp[, split := interaction_before == TRUE & interaction == FALSE]
 dp[, merge := interaction_before == FALSE & interaction == TRUE]
 
+# date without year
+dp[, datetime_y := as.POSIXct(format(datetime_1, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
+dp[, date_y := as.Date(datetime_y)]
+dp[, initiation_dy := as.Date(initiation_y)]
+
+# relative nest initiation date
+dp[, datetime_rel := difftime(datetime_y, initiation_y, units = 'days') %>% as.numeric()]
+dp[, initiation_rel := difftime(date_y, initiation_dy, units = 'days') %>% as.numeric()]
+
+# daily points of both individuals
+dp[, N_daily := .N, by = .(nestID, date_y)]
+
+# daily interactions
+dp[interaction == TRUE, N_together := .N, by = .(nestID, date_y)]
+dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, date_y)]
+dp[is.na(N_together), N_together := 0]
+
+# any within three days around initiation
+dp[, any_before_initiation := any(initiation_rel < 8), by = nestID]
+dp[, any_after_initiation  := any(initiation_rel > 0), by = nestID]
+dp[, any_around_initiation := any_before_initiation == TRUE & any_after_initiation == TRUE, by = nestID]
+
+# mean and median
+dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(nestID, date_y)]
+dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(nestID, date_y)]
+
+#--------------------------------------------------------------------------------------------------------------
+# Check split points
+#--------------------------------------------------------------------------------------------------------------
+
+dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
+
+
+ggplot(data = dps[interaction == FALSE & bout_length > 0.5]) +
+  geom_point(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  geom_line(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  theme_classic()
+
+
+dps = dps[datetime_1 > as.POSIXct('2018-06-24 12:30:00', tz = 'UTC') & datetime_1 < as.POSIXct('2018-06-25 14:00:00', tz = 'UTC')]
+dps[, point_id := seq_along(ID1)]
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  geom_line(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  theme_classic()
+
+bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+bm + 
+  geom_path(data = dps, aes(lon1, lat1, group = ID1, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon1, lat1, color = interaction), size = 1, shape = 21) +
+  geom_path(data = dps, aes(lon2, lat2, group = ID2, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon2, lat2, color = interaction), size = 1, shape = 21) 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+# Daily summaries
+#--------------------------------------------------------------------------------------------------------------
+
+# N daily interactions
+ds = unique(dp[any_around_initiation == TRUE], by = c('nestID', 'date_y'))
+ds[, per_together := N_together / N_daily * 100]
+ds[, per_sampled := N_daily / 140 * 100]
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
+
+
+dss = ds[, .N, by = initiation_rel]
+
+
+ggplot(data = ds) +
+  geom_point(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, group = nestID, color = per_sampled), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '% day sampled') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
+
+
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel), per_together), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# mean by interaction bout
+ds = dp[, .(datetime_1 = mean(datetime_1), datetime_2 = mean(datetime_2), lat1 = mean(lat1), lon1 = mean(lon1), 
+            lat2 = mean(lat2), lon2 = mean(lon2), distance_pair = mean(distance_pair)), 
+        by = .(ID1, ID2, nestID, interaction, bout)]
+
+
+dps = ds[ID1 == 270170746 & ID2 == 270170747]
+dps = dps[datetime_1 > as.POSIXct('2018-06-24 12:30:00', tz = 'UTC') & datetime_1 < as.POSIXct('2018-06-25 14:00:00', tz = 'UTC')]
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, distance_pair)) +
+  geom_line(aes(datetime_1, distance_pair)) +
+  theme_classic()
+
+
+
+
+bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+bm + 
+  geom_path(data = dps, aes(lon1, lat1, group = ID1, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon1, lat1, color = interaction), size = 1, shape = 21) +
+  geom_path(data = dps, aes(lon2, lat2, group = ID2, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon2, lat2, color = interaction), size = 1, shape = 21) 
+
+
+dss = rbind(dps[, .(ID = ID1, lat = lat1, lon = lon1, datetime_ = datetime_1, distance_pair, bout)], 
+            dps[, .(ID = ID2, lat = lat2, lon = lon2, datetime_ = datetime_2, distance_pair, bout)])
+
+
+bm + 
+  geom_path(data = dss, aes(lon, lat, group = bout), color = 'firebrick2', size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon, lat), size = 1, shape = 21) +
+  scale_color_viridis(direction = 1) +
+  geom_path(data = dss, aes(lon, lat, group = ID), color = 'grey', size = 0.7, alpha = 0.5) 
+
+
+
+
+
+
 
 dp[split == TRUE] %>% nrow
 
@@ -163,3 +339,51 @@ ggplot(data = dps[interaction == FALSE & bout_length > 0.5]) +
 
 
 dps[interaction == FALSE & bout_length < 1]
+
+
+dps = dps[datetime_1 > as.POSIXct('2018-06-24 12:30:00', tz = 'UTC') & datetime_1 < as.POSIXct('2018-06-25 14:00:00', tz = 'UTC')]
+dps[, point_id := seq_along(ID1)]
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  geom_line(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  theme_classic()
+
+bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
+
+bm + 
+  geom_path(data = dps, aes(lon1, lat1, group = ID1, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon1, lat1, color = interaction), size = 1, shape = 21) +
+  geom_path(data = dps, aes(lon2, lat2, group = ID2, color = interaction), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon2, lat2, color = interaction), size = 1, shape = 21) 
+
+
+bm + 
+  geom_path(data = dps, aes(lon1, lat1, group = point_id, color = point_id), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon1, lat1, color = point_id), size = 1, shape = 21) +
+  geom_path(data = dps, aes(lon2, lat2, group = point_id, color = point_id), size = 0.7, alpha = 0.5) + 
+  geom_point(data = dps, aes(lon2, lat2, color = point_id), size = 1, shape = 21) +
+  ggrepel::geom_label_repel(data = dps, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
+  ggrepel::geom_label_repel(data = dps, aes(lon2, lat2, label = point_id), segment.color = 'grey50')
+
+
+dss = rbind(dps[, .(ID = ID1, lat = lat1, lon = lon1, datetime_ = datetime_1, distance_pair, point_id)], 
+            dps[, .(ID = ID2, lat = lat2, lon = lon2, datetime_ = datetime_2, distance_pair, point_id)])
+
+
+bm + 
+  geom_path(data = dss, aes(lon, lat, group = point_id), color = 'firebrick2', size = 0.7, alpha = 0.5) + 
+  geom_point(data = dss, aes(lon, lat), size = 1, shape = 21) +
+  scale_color_viridis(direction = 1) +
+  geom_path(data = dss, aes(lon, lat, group = ID), color = 'grey', size = 0.7, alpha = 0.5) 
+
+
+
+
+
+
+dps$datetime_1
+
+
+
+
