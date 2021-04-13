@@ -387,7 +387,7 @@ d_plot = function(x){
   
 }
 
-kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/M.kml'), scale = 0.5)
+kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/M_closest.kml'), scale = 0.5)
 
 # transform data in table to create kml
 d_plot = function(x){
@@ -399,6 +399,6 @@ d_plot = function(x){
   
 }
 
-kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/F.kml'), scale = 0.5)
+kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/F_closest.kml'), scale = 0.5)
 
 
