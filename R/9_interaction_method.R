@@ -9,7 +9,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr', 'foreach',
-          'sdbvis', 'viridis', 'patchwork'),
+          'sdbvis', 'viridis', 'patchwork', 'windR'),
         require, character.only = TRUE)
 
 # Functions
@@ -98,6 +98,10 @@ dn = dn[overlap > 0]
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y)]
 dnID = unique(dnID, by = 'nestID')
 
+# as integer
+dnID[, male_id := as.integer(male_id)]
+dnID[, female_id := as.integer(female_id)]
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Comparison 10 min intervals vs. closest time
 #--------------------------------------------------------------------------------------------------------------
@@ -105,12 +109,57 @@ dnID = unique(dnID, by = 'nestID')
 # Data
 dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
 
+# Merge with nests
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
+
+# interactions
+dp[, interaction := distance_pair < 30]
+
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
+
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+dp[, bout_start := min(datetime_1), by = .(nestID, bout)]
+dp[, bout_end := max(datetime_1), by = .(nestID, bout)]
+dp[, bout_length := difftime(bout_end, bout_start, units = 'hours') %>% as.numeric]
+
+# split points and merging points
+dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+dp[, split := interaction_before == TRUE & interaction == FALSE]
+dp[, merge := interaction_before == FALSE & interaction == TRUE]
 
 
+dp[split == TRUE] %>% nrow
 
 
+ds = unique(dp, by = c('nestID', 'bout'))
+
+ds[interaction == TRUE] %>% nrow
+ds[interaction == TRUE & bout_length == 0] %>% nrow
+ds[interaction == TRUE & bout_seq_max == 1] %>% nrow
+
+ds[interaction == FALSE] %>% nrow
+ds[interaction == FALSE & bout_length == 0] %>% nrow
+ds[interaction == FALSE & bout_seq_max == 1] %>% nrow
+
+ggplot(data = ds[bout_length < 12 & interaction == TRUE]) +
+  geom_histogram(aes(bout_length))
+
+ggplot(data = ds[bout_length < 12 & interaction == FALSE]) +
+  geom_histogram(aes(bout_length))
+
+dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
 
 
+ggplot(data = dps[interaction == FALSE & bout_length > 0.5]) +
+  geom_point(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  geom_line(aes(datetime_1, distance_pair, color = as.character(bout))) +
+  theme_classic()
 
 
-
+dps[interaction == FALSE & bout_length < 1]
