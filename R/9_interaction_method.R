@@ -133,6 +133,57 @@ dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
 dp[, split := interaction_before == TRUE & interaction == FALSE]
 dp[, merge := interaction_before == FALSE & interaction == TRUE]
 
+### positions before and after
+
+# shift positions
+dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
+dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
+dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
+dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
+
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distance to position before and after
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
+dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
+dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# which ID approached?
+dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
+
+# which ID split?
+dp[split == TRUE, split_ID := ifelse(distance1_next > distance2_next, 'ID1', 'ID2')]
+
+
+
+dp[, .(interaction, split, split_ID, merge, merge_ID, distance_pair, distance1_before, distance2_before, distance1_next, distance2_next)]
+
+
+
+dp[, .N, split_ID]
+dp[, .N, merge_ID]
+
+dp[initiation_rel < 2 & bout_length > 0.5, .N, split_ID]
+dp[, .N, merge_ID]
+
+
+dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
+
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, distance_pair, group = ID1, color = as.character(split_ID))) +
+  geom_line(aes(datetime_1, distance_pair, group = ID1, color = as.character(split_ID))) +
+  theme_classic()
+
+
+ggplot(data = dp[split == TRUE & bout_length < 10]) +
+  geom_boxplot(aes(as.factor(initiation_rel), bout_length, color = split_ID))
+
+
 # date without year
 dp[, datetime_y := as.POSIXct(format(datetime_1, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 dp[, date_y := as.Date(datetime_y)]
