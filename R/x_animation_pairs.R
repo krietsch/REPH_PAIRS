@@ -9,7 +9,7 @@
 #' ---
 
 #==============================================================================================================
-# Animation
+# Animation of pairs
 #==============================================================================================================
 
 # Summary
@@ -31,13 +31,15 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
-dn[, initiation := as.POSIXct(initiation)]
 dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 DBI::dbDisconnect(con)
 
 # YEAR = 2018
@@ -51,6 +53,50 @@ dnID = unique(dnID[!is.na(ID)], by = c('year_', 'ID', 'nestID'))
 
 setorder(dnID, initiation)
 dnIDu = unique(dnID, by = c('year_', 'ID'))
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Define breeding pairs with both sexes tagged
+#--------------------------------------------------------------------------------------------------------------
+
+# start and end of the data
+d[, start := min(datetime_), by = ID]
+d[, end   := max(datetime_), by = ID]
+dID = unique(d, by = 'ID')
+
+# check if data overlap
+dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_id', all.x = TRUE)
+dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
+
+# subset nests with both IDs tagged
+dn = dn[!is.na(start_m) & !is.na(start_f)]
+
+# subset nests with both IDs tagged and overlapping time intervals
+dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = nestID]
+dn = dn[overlap > 0]
+
+# nest data
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y)]
+dnID = unique(dnID, by = 'nestID')
+
+# as integer
+dnID[, male_id := as.integer(male_id)]
+dnID[, female_id := as.integer(female_id)]
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Define interactions
+#--------------------------------------------------------------------------------------------------------------
+
+# merge with nests
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
+
+# interactions
+dp[, interaction := distance_pair < 30]
+
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation
