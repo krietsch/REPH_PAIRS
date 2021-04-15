@@ -313,6 +313,7 @@ d
 
 dss = d[datetime_ > as.POSIXct('2018-06-22 05:30:00') & datetime_ < as.POSIXct('2018-06-22 07:20:00')]
 
+bm = create_bm(dss, lon = 'lon', lat = 'lat', buffer = 100)
 
 bm +
   geom_path(data = dss, aes(lon, lat, color = NULL), col = 'grey', size = .5) +

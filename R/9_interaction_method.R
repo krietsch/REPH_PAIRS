@@ -9,7 +9,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr', 'foreach',
-          'sdbvis', 'viridis', 'patchwork', 'windR'),
+          'sdbvis', 'viridis', 'patchwork', 'windR', 'tdbscan'),
         require, character.only = TRUE)
 
 # Functions
@@ -103,14 +103,69 @@ dnID[, male_id := as.integer(male_id)]
 dnID[, female_id := as.integer(female_id)]
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Comparison 10 min intervals vs. closest time
+#' # Calculate spatio-temporal clusters
+#--------------------------------------------------------------------------------------------------------------
+
+setorder(d, ID, datetime_)
+d[, pointID := seq_len(.N), by = ID]
+
+ID = unique(c(dnID[, male_id], dnID[, female_id]))
+
+# register cores
+require(doFuture)
+registerDoFuture()
+plan(multiprocess)
+
+d = foreach(i = ID, .combine = rbind, .packages = c('data.table','tdbscan') ) %dopar% {
+  
+  # subset individual and create track
+  ds = d[ID == i]
+  track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+  
+  z = tdbscan(track, eps = 30, minPts = 3, maxLag = 6, borderPoints = TRUE )
+  
+  ds[, clustID := z$clustID]
+  ds
+  
+}
+
+
+d[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
+
+# create dt with convex hull polygons
+dc = dt2Convexhull(d[!is.na(clustID), .(ID_clustID, lat, lon, datetime_)],
+                   pid = 'ID_clustID', y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+
+s = stoscan(dc)
+
+# merge with nests 
+# d = rbind(d, n[, .(ID_clustID = nest, datetime_ = initiation, latit, longit, NARL)], fill = TRUE)
+
+d = merge(d, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
+
+setorder(d, ID, datetime_)
+d
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Look and split and merge points
 #--------------------------------------------------------------------------------------------------------------
 
 # Data
 dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
 
-# Merge with nests
+# merge with nests
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
+
+# merge with spatio-temporal clusters
+d[, ID := as.integer(ID)]
+dp = merge(dp, d[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
+                     st_clustID1 = st_clustID)], 
+           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
+dp = merge(dp, d[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
+                     st_clustID2 = st_clustID)], 
+           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
 
 # interactions
 dp[, interaction := distance_pair < 30]
