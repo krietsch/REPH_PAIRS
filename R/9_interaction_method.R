@@ -213,6 +213,59 @@ dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1',
 # which ID split?
 dp[split == TRUE, split_ID := ifelse(distance1_next > distance2_next, 'ID1', 'ID2')]
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Look at data
+#--------------------------------------------------------------------------------------------------------------
+
+dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
+dps = dps[datetime_1 > as.POSIXct('2018-06-24 12:30:00', tz = 'UTC') & datetime_1 < as.POSIXct('2018-06-25 14:00:00', tz = 'UTC')]
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, distance_pair, group = ID1, color = as.character(st_clustID1))) +
+  geom_line(aes(datetime_1, distance_pair, group = ID1, color = as.character(st_clustID1))) +
+  theme_classic()
+
+
+ds = d[ID == 270170746 | ID == 270170747] # R304_18
+ds = ds[datetime_ > as.POSIXct('2018-06-24 12:30:00', tz = 'UTC') & datetime_ < as.POSIXct('2018-06-25 14:00:00', tz = 'UTC')]
+
+bm = create_bm(ds, buffer = 100)
+
+bm +
+  geom_path(data = ds, aes(lon, lat, color = NULL), col = 'grey', size = .5) +
+  geom_point(data = ds, aes(lon, lat, color = as.character(st_clustID)), alpha = .5, size = 2) # , show.legend = FALSE
+
+
+dps[is.na(st_clustID1), st_clustID1 := 280]
+dps[is.na(st_clustID2), st_clustID2 := 280]
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, st_clustID1)) +
+  geom_point(aes(datetime_2, st_clustID2 + 0.2), color = 'dodgerblue3') 
+
+ggplot(data = dps) +
+  geom_point(aes(datetime_1, st_clustID1, color = interaction)) +
+  geom_point(aes(datetime_2, st_clustID2 + 0.2, color = interaction)) 
+
+
+dps[is.na(st_clustID1) & st_clustID1 == st_clustID2 & interaction == FALSE]$distance_pair
+
+
+
+
+
+
+ds = d[ID == 270170746 | ID == 270170747] # R304_18
+ds = ds[datetime_ > as.POSIXct('2018-06-25 03:07:02', tz = 'UTC') & datetime_ < as.POSIXct('2018-06-25 05:07:02', tz = 'UTC')]
+
+bm = create_bm(ds, buffer = 100)
+
+bm +
+  geom_path(data = ds, aes(lon, lat, color = NULL), col = 'grey', size = .5) +
+  geom_point(data = ds, aes(lon, lat, color = as.character(st_clustID)), alpha = .5, size = 2) # , show.legend = FALSE
+
+
+
 
 
 dp[, .(interaction, split, split_ID, merge, merge_ID, distance_pair, distance1_before, distance2_before, distance1_next, distance2_next)]
@@ -226,7 +279,6 @@ dp[initiation_rel < 2 & bout_length > 0.5, .N, split_ID]
 dp[, .N, merge_ID]
 
 
-dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
 
 
 ggplot(data = dps) +
