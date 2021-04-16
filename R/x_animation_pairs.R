@@ -42,18 +42,6 @@ dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 DBI::dbDisconnect(con)
 
-# YEAR = 2018
-YEAR = 2019
-
-# nest data
-dnID = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
-             dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
-dnID[, ID := factor(ID)]
-dnID = unique(dnID[!is.na(ID)], by = c('year_', 'ID', 'nestID'))
-
-setorder(dnID, initiation)
-dnIDu = unique(dnID, by = c('year_', 'ID'))
-
 #--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs with both sexes tagged
 #--------------------------------------------------------------------------------------------------------------
@@ -74,13 +62,34 @@ dn = dn[!is.na(start_m) & !is.na(start_f)]
 dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = nestID]
 dn = dn[overlap > 0]
 
+# check overlap with initiation date
+dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
+
 # nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y)]
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, lat_n = lat, lon_n = lon)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
 dnID[, male_id := as.integer(male_id)]
 dnID[, female_id := as.integer(female_id)]
+
+# create directory for each of these breeding pairs
+dnID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION_EACH/', nestID)]
+dnID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dnID)]
+
+# unique IDs
+IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
+
+# subset d
+d = d[ID %in% IDu]
+
+# merge with nest and initiation date
+dnIDu = rbind(dn[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
+              dn[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
+
+d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
@@ -97,6 +106,15 @@ dp[, bout := bCounter(interaction), by = nestID]
 dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
 dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
 dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
+
+# interaction ID
+dp[, int_id := seq_len(.N), by = nestID]
+
+dpID = rbind(dp[, .(ID = ID1, nestID, datetime_ = datetime_1, interaction, initiation, int_id)], 
+             dp[, .(ID = ID2, nestID, datetime_ = datetime_2, interaction, initiation, int_id)])
+
+# merge with d
+d = merge(d, dpID[, .(ID, datetime_, nestID, interaction, int_id)], by = c('ID', 'datetime_', 'nestID'), all.x = TRUE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation
