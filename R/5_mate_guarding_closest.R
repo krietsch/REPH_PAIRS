@@ -111,7 +111,7 @@ dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
 dp[, last_int := min(last_int, na.rm = TRUE), by = nestID]
 
 # relative nest initiation date
-dp[, datetime_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
+dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric() %>% round(., 0)]
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ dp[, datetime_rel := difftime(datetime_1, initiation, units = 'days') %>% as.num
 #--------------------------------------------------------------------------------------------------------------
 
 # sort by most time together before initiation
-ds = dp[datetime_rel < 0 & interaction == TRUE, .N, by = nestID]
+ds = dp[initiation_rel < 0 & interaction == TRUE, .N, by = nestID]
 setorder(ds, -N)
 
 # order nest ID
@@ -127,7 +127,7 @@ dp[, nestID := factor(nestID %>% as.factor, levels = ds[, nestID])]
 
 
 ggplot(data = dp) +
-  geom_tile(aes(datetime_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
@@ -135,26 +135,34 @@ ggplot(data = dp) +
   theme_classic()
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Interactions using different distance thresholds
+#--------------------------------------------------------------------------------------------------------------
+
+# daily points of both individuals
+dp[, N_daily := .N, by = .(nestID, initiation_rel)]
+
+# daily interactions
+dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel)]
+dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel)]
+dp[is.na(N_together), N_together := 0]
+
+# unique data
+ds = unique(dp, by = c('nestID', 'initiation_rel'))
+ds[, per_together := N_together / N_daily * 100]
 
 
-hist(dp$datetime_rel)
+dss = ds[, .N, by = initiation_rel]
 
 
-
-
-dp[is.na(nestID)]
-
-
-
-
-
-
-
-
-
-
-
-
+ggplot(data = ds) +
+  geom_point(aes(initiation_rel, per_together, group = nestID), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, group = nestID), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 100), name = '% day sampled') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
 
 
 
