@@ -111,7 +111,7 @@ dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
 dp[, last_int := min(last_int, na.rm = TRUE), by = nestID]
 
 # relative nest initiation date
-dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric() %>% round(., 0)]
+dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -139,26 +139,60 @@ ggplot(data = dp) +
 #' # Interactions using different distance thresholds
 #--------------------------------------------------------------------------------------------------------------
 
-# daily points of both individuals
-dp[, N_daily := .N, by = .(nestID, initiation_rel)]
-
-# daily interactions
-dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel)]
-dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel)]
-dp[is.na(N_together), N_together := 0]
-
-# unique data
-ds = unique(dp, by = c('nestID', 'initiation_rel'))
-ds[, per_together := N_together / N_daily * 100]
+# distance threshold
+threshold = sequence(10, 10, 10)
 
 
-dss = ds[, .N, by = initiation_rel]
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < distance_threshold]
+  
+  # count bouts of split and merge
+  # dp[, bout := bCounter(interaction), by = nestID]
+  # dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  # dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  # dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
+  
+  # round to days
+  dp[, initiation_rel := round(initiation_rel, 0)]
+  
+  # daily points of both individuals
+  dp[, N_daily := .N, by = .(nestID, initiation_rel)]
+  
+  # daily interactions
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel)]
+  dp[interaction == FALSE, N_together := NA]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel)]
+  dp[is.na(N_together), N_together := 0]
+  
+  # unique data
+  ds = unique(dp, by = c('nestID', 'initiation_rel'))
+  ds[, per_together := N_together / N_daily * 100]
+  
+  # nests to exclude
+  n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+  ds = ds[!(nestID %in% n2)]
+  
+  # exclude pairs before mate guarding started
+  ds = ds[!(initiation_rel < 0 & per_together < 50)]
+
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel]
+  ds[, distance_threshold := distance_threshold]
+  ds
+  
+}
 
 
-ggplot(data = ds) +
-  geom_point(aes(initiation_rel, per_together, group = nestID), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel, per_together, group = nestID), size = 1, alpha = 0.5) +
-  scale_color_viridis(direction = -1, limits = c(0, 100), name = '% day sampled') +
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_point(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(10, 100), name = 'distance threshold') +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
@@ -166,10 +200,11 @@ ggplot(data = ds) +
 
 
 
+do = merge(o[distance_threshold == 10, .(initiation_rel, per_together10 = per_together)], 
+           o[distance_threshold == 20, .(initiation_rel, per_together20 = per_together)], by = 'initiation_rel')
 
 
-
-
+do[]
 
 
 
