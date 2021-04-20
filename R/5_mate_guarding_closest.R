@@ -140,7 +140,7 @@ ggplot(data = dp) +
 #--------------------------------------------------------------------------------------------------------------
 
 # distance threshold
-threshold = sequence(10, 10, 10)
+threshold = sequence(15, 10, 10)
 
 
 o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
@@ -151,10 +151,10 @@ o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
   dp[, interaction := distance_pair < distance_threshold]
   
   # count bouts of split and merge
-  # dp[, bout := bCounter(interaction), by = nestID]
-  # dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
-  # dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
-  # dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE]
   
   # round to days
   dp[, initiation_rel := round(initiation_rel, 0)]
@@ -192,19 +192,79 @@ setorder(o, initiation_rel)
 ggplot(data = o) +
   geom_point(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 2, alpha = 1) +
   geom_path(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 1, alpha = 0.5) +
-  scale_color_viridis(direction = -1, limits = c(10, 100), name = 'distance threshold') +
+  scale_color_viridis(direction = -1, limits = c(10, 150), name = 'distance threshold') +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
   theme(legend.position = c(0.8, 0.8))
 
 
 
-do = merge(o[distance_threshold == 10, .(initiation_rel, per_together10 = per_together)], 
-           o[distance_threshold == 20, .(initiation_rel, per_together20 = per_together)], by = 'initiation_rel')
+#--------------------------------------------------------------------------------------------------------------
+#' # Interactions using different distance thresholds
+#--------------------------------------------------------------------------------------------------------------
+
+# distance threshold
+bout_seq_max_value = sequence(6, 0, 1)
 
 
-do[]
+o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
+  
+  bsm = bout_seq_max_value[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < 40]
+  
+  # count bouts of split and merge
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  dp[interaction == FALSE & bout_seq_max <= i, interaction := TRUE]
+  
+  # round to days
+  dp[, initiation_rel := round(initiation_rel, 0)]
+  
+  # daily points of both individuals
+  dp[, N_daily := .N, by = .(nestID, initiation_rel)]
+  
+  # daily interactions
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel)]
+  dp[interaction == FALSE, N_together := NA]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel)]
+  dp[is.na(N_together), N_together := 0]
+  
+  # unique data
+  ds = unique(dp, by = c('nestID', 'initiation_rel'))
+  ds[, per_together := N_together / N_daily * 100]
+  
+  # nests to exclude
+  n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+  ds = ds[!(nestID %in% n2)]
+  
+  # exclude pairs before mate guarding started
+  ds = ds[!(initiation_rel < 0 & per_together < 50)]
+  
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel]
+  ds[, bout_seq_max_value := bsm]
+  ds
+  
+}
+
+
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_point(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 5), name = 'min bout lenght') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
+
 
 
 
