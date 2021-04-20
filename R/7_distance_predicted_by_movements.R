@@ -17,8 +17,8 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-dp = fread('./DATA/PAIR_WISE_DIST_DUP.txt', sep = '\t', header = TRUE) %>% data.table
-dp[, year_ := year(datetime_10min)]
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, year_ := year(datetime_1)]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
@@ -89,7 +89,7 @@ dp[, distance_btw_1 := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , 
 dp[, distance_btw_2 := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # delta difference in pair distance
-dp[, distance_btw_pair := abs(distance - distance_pair_next), by = 1:nrow(dp)]
+dp[, distance_btw_pair := abs(distance_pair - distance_pair_next), by = 1:nrow(dp)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define dynamic interaction based on speed
@@ -112,15 +112,15 @@ dp[, distance_travelled_2 := time_btw_pair * speed_2]
 dp[, distance_travelled_pair := time_btw_pair * max(speed_1, speed_2), by = 1:nrow(dp)]
 
 # interaction based on distance threshold
-dp[, interaction := distance < 30]
-dp[, interaction_time_btw := distance < 30 + distance_travelled_pair]
+dp[, interaction := distance_pair < 30]
+dp[, interaction_time_btw := distance_pair < 30 + distance_travelled_pair]
 
 dps = dp[ID1 == 270170763 & ID2 == 270170764] # R909_18
 
 
 
 ggplot(data = dps) +
-  geom_point(aes(datetime_10min, speed_1)) +
+  geom_point(aes(datetime_1, speed_1)) +
   theme_classic()
 
 
@@ -130,7 +130,7 @@ ggplot(data = dps) +
 
 
 
-dps = dps[datetime_10min > as.POSIXct('2018-06-29 10:30:00') & datetime_10min < as.POSIXct('2018-06-29 11:30:00')]
+dps = dps[datetime_1 > as.POSIXct('2018-06-29 10:30:00') & datetime_1 < as.POSIXct('2018-06-29 11:30:00')]
 dps[, point_id := seq_along(ID1)]
 
 bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
@@ -144,7 +144,7 @@ ggplot(data = dps) +
   ggrepel::geom_label_repel(data = dps, aes(lon2, lat2, label = point_id), segment.color = 'grey50') +
   theme_classic()
 
-dps[, .(datetime_10min, distance, time_btw_pair, distance_travelled_pair, speed_1, speed_2, interaction, interaction_time_btw)]
+dps[, .(datetime_1, distance_pair, time_btw_pair, distance_travelled_pair, speed_1, speed_2, interaction, interaction_time_btw)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Model change in within-pair distance 
@@ -160,15 +160,15 @@ dp = dp[!is.na(distance_btw_pair)]
 # model within pair distance change
 fm = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), data = dp)
 
-plot(ACF(fm, resType = 'normalized'), alpha=0.01)
+plot(ACF(fm, resType = 'normalized'), alpha = 0.01)
 
 # runs forever
-# fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
-# fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
-# 
-# model.sel(fm, fm1, fm2)
-# 
-# plot(ACF(fm, resType = 'normalized'), alpha=0.01)
+fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
+fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
+
+model.sel(fm, fm1, fm2)
+
+plot(ACF(fm, resType = 'normalized'), alpha=0.01)
 
 
 plot(allEffects(fm))
@@ -208,7 +208,7 @@ ds[, .N, by = male_movement]
 
 
 # splits relative to initiation date
-ds[, datetime_y := as.POSIXct(format(datetime_10min, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+ds[, datetime_y := as.POSIXct(format(datetime_1, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
 ds[, datetime_rel := difftime(datetime_y, initiation_y, units = 'days') %>% as.numeric() %>% round(0)]
 
 dss = ds[, .N, by = datetime_rel]

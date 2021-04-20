@@ -93,7 +93,7 @@ d = d[!is.na(nestID)]
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
 
 # interactions
-dp[, interaction := distance_pair < 20]
+dp[, interaction := distance_pair < 30]
 
 # count bouts of split and merge
 dp[, bout := bCounter(interaction), by = nestID]
@@ -130,6 +130,7 @@ ggplot(data = dp) +
   geom_tile(aes(datetime_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
@@ -141,7 +142,7 @@ hist(dp$datetime_rel)
 
 
 
-
+dp[is.na(nestID)]
 
 
 
