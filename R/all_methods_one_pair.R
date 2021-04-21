@@ -68,6 +68,34 @@ bm +
 # distance threshold
 threshold = sequence(15, 10, 10)
 
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < distance_threshold]
+
+  ds = copy(dp)
+  ds[, distance_threshold := distance_threshold]
+  ds
+ 
+}
+
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_tile(aes(initiation_rel, factor(distance_threshold), fill = interaction), width = 0.1, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  theme_classic()
+
+
+# distance threshold
+threshold = sequence(15, 10, 10)
+
 
 o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
   
@@ -76,41 +104,34 @@ o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
   # interactions
   dp[, interaction := distance_pair < distance_threshold]
   
-  # count bouts of split and merge
-  dp[, bout := bCounter(interaction), by = nestID]
-  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
-  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
-  dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE]
-  
   # round to days
-  dp[, initiation_rel := round(initiation_rel, 0)]
+  dp[, initiation_rel0 := round(initiation_rel, 0)]
   
   # daily points of both individuals
-  dp[, N_daily := .N, by = .(nestID, initiation_rel)]
+  dp[, N_daily := .N, by = .(nestID, initiation_rel0)]
   
   # daily interactions
-  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel)]
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel0)]
   dp[interaction == FALSE, N_together := NA]
-  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel)]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel0)]
   dp[is.na(N_together), N_together := 0]
   
   # unique data
-  ds = unique(dp, by = c('nestID', 'initiation_rel'))
+  ds = unique(dp, by = c('nestID', 'initiation_rel0'))
   ds[, per_together := N_together / N_daily * 100]
   
-  ds = ds[, .(per_together = median(per_together)), by = initiation_rel]
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel0]
   ds[, distance_threshold := distance_threshold]
   ds
   
 }
 
 
-
-setorder(o, initiation_rel)
+setorder(o, initiation_rel0)
 
 ggplot(data = o) +
-  geom_point(aes(initiation_rel, per_together, color = factor(distance_threshold), group = distance_threshold), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel, per_together, color = factor(distance_threshold), group = distance_threshold), size = 1, alpha = 0.5) +
+  geom_point(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 1, alpha = 0.5) +
     scale_color_viridis(direction = -1, name = 'distance threshold', discrete = TRUE) +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
@@ -120,35 +141,273 @@ ggplot(data = o) +
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Simple distance threshold & minimal bout length
+#--------------------------------------------------------------------------------------------------------------
 
-ggplot(data = dp) +
-  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+# minimal bout length
+bout_seq_max_value = sequence(6, 1, 1)
+
+o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
+  
+  bsm = bout_seq_max_value[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < 40]
+  
+  # count bouts of split and merge
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  dp[interaction == FALSE & bout_seq_max <= i, interaction := TRUE]
+  
+  ds = copy(dp)
+  ds[, bout_seq_max_value := bsm]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_tile(aes(initiation_rel, factor(bout_seq_max_value), fill = interaction), width = 0.1, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('min bout length') +
+  theme_classic()
+
+
+# minimal bout length
+bout_seq_max_value = sequence(6, 1, 1)
+
+
+o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
+  
+  bsm = bout_seq_max_value[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < 40]
+  
+  # count bouts of split and merge
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  dp[interaction == FALSE & bout_seq_max <= i, interaction := TRUE]
+  
+  # round to days
+  dp[, initiation_rel0 := round(initiation_rel, 0)]
+  
+  # daily points of both individuals
+  dp[, N_daily := .N, by = .(nestID, initiation_rel0)]
+  
+  # daily interactions
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel0)]
+  dp[interaction == FALSE, N_together := NA]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel0)]
+  dp[is.na(N_together), N_together := 0]
+  
+  # unique data
+  ds = unique(dp, by = c('nestID', 'initiation_rel0'))
+  ds[, per_together := N_together / N_daily * 100]
+  
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel0]
+  ds[, bout_seq_max_value := bsm]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel0)
+
+ggplot(data = o) +
+  geom_point(aes(initiation_rel0, per_together, color = factor(bout_seq_max_value), group = bout_seq_max_value), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0, per_together, color = factor(bout_seq_max_value), group = bout_seq_max_value), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, name = 'minimal bout', discrete = TRUE) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Include movement before to create a buffer
+#--------------------------------------------------------------------------------------------------------------
+
+### positions before and after
+
+# shift positions
+dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
+dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
+dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
+dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
+
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distance to position before and after
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
+dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
+dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+
+# distance threshold
+threshold = sequence(15, 10, 10)
+
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
+  
+  ds = copy(dp)
+  ds[, distance_threshold := distance_threshold]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_tile(aes(initiation_rel, factor(distance_threshold), fill = interaction), width = 0.1, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
 
+# distance threshold
+threshold = sequence(15, 10, 10)
+
+
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
+  
+  # round to days
+  dp[, initiation_rel0 := round(initiation_rel, 0)]
+  
+  # daily points of both individuals
+  dp[, N_daily := .N, by = .(nestID, initiation_rel0)]
+  
+  # daily interactions
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel0)]
+  dp[interaction == FALSE, N_together := NA]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel0)]
+  dp[is.na(N_together), N_together := 0]
+  
+  # unique data
+  ds = unique(dp, by = c('nestID', 'initiation_rel0'))
+  ds[, per_together := N_together / N_daily * 100]
+  
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel0]
+  ds[, distance_threshold := distance_threshold]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel0)
+
+ggplot(data = o) +
+  geom_point(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, name = 'distance threshold', discrete = TRUE) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Calculate spatio-temporal clusters
+#--------------------------------------------------------------------------------------------------------------
+
+
+setorder(d, ID, datetime_)
+d[, pointID := seq_len(.N), by = ID]
+
+ID = unique(c(dnID[, male_id], dnID[, female_id]))
+
+
+d = foreach(i = ID, .combine = rbind, .packages = c('data.table','tdbscan') ) %do% {
+  
+  # subset individual and create track
+  ds = d[ID == i]
+  track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+  
+  z = tdbscan(track, eps = 30, minPts = 3, maxLag = 6, borderPoints = TRUE )
+  
+  ds[, clustID := z$clustID]
+  ds
+  
+}
+
+
+d[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
+
+# create dt with convex hull polygons
+dc = dt2Convexhull(d[!is.na(clustID), .(ID_clustID, lat, lon, datetime_)],
+                   pid = 'ID_clustID', y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+
+s = stoscan(dc)
+
+# merge with nests 
+# d = rbind(d, n[, .(ID_clustID = nest, datetime_ = initiation, latit, longit, NARL)], fill = TRUE)
+
+d = merge(d, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
+
+
+
+# merge with spatio-temporal clusters
+d[, ID := as.integer(ID)]
+dp = merge(dp, d[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
+                     st_clustID1 = st_clustID)], 
+           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
+dp = merge(dp, d[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
+                     st_clustID2 = st_clustID)], 
+           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
 
 
 
 
 
+setorder(d, ID, datetime_)
+d
+
+bm = create_bm(d, buffer = 100)
+
+bm +
+  geom_path(data = d, aes(lon, lat, color = NULL), col = 'grey', size = .5) +
+  geom_point(data = d, aes(lon, lat, color = as.character(s_clustID)), alpha = .5, size = 2, show.legend = FALSE) 
+
+
+ggplot(data = d[!is.na(s_clustID)]) +
+  geom_point(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
+  geom_line(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
+  geom_vline(xintercept = dn$initiation, color = 'black', size = 1) +
+  theme_classic()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+ggplot(data = d[!is.na(s_clustID) & datetime_ > as.POSIXct('2018-06-22 05:30:00') & datetime_ < as.POSIXct('2018-06-26 07:20:00')]) +
+  geom_point(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
+  geom_line(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
+  geom_vline(xintercept = dn$initiation, color = 'black', size = 1) +
+  theme_classic()
 
 
 
