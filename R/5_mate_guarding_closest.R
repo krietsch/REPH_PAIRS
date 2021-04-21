@@ -93,7 +93,7 @@ d = d[!is.na(nestID)]
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
 
 # interactions
-dp[, interaction := distance_pair < 30]
+dp[, interaction := distance_pair < 40]
 
 # count bouts of split and merge
 dp[, bout := bCounter(interaction), by = nestID]
@@ -202,7 +202,7 @@ ggplot(data = o) +
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Interactions using different distance thresholds
+#' # Interactions using different maximal bout length 
 #--------------------------------------------------------------------------------------------------------------
 
 # distance threshold
@@ -252,7 +252,6 @@ o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
 }
 
 
-
 setorder(o, initiation_rel)
 
 ggplot(data = o) +
@@ -268,16 +267,50 @@ ggplot(data = o) +
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Include movement before
+#--------------------------------------------------------------------------------------------------------------
+
+### positions before and after
+
+# shift positions
+dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
+dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
+dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
+dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
+
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distance to position before and after
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
+dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
+dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# interaction with "movement buffer"
+dp[, interaction_buffer := distance_pair < c(max(distance1_before, distance2_before) + 40), by = 1:nrow(dp)]
 
 
+dp
 
 
+ggplot(data = dp) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction_buffer), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  theme_classic()
 
-
-
-
-
-
-
+ggplot(data = dp) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  theme_classic()
 
 
