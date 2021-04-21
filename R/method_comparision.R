@@ -373,33 +373,33 @@ d[ID == 270170746 & datetime_ == as.POSIXct('2018-06-20 14:03:21', tz = 'UTC')]
 dss = d[ID == 270170746]
 
 
-# change projection to lon lat
-st_transform_DT(ds, lat = 'lat1', lon = 'lon1', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-st_transform_DT(ds, lat = 'lat2', lon = 'lon2', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
-
-
-# transform data in table to create kml
-d_plot = function(x){
-  ds = data.table(id = x$ID1,
-                  datetime_ = x$datetime_1,
-                  lat = x$lat1,
-                  lon = x$lon1)
-  ds
-  
-}
-
-kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/M_closest.kml'), scale = 0.5)
-
-# transform data in table to create kml
-d_plot = function(x){
-  ds = data.table(id = x$ID2,
-                  datetime_ = x$datetime_2,
-                  lat = x$lat2,
-                  lon = x$lon2)
-  ds
-  
-}
-
-kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/F_closest.kml'), scale = 0.5)
+# # change projection to lon lat
+# st_transform_DT(ds, lat = 'lat1', lon = 'lon1', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+# st_transform_DT(ds, lat = 'lat2', lon = 'lon2', from = PROJ, to = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
+# 
+# 
+# # transform data in table to create kml
+# d_plot = function(x){
+#   ds = data.table(id = x$ID1,
+#                   datetime_ = x$datetime_1,
+#                   lat = x$lat1,
+#                   lon = x$lon1)
+#   ds
+#   
+# }
+# 
+# kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/M_closest.kml'), scale = 0.5)
+# 
+# # transform data in table to create kml
+# d_plot = function(x){
+#   ds = data.table(id = x$ID2,
+#                   datetime_ = x$datetime_2,
+#                   lat = x$lat2,
+#                   lon = x$lon2)
+#   ds
+#   
+# }
+# 
+# kml(dat = d_plot(ds), file = paste0('./OUTPUTS/TEMP/F_closest.kml'), scale = 0.5)
 
 

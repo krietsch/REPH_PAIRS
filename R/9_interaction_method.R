@@ -54,7 +54,7 @@ dp[, interaction := distance < 30]
 dpn[, interaction := distance_pair < 30]
 
 dp[interaction == TRUE] %>% nrow
-dpn[interaction == TRUE] %>% nrow
+dpn[interaction == TRUE] %>% nrow 
 
 # subset pair
 dps = dp[ID1 == 270170746 & ID2 == 270170747] # R304_18
