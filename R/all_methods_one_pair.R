@@ -89,12 +89,15 @@ ggplot(data = o) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
+  xlab('Date relative to initiation') + ylab('Distance threshold') +
   theme_classic()
+
+# ggsave('./OUTPUTS/ONE_PAIR/Barplot_dist_threshold_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
+
 
 
 # distance threshold
-threshold = sequence(15, 10, 10)
+threshold = sequence(10, 10, 10)
 
 
 o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
@@ -137,8 +140,9 @@ ggplot(data = o) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
-  theme(legend.position = c(0.8, 0.8))
+  theme(legend.position = c(0.8, 0.7))
 
+# ggsave('./OUTPUTS/ONE_PAIR/Percentage_together_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -153,7 +157,7 @@ o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
   bsm = bout_seq_max_value[i]
   
   # interactions
-  dp[, interaction := distance_pair < 40]
+  dp[, interaction := distance_pair < 30]
   
   # count bouts of split and merge
   dp[, bout := bCounter(interaction), by = nestID]
@@ -178,6 +182,8 @@ ggplot(data = o) +
   xlab('Date relative to initiation') + ylab('min bout length') +
   theme_classic()
 
+# ggsave('./OUTPUTS/ONE_PAIR/Barplot_min_bout_initiation_rel.png', plot = last_plot(),  width = 177, height = 85, units = c('mm'), dpi = 'print')
+
 
 # minimal bout length
 bout_seq_max_value = sequence(6, 1, 1)
@@ -188,7 +194,7 @@ o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
   bsm = bout_seq_max_value[i]
   
   # interactions
-  dp[, interaction := distance_pair < 40]
+  dp[, interaction := distance_pair < 30]
   
   # count bouts of split and merge
   dp[, bout := bCounter(interaction), by = nestID]
@@ -230,6 +236,9 @@ ggplot(data = o) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
   theme(legend.position = c(0.8, 0.8))
+
+# ggsave('./OUTPUTS/ONE_PAIR/Percentage_together_min_bout_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
+
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -280,12 +289,14 @@ ggplot(data = o) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
+  xlab('Date relative to initiation') + ylab('Distance threshold') +
   theme_classic()
+
+# ggsave('./OUTPUTS/ONE_PAIR/Barplot_movement_buffer_initiation_rel.png', plot = last_plot(),  width = 177, height = 85, units = c('mm'), dpi = 'print')
 
 
 # distance threshold
-threshold = sequence(15, 10, 10)
+threshold = sequence(10, 10, 10)
 
 
 o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
@@ -328,7 +339,9 @@ ggplot(data = o) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
-  theme(legend.position = c(0.8, 0.8))
+  theme(legend.position = c(0.8, 0.7))
+
+# ggsave('./OUTPUTS/ONE_PAIR/Percentage_together_movement_buffer_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -399,15 +412,101 @@ ggplot(data = d[!is.na(s_clustID)]) +
   geom_point(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
   geom_line(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
   geom_vline(xintercept = dn$initiation, color = 'black', size = 1) +
+  geom_vline(xintercept = dn$initiation + 3*86400, color = 'black', size = 1) +
   theme_classic()
 
 
 
-ggplot(data = d[!is.na(s_clustID) & datetime_ > as.POSIXct('2018-06-22 05:30:00') & datetime_ < as.POSIXct('2018-06-26 07:20:00')]) +
+ggplot(data = d[!is.na(s_clustID) & datetime_ > as.POSIXct('2018-06-23 05:30:00') & datetime_ < as.POSIXct('2018-06-27 07:20:00')]) +
   geom_point(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
   geom_line(aes(datetime_, factor(s_clustID), group = ID, color = sex)) +
   geom_vline(xintercept = dn$initiation, color = 'black', size = 1) +
   theme_classic()
+
+
+dp[, diff_time := difftime(datetime_2, datetime_1, units = 'mins') %>% as.numeric %>% abs]
+
+hist(dp$diff_time)
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Model change in within-pair distance 
+#--------------------------------------------------------------------------------------------------------------
+
+# Packages
+sapply(c('lme4', 'effects', 'multcomp', 'gtools', 'emmeans', 'broom', 'MuMIn', 'nlme'),
+       function(x) suppressPackageStartupMessages(require(x , character.only = TRUE, quietly = TRUE) ) )
+
+# shift positions
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distances pair next
+dp[, distance_pair_next := sqrt(sum((c(lon1_next, lat1_next) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# distance male and female next
+dp[, distance_btw_1 := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance_btw_2 := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# delta difference in pair distance
+dp[, distance_btw_pair := abs(distance_pair - distance_pair_next), by = 1:nrow(dp)]
+
+# time between consecutive points
+dp[, datetime_1_next := data.table::shift(datetime_1, type = 'lead'), by = ID1]
+dp[, datetime_2_next := data.table::shift(datetime_2, type = 'lead'), by = ID2]
+dp[, time_btw_1 := as.numeric(difftime(datetime_1_next, datetime_1, units = 'sec'))]
+dp[, time_btw_2 := as.numeric(difftime(datetime_2_next, datetime_2, units = 'sec'))]
+dp[, time_btw_pair := abs(as.numeric(difftime(datetime_1, datetime_2, units = 'sec')))]
+
+# ground speed 
+dp[, speed_1 := distance_btw_1/ time_btw_1]
+dp[, speed_2 := distance_btw_2/ time_btw_2]
+
+# how far could bird have moved in between points
+dp[, distance_travelled_1 := time_btw_pair * speed_1]
+dp[, distance_travelled_2 := time_btw_pair * speed_2]
+dp[, distance_travelled_pair := time_btw_pair * max(speed_1, speed_2), by = 1:nrow(dp)]
+
+# interaction based on distance threshold
+dp[, interaction := distance_pair < 30]
+dp[, interaction_time_btw := distance_pair < 30 + distance_travelled_pair]
+
+# first and last interaction
+dp[interaction == TRUE, first_int := min(datetime_1), by = nestID]
+dp[, first_int := min(first_int, na.rm = TRUE), by = nestID]
+dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
+dp[, last_int := max(last_int, na.rm = TRUE), by = nestID]
+
+
+# subset period with interactions
+ds = dp[!is.na(distance_btw_pair) & datetime_1 > first_int & datetime_1 < last_int]
+
+
+# selected model
+fm1 = lm(distance_btw_pair ~ distance_btw_1 + distance_btw_2, data = ds)
+
+plot(allEffects(fm1))
+glht(fm1) %>% summary
+summary(fm1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
