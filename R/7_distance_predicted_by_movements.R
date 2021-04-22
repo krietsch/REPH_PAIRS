@@ -38,14 +38,6 @@ d[, start := min(datetime_), by = ID]
 d[, end   := max(datetime_), by = ID]
 dID = unique(d, by = 'ID')
 
-# ID as character
-d[, ID := as.character(ID)]
-dp[, ID1 := as.character(ID1)]
-dp[, ID2 := as.character(ID2)]
-dID[, ID := as.character(ID)]
-dn[, male_id := as.character(male_id)]
-dn[, female_id := as.character(female_id)]
-
 # check if data overlap
 dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_id', all.x = TRUE)
 dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
@@ -115,36 +107,20 @@ dp[, distance_travelled_pair := time_btw_pair * max(speed_1, speed_2), by = 1:nr
 dp[, interaction := distance_pair < 30]
 dp[, interaction_time_btw := distance_pair < 30 + distance_travelled_pair]
 
-dps = dp[ID1 == 270170763 & ID2 == 270170764] # R909_18
+# first and last interaction
+dp[interaction == TRUE, first_int := min(datetime_1), by = nestID]
+dp[, first_int := min(first_int, na.rm = TRUE), by = nestID]
+dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
+dp[, last_int := max(last_int, na.rm = TRUE), by = nestID]
 
+# subset period with interactions
+dp = dp[datetime_1 > first_int & datetime_1 < last_int]
 
+# relative nest initiation date
+dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
-ggplot(data = dps) +
-  geom_point(aes(datetime_1, speed_1)) +
-  theme_classic()
-
-
-ggplot(data = dps) +
-  geom_point(aes(lon1, lat1, color = interaction_time_btw)) +
-  theme_classic()
-
-
-
-dps = dps[datetime_1 > as.POSIXct('2018-06-29 10:30:00') & datetime_1 < as.POSIXct('2018-06-29 11:30:00')]
-dps[, point_id := seq_along(ID1)]
-
-bm = create_bm(dps, lon = 'lon1', lat = 'lat1', buffer = 100)
-
-ggplot(data = dps) +
-  geom_point(aes(lon1, lat1, color = interaction_time_btw)) +
-  geom_path(aes(lon1, lat1), color = 'grey') +
-  geom_point(aes(lon2, lat2, color = interaction_time_btw)) +
-  geom_path(aes(lon2, lat2), color = 'grey') +
-  ggrepel::geom_label_repel(data = dps, aes(lon1, lat1, label = point_id), segment.color = 'grey50') +
-  ggrepel::geom_label_repel(data = dps, aes(lon2, lat2, label = point_id), segment.color = 'grey50') +
-  theme_classic()
-
-dps[, .(datetime_1, distance_pair, time_btw_pair, distance_travelled_pair, speed_1, speed_2, interaction, interaction_time_btw)]
+# subset four days before and after
+dp = dp[initiation_rel > -4 & initiation_rel < 4]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Model change in within-pair distance 
@@ -157,23 +133,28 @@ sapply(c('lme4', 'effects', 'multcomp', 'gtools', 'emmeans', 'broom', 'MuMIn', '
 # exclude NA
 dp = dp[!is.na(distance_btw_pair)]
 
-# model within pair distance change
-fm = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), data = dp)
+# # model within pair distance change
+# fm = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), data = dp)
+# 
+# plot(ACF(fm, resType = 'normalized'), alpha = 0.01)
+# 
+# # runs forever
+# fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
+# fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
+# 
+# model.sel(fm, fm1, fm2)
+# 
+# plot(ACF(fm1, resType = 'normalized'), alpha=0.01)
 
-plot(ACF(fm, resType = 'normalized'), alpha = 0.01)
+# selected model
+fm1 = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), 
+         correlation = corARMA(form = ~ 1 | nestID, p = 2, q = 2), data = dp)
 
-# runs forever
-fm1 = update(fm, correlation = corARMA(  form = ~ 1 | nestID, p = 2, q = 2) )
-fm2 = update(fm, correlation = corAR1(  form = ~ 1 | nestID) )
+plot(ACF(fm1, resType = 'normalized'), alpha=0.01)
 
-model.sel(fm, fm1, fm2)
-
-plot(ACF(fm, resType = 'normalized'), alpha=0.01)
-
-
-plot(allEffects(fm))
-glht(fm) %>% summary
-summary(fm)
+plot(allEffects(fm1))
+glht(fm1) %>% summary
+summary(fm1)
 
 # look at raw data
 ggplot(data = dp) +
