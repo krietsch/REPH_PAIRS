@@ -467,6 +467,130 @@ ggplot(data = o) +
 
 # ggsave('./OUTPUTS/ONE_PAIR/Percentage_together_movement_buffer_and_threshold_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Include movement before to create a buffer, each interaction bout should at least have one truly below  + movement
+#--------------------------------------------------------------------------------------------------------------
+
+### positions before and after
+
+# shift positions
+dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
+dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
+dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
+dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
+
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distance to position before and after
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
+dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
+dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+
+# distance threshold
+threshold = sequence(15, 10, 10)
+
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
+  
+  # simple interactions
+  dp[, interaction_threshold := distance_pair < distance_threshold]
+  
+  # count bouts of split and merge
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  
+  dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
+  dp[any_interaction_threshold == FALSE, interaction := FALSE]
+  
+  ds = copy(dp)
+  ds[, distance_threshold := distance_threshold]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel)
+
+ggplot(data = o) +
+  geom_tile(aes(initiation_rel, factor(distance_threshold), fill = interaction), width = 0.1, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Distance threshold') +
+  theme_classic()
+
+# ggsave('./OUTPUTS/ONE_PAIR/Barplot_movement_buffer_plus_and_threshold_initiation_rel.png', plot = last_plot(),  width = 177, height = 85, units = c('mm'), dpi = 'print')
+
+
+# distance threshold
+threshold = sequence(10, 10, 10)
+
+
+o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
+  
+  distance_threshold = threshold[i]
+  
+  # interactions
+  dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
+  
+  # simple interactions
+  dp[, interaction_threshold := distance_pair < distance_threshold]
+  
+  # count bouts of split and merge
+  dp[, bout := bCounter(interaction), by = nestID]
+  dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+  dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+  
+  dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
+  dp[any_interaction_threshold == FALSE, interaction := FALSE]
+  
+  # round to days
+  dp[, initiation_rel0 := round(initiation_rel, 0)]
+  
+  # daily points of both individuals
+  dp[, N_daily := .N, by = .(nestID, initiation_rel0)]
+  
+  # daily interactions
+  dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel0)]
+  dp[interaction == FALSE, N_together := NA]
+  dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel0)]
+  dp[is.na(N_together), N_together := 0]
+  
+  # unique data
+  ds = unique(dp, by = c('nestID', 'initiation_rel0'))
+  ds[, per_together := N_together / N_daily * 100]
+  
+  ds = ds[, .(per_together = median(per_together)), by = initiation_rel0]
+  ds[, distance_threshold := distance_threshold]
+  ds
+  
+}
+
+
+setorder(o, initiation_rel0)
+
+ggplot(data = o) +
+  geom_point(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0, per_together, color = factor(distance_threshold), group = distance_threshold), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, name = 'distance threshold', discrete = TRUE) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.7))
+
+# ggsave('./OUTPUTS/ONE_PAIR/Percentage_together_movement_buffer_plus_and_threshold_initiation_rel.png', plot = last_plot(),  width = 177, height = 80, units = c('mm'), dpi = 'print')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Calculate spatio-temporal clusters
