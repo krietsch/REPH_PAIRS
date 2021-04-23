@@ -615,7 +615,6 @@ plot(allEffects(fm1))
 glht(fm1) %>% summary
 summary(fm1)
 
-
 ggplot(data = ds) +
   geom_point(aes(distance_btw_1, distance_btw_pair), color = 'dodgerblue2', alpha = 0.5, show.legend = FALSE) +
   geom_point(aes(distance_btw_2, distance_btw_pair), color = 'darkorange', alpha = 0.5, show.legend = FALSE) +
@@ -656,20 +655,24 @@ dp[, split := interaction_before == TRUE & interaction == FALSE]
 dp[, merge := interaction_before == FALSE & interaction == TRUE]
 
 # which ID split?
-dp[split == TRUE, split_ID := ifelse(distance1_next > distance2_next, 'ID1', 'ID2')]
+dp[split == TRUE, split_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 # which ID approached?
 dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 
-dp[split == TRUE, .(datetime_1,interaction, interaction_before, distance_pair_before, distance_pair, distance_pair_next, distance1_next, distance2_next, split_ID)]
+dp[split == TRUE, .(distance_pair_before, distance_pair, distance_pair_next, distance1_next, distance2_next, distance1_before, distance2_before, split_ID)]
+
+dp[merge == TRUE, .(distance_pair_before, distance_pair, distance_pair_next, distance1_next, distance2_next, distance1_before, distance2_before, split_ID)]
 
 
 ggplot(data = dp[split == TRUE]) +
-  geom_bar(aes(initiation_rel0, fill = split_ID))
+  geom_bar(aes(initiation_rel0, fill = split_ID)) +
+  theme_classic()
 
 ggplot(data = dp[merge == TRUE]) +
-  geom_bar(aes(initiation_rel0, fill = merge_ID))
+  geom_bar(aes(initiation_rel0, fill = merge_ID)) +
+  theme_classic()
 
 
 
