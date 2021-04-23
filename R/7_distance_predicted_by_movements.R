@@ -81,7 +81,7 @@ dp[, distance_btw_1 := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , 
 dp[, distance_btw_2 := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # delta difference in pair distance
-dp[, distance_btw_pair := abs(distance_pair - distance_pair_next), by = 1:nrow(dp)]
+dp[, distance_btw_pair := distance_pair - distance_pair_next, by = 1:nrow(dp)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define dynamic interaction based on speed
@@ -146,11 +146,21 @@ dp = dp[!is.na(distance_btw_pair)]
 # 
 # plot(ACF(fm1, resType = 'normalized'), alpha=0.01)
 
-# selected model
-fm1 = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), 
-         correlation = corARMA(form = ~ 1 | nestID, p = 2, q = 2), data = dp)
+# # selected model
+# fm1 = lme(distance_btw_pair ~ distance_btw_1 + distance_btw_2, random =  (~1 | nestID), 
+#          correlation = corARMA(form = ~ 1 | nestID, p = 2, q = 2), data = dp)
+# 
+# plot(ACF(fm1, resType = 'normalized'), alpha=0.01)
+# 
+# plot(allEffects(fm1))
+# glht(fm1) %>% summary
+# summary(fm1)
 
-plot(ACF(fm1, resType = 'normalized'), alpha=0.01)
+
+hist(dp$distance_btw_1)
+hist(dp$distance_btw_2)
+
+fm1 = lm(distance_btw_pair ~ distance_btw_1 + distance_btw_2, data = dp)
 
 plot(allEffects(fm1))
 glht(fm1) %>% summary
@@ -162,6 +172,47 @@ ggplot(data = dp) +
 
 ggplot(data = dp) +
   geom_point(aes(distance_btw_2, distance_btw_pair, color = nestID), show.legend = FALSE)
+
+
+
+
+
+
+
+# subset < 1000 m
+ds = dp[distance_btw_1 < 1000 & distance_btw_2 < 1000]
+
+fm1 = lm(distance_btw_pair ~ distance_btw_1 + distance_btw_2, data = ds)
+
+plot(allEffects(fm1))
+glht(fm1) %>% summary
+summary(fm1)
+
+
+# look at raw data
+ggplot(data = ds) +
+  geom_point(aes(distance_btw_1, distance_btw_pair), alpha = 0.1, show.legend = FALSE) +
+  theme_classic()
+
+ggplot(data = ds) +
+  geom_point(aes(distance_btw_2, distance_btw_pair), alpha = 0.1, show.legend = FALSE) +
+  theme_classic()
+
+ggplot(data = ds) +
+  geom_point(aes(distance_btw_1, distance_btw_pair), color = 'dodgerblue2', alpha = 0.1, show.legend = FALSE) +
+  geom_point(aes(distance_btw_2, distance_btw_pair), color = 'darkorange', alpha = 0.1, show.legend = FALSE) +
+  theme_classic()
+
+
+ggplot(data = ds) +
+  geom_hex(aes(distance_btw_1, distance_btw_pair), show.legend = TRUE) +
+  scale_fill_continuous(type = 'viridis', limits = c(0, 100)) 
+
+ggplot(data = ds) +
+  geom_hex(aes(distance_btw_2, distance_btw_pair), show.legend = TRUE) +
+  scale_fill_continuous(type = 'viridis', limits = c(0, 100)) 
+
+
 
 
 # distribution delta within-pair distance
