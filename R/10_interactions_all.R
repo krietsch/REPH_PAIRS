@@ -117,7 +117,8 @@ dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^
 dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # interactions
-dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
+dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
+# dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
 
 # simple interactions
 dp[, interaction_threshold := distance_pair < distance_threshold]
@@ -166,11 +167,14 @@ ggplot(data = dp) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  geom_vline(aes(xintercept = -2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
+ggsave('./OUTPUTS/ONE_PAIR/all_plus.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
 
+
+dp[is.na(nestID)]
 
 # round to days
 dp[, initiation_rel0 := round(initiation_rel, 0)]
