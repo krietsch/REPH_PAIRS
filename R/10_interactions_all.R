@@ -138,6 +138,11 @@ dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
 # correct for true splits
 dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
 
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+
 # split points and merging points
 dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
 dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
@@ -169,9 +174,10 @@ ggplot(data = dp) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
 
-# ggsave('./OUTPUTS/ONE_PAIR/all_plus.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 177, height = 170, units = c('mm'), dpi = 'print')
 
 
 dp = dp[!is.na(nestID)]
@@ -209,22 +215,56 @@ ggplot(data = ds) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 8) +
+  scale_x_continuous(limits = c(-10, 16)) +
   theme(legend.position = c(0.8, 0.7))
 
+# ggsave('./OUTPUTS/ALL_PAIRS/Percentage_daily_interactions.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
 
 
-
+# split and merges
 
 ggplot(data = dp[split == TRUE]) +
   geom_bar(aes(initiation_rel0, fill = split_ID)) +
   theme_classic()
 
+# ggsave('./OUTPUTS/ALL_PAIRS/splits.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
 ggplot(data = dp[merge == TRUE]) +
   geom_bar(aes(initiation_rel0, fill = merge_ID)) +
   theme_classic()
 
+# ggsave('./OUTPUTS/ALL_PAIRS/merges.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
-ds = dp[split == TRUE, .N, by = .(split_ID, initiation_rel0)]
+
+ds = dp[split == TRUE]
+ds = unique(ds, by = c('ID1', 'ID2', 'bout'))
+
+ds[, bout_seq_max_factor := factor(bout_seq_max)]
+ds[bout_seq_max > 18, bout_seq_max_factor := '>18']
+
+ggplot(data = ds) +
+  geom_bar(aes(initiation_rel0, fill = bout_seq_max_factor)) +
+  scale_fill_viridis(discrete = TRUE, direction = -1) +
+  scale_x_continuous(limits = c(-10, 16)) +
+  theme_classic()
+
+# ggsave('./OUTPUTS/ALL_PAIRS/bout_lenght_split.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+ds[interaction == TRUE]
+
+
+x = ds[, .(ID1, ID2, bout, bout_seq_max)]
+x
+
+
+ds[nestID == 'R304_18', .(ID1, ID2, bout, bout_seq_max)]
+
+
+
+
+
 
 
