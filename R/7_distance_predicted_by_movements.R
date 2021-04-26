@@ -203,6 +203,8 @@ ggplot(data = ds) +
   geom_point(aes(distance_btw_2, distance_btw_pair), color = 'darkorange', alpha = 0.1, show.legend = FALSE) +
   theme_classic()
 
+# ggsave('./OUTPUTS/ALL_PAIRS/distance_predicted_by_movement.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
+
 
 ggplot(data = ds) +
   geom_hex(aes(distance_btw_1, distance_btw_pair), show.legend = TRUE) +
