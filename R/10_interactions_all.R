@@ -155,6 +155,16 @@ dp[split == TRUE, split_ID := ifelse(distance1_before > distance2_before, 'ID1',
 # which ID approached?
 dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
+# mean and median
+dp[, date_ := as.Date(datetime_1)]
+dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(nestID, date_)]
+dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(nestID, date_)]
+
+# median corrected
+dp[, distance_pair_cor := ifelse(interaction == TRUE & distance_pair > distance_threshold, distance_threshold, distance_pair)]
+dp[interaction == FALSE, distance_pair_cor := distance_pair]
+dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(nestID, date_)]
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Plot for each nest
@@ -253,18 +263,57 @@ ggplot(data = ds) +
 # ggsave('./OUTPUTS/ALL_PAIRS/bout_lenght_split.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
-ds[interaction == TRUE]
 
 
-x = ds[, .(ID1, ID2, bout, bout_seq_max)]
-x
+# N daily interactions
+ds = unique(dp, by = c('nestID', 'date_'))
+ds[, per_together := N_together / N_daily * 100]
+ds[, per_sampled := N_daily / 140 * 100]
+
+ds = ds[initiation_rel0 > -9 & initiation_rel0 < 17]
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
 
 
-ds[nestID == 'R304_18', .(ID1, ID2, bout, bout_seq_max)]
+dss = ds[, .N, by = initiation_rel0]
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel0), per_together), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/per_together.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel0), median_dist), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_hline(aes(yintercept = 30), color = 'grey50', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Within-pair median distance') +
+  theme_classic(base_size = 12)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/median_dist.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
 
+ggplot(data = ds) +
+  geom_boxplot(aes(as.factor(initiation_rel0), median_dist_cor), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_hline(aes(yintercept = 30), color = 'grey50', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  scale_y_continuous(limits = c(0, 1000)) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Within-pair median distance') +
+  theme_classic(base_size = 12)
 
-
+# ggsave('./OUTPUTS/ALL_PAIRS/median_dist_cor.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
