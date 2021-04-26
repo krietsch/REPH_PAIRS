@@ -122,7 +122,7 @@ dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^
 dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # interactions
-dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
+dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
 
 # simple interactions
 dp[, interaction_threshold := distance_pair < distance_threshold]
@@ -134,6 +134,13 @@ dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
 
 dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
 dp[any_interaction_threshold == FALSE, interaction := FALSE]
+
+# split points and merging points
+dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
+dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+
+# correct for true splits
+dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
 
 # interaction ID
 dp[, int_id := seq_len(.N), by = nestID]
@@ -157,8 +164,8 @@ d = merge(d, dpID[, .(ID, datetime_, nestID, interaction, int_id, first_int, las
 d[, first_int := min(first_int, na.rm = TRUE), by = nestID]
 d[, last_int  := max(last_int, na.rm = TRUE), by = nestID]
 
-# 3 hours before and after
-d = d[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
+# 12 hours before and after
+d = d[datetime_ > first_int - 12*3600 & datetime_ < last_int - 12*3600]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation

@@ -171,10 +171,10 @@ ggplot(data = dp) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
-ggsave('./OUTPUTS/ONE_PAIR/all_plus.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/ONE_PAIR/all_plus.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
 
 
-dp[is.na(nestID)]
+dp = dp[!is.na(nestID)]
 
 # round to days
 dp[, initiation_rel0 := round(initiation_rel, 0)]
