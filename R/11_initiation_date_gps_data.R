@@ -19,6 +19,8 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 
+d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
+
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
@@ -69,6 +71,87 @@ d[, initiation_rel0 := round(initiation_rel, 0)]
 # found incomplete
 d[!is.na(initial_clutch_size), found_incomplete := initial_clutch_size < clutch_size]
 
+# any at nest
+d[, any_dist_n30 := any(dist_n30 == TRUE), by = .(sex, nestID)]
+
+ggplot(data = d[sex == 'M' & any_dist_n30 == FALSE]) +
+  geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic()
+
+ggplot(data = d[sex == 'M' & any_dist_n30 == FALSE]) +
+  geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic()
+
+# exclude nests with no data at nest
+d = d[any_dist_n30 == TRUE]
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Time at the nest
+#--------------------------------------------------------------------------------------------------------------
+
+# nest visit bouts
+setorder(d, nestID, ID, datetime_)
+d[, nest_visit := bCounter(dist_n30), by = .(nestID, ID)]
+d[, nest_visit_start := min(datetime_), by = .(nestID, ID, nest_visit)]
+d[, nest_visit_end := max(datetime_), by = .(nestID, ID, nest_visit)]
+d[, nest_visit_length := difftime(nest_visit_end, nest_visit_start, units = 'hours') %>% as.numeric, by = .(nestID, ID, nest_visit)]
+
+
+
+ds = d[dist_n30 == TRUE & nestID == 'R218_19' & sex == 'F']
+ds[, .(datetime_, distance_nest, nest_visit, nest_visit_length)]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_, nestID, color = distance_nest)) +
+  geom_vline(aes(xintercept = initiation), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  scale_color_viridis() +
+  theme_classic()
+
+
+
+ds = d[dist_n30 == TRUE & nestID == 'R913_19' & sex == 'F']
+ds[, .(datetime_, distance_nest, nest_visit, nest_visit_length)]
+ds[dist_n10 == TRUE, .(datetime_, distance_nest, nest_visit, nest_visit_length)]
+
+ggplot(data = ds) +
+  geom_point(aes(datetime_, nestID, color = distance_nest)) +
+  geom_vline(aes(xintercept = initiation), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  scale_color_viridis() +
+  theme_classic()
+
+
+
+
+
+ggplot(data = d[sex == 'F']) +
+  geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.01, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic()
+
+
+ggplot(data = d[sex == 'F' & nestID == 'R218_19']) +
+  geom_tile(aes(datetime_, nestID, fill = dist_n20), width = 20000, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic()
+
+
+
 
 ggplot(data = d[sex == 'M']) +
   geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.5, show.legend = FALSE) +
@@ -79,6 +162,14 @@ ggplot(data = d[sex == 'M']) +
 
 
 
+ggplot(data = d[sex == 'F'& found_incomplete == FALSE]) +
+  geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic()
+
+
 ggplot(data = d[sex == 'F'& found_incomplete == TRUE]) +
   geom_tile(aes(initiation_rel, nestID, fill = dist_n20), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'grey70', 'NA' = 'grey50')) +
@@ -87,7 +178,26 @@ ggplot(data = d[sex == 'F'& found_incomplete == TRUE]) +
   theme_classic()
 
 
-found_incomplete
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
