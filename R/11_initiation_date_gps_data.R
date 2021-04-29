@@ -132,13 +132,42 @@ ds[, .(datetime_, distance_nest, nest_visit, nest_visit_length)]
 dsv = dv[nestID == 'R218_19']
 
 ggplot(data = ds) +
-  geom_point(aes(datetime_, nestID, color = distance_nest)) +
+  geom_tile(aes(datetime_, nestID, color = distance_nest)) +
   geom_vline(aes(xintercept = initiation), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
   scale_color_viridis() +
   theme_classic()
+
+
+
+
+ds = d[dist_n30 == TRUE & nestID == 'R406_19' & sex == 'F']
+ds[, .(datetime_, distance_nest, nest_visit, nest_visit_length)]
+
+dsv = dv[nestID == 'R406_19']
+
+ggplot(data = ds[dist_n10 == TRUE]) +
+  geom_tile(aes(datetime_, nestID, color = distance_nest)) +
+  geom_vline(aes(xintercept = initiation), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-19 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-20 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-21 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+  scale_color_viridis() +
+  theme_classic()
+
+
+
+ds[dist_n30 == TRUE, .(nestID, datetime_, distance_nest)]
+
+
+
+
+
+
+
+
 
 
 
@@ -169,14 +198,21 @@ setorder(ds, nestID, ID, date_)
 ds[, prop_at_nest_mean := frollmean(prop_at_nest, 3, na.rm = TRUE), by = .(nestID, ID)]
 ds[is.na(prop_at_nest_mean), prop_at_nest_mean := prop_at_nest]
 
-ds[, prop_at_nest_max := ]
+ds[, prop_at_nest_max := max(prop_at_nest, na.rm = TRUE), by = .(nestID, ID)]
+ds[, prop_at_nest_peak := prop_at_nest_max == prop_at_nest]
 
 
-ggplot(data = ds[sex == 'F']) +
-  geom_line(aes(initiation_rel, prop_at_nest_mean, group = ID_nestID)) +
+ggplot(data = ds[sex == 'M']) +
+  geom_smooth(aes(initiation_rel, prop_at_nest_mean), method = 'gam') +
+  geom_point(aes(initiation_rel, prop_at_nest_mean, group = ID_nestID, color = found_incomplete)) +
+  geom_point(data = ds[sex == 'F' & prop_at_nest_peak == TRUE], aes(initiation_rel, prop_at_nest_mean), color = 'firebrick2') +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  theme_classic()
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  theme_classic(base_size = 24)
 
+ggplot(data = ds[sex == 'M' & prop_at_nest_peak == TRUE]) +
+  geom_bar(aes(initiation_rel0, fill = found_incomplete)) +
+  theme_classic(base_size = 24)
 
 
 ggplot() +
