@@ -7,7 +7,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr',
-          'sdbvis', 'viridis', 'patchwork', 'windR', 'tdbscan'),
+          'sdbvis', 'viridis', 'patchwork', 'windR', 'tdbscan', 'doFuture'),
         require, character.only = TRUE)
 
 # Functions
@@ -18,8 +18,10 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-
 d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
+
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, datetime_1 := as.POSIXct(datetime_1, tz = 'UTC')]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
@@ -42,6 +44,79 @@ DBI::dbDisconnect(con)
 
 # change projection
 st_transform_DT(dn)
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Interactions
+#--------------------------------------------------------------------------------------------------------------
+
+distance_threshold = 20
+
+# nest data
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, lat_n = lat, lon_n = lon)]
+dnID = unique(dnID, by = 'nestID')
+
+# as integer
+dnID[, male_id := as.integer(male_id)]
+dnID[, female_id := as.integer(female_id)]
+
+# merge with nests
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
+
+# shift positions
+dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
+dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
+dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
+dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
+
+dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
+dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
+dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
+dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
+
+# distance to position before and after
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
+dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
+dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
+
+# interactions
+dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
+# dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
+
+# simple interactions
+dp[, interaction_threshold := distance_pair < distance_threshold]
+
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+
+dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
+dp[any_interaction_threshold == FALSE, interaction := FALSE]
+
+# split points and merging points
+dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
+dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+
+# correct for true splits
+dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
+
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+
+# split points and merging points
+dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
+dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+dp[, split := interaction_before == TRUE & interaction == FALSE]
+dp[, merge := interaction_before == FALSE & interaction == TRUE]
+
+# Proportion together
+dp[, date_ := as.Date(datetime_1)]
+dp[, N_positions_date := .N, by = .(nestID, ID1, date_)]
+dp[interaction == TRUE, N_int := .N, by = .(nestID, ID1, date_)]
+dp[, prop_together := N_int / N_positions_date * 100]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # GPS tagged birds with nest
@@ -140,6 +215,7 @@ p1 =
   geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
     geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
   geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
   scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
   ylab('Proportion at nest') + xlab('') +
   scale_color_viridis() +
@@ -206,13 +282,20 @@ patchwork + plot_layout(heights = c(10, 1, 1, 1, 1))
 nestIDu = d[, nestID] %>% unique
 nestIDu = dv[nestID %in% nestIDu, nestID] %>% unique
 
-foreach(i = nestIDu) %do% {
+# register cores
+# registerDoFuture()
+# plan(multiprocess)
+
+
+foreach(i = nestIDu, .packages = c('data.table', 'ggplot2', 'patchwork')) %dopar% {
   
   ds = d[dist_n30 == TRUE & nestID == i] 
   dsv = dv[nestID == i] 
   datetime_min = min(ds[, datetime_])
-  datetime_max = max(ds[, datetime_])
+  datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+  initial_clutch_size = ds[1, initial_clutch_size]
   
+  dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
   
   p1 = 
     ggplot() +
@@ -223,7 +306,8 @@ foreach(i = nestIDu) %do% {
     geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
     geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
     geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
-    scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
+    geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+    scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
     ylab('Proportion at nest') + xlab('') +
     scale_color_viridis() +
     theme_classic()
@@ -231,6 +315,15 @@ foreach(i = nestIDu) %do% {
   
   
   p2 = 
+    
+    if(nrow(ds[sex == 'M']) == 0) {
+      
+      ggplot() +
+        geom_blank() +
+        theme_classic()
+      
+    }else{
+    
     ggplot(data = ds[sex == 'M']) +
     geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
     # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
@@ -241,8 +334,18 @@ foreach(i = nestIDu) %do% {
     ylab('') + xlab('') +
     scale_fill_viridis() +
     theme_classic()
+    }
   
   p3 = 
+    
+    if(nrow(ds[dist_n10 == TRUE & sex == 'M']) == 0) {
+      
+      ggplot() +
+        geom_blank() +
+        theme_classic()
+      
+    }else{
+    
     ggplot(data = ds[dist_n10 == TRUE & sex == 'M']) +
     geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
     # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
@@ -253,10 +356,18 @@ foreach(i = nestIDu) %do% {
     ylab('') + xlab('') +
     scale_fill_viridis() +
     theme_classic()
-  
+    }
   
   
   p4 = 
+    if(nrow(ds[sex == 'F']) == 0) {
+      
+      ggplot() +
+        geom_blank() +
+        theme_classic()
+      
+    }else{
+    
     ggplot(data = ds[sex == 'F']) +
     geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
     # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
@@ -267,34 +378,55 @@ foreach(i = nestIDu) %do% {
     ylab('') + xlab('') +
     scale_fill_viridis() +
     theme_classic()
+    
+    }
+  
   
   p5 = 
+    if(nrow(ds[dist_n10 == TRUE & sex == 'F']) == 0) {
+      
+    ggplot() +
+      geom_blank() +
+      theme_classic()
+      
+    }else{
+      
     ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
-    geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-    # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-    # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-    # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-    geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
-    scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
-    ylab('') + xlab('Date') +
-    scale_fill_viridis() +
-    theme_classic()
+      geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+      # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+      # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+      # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
+      geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+      scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+      ylab('') + xlab('') +
+      scale_fill_viridis() +
+      theme_classic()
+    }
+  
+  p6 = 
+    if(nrow(dps) == 0) {
+      
+      ggplot() +
+        geom_blank() +
+        theme_classic()
+      
+    }else{
+      
+      ggplot(data = dps) +
+        geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+        scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+        ylab('') + xlab('Date') +
+        scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+        theme_classic()
+    }
   
   
-  patchwork = p1 / p2 / p3 / p4 / p5
-  patchwork + plot_layout(heights = c(10, 1, 1, 1, 1))
+  patchwork = p1 / p2 / p3 / p4 / p5 / p6
+  patchwork + plot_layout(heights = c(10, 1, 1, 1, 1, 1))
   
-  ggsave(paste0('./OUTPUTS/INITIATION_PAIRS/', i,'.png'), plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
-  
-  
+  ggsave(paste0('./OUTPUTS/INITIATION_PAIRS/', initial_clutch_size, '_', i,'.png'), plot = last_plot(),  width = 300, height = 200, units = c('mm'), dpi = 'print')
   
 }
-
-
-
-
-
-
 
 
 
