@@ -573,7 +573,7 @@ ds[, prop_at_nest_max := max(prop_at_nest, na.rm = TRUE), by = .(nestID, ID)]
 ds[, prop_at_nest_peak := prop_at_nest_max == prop_at_nest]
 
 
-ggplot(data = ds[sex == 'M']) +
+ggplot(data = ds[sex == 'M' & datetime_ < nest_state_date]) +
   geom_smooth(aes(initiation_rel, prop_at_nest_mean), method = 'gam') +
   geom_point(aes(initiation_rel, prop_at_nest_mean, group = ID_nestID, color = found_incomplete)) +
   geom_point(data = ds[sex == 'F' & prop_at_nest_peak == TRUE], aes(initiation_rel, prop_at_nest_mean), color = 'firebrick2') +

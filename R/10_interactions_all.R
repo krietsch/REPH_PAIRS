@@ -30,6 +30,7 @@ dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dn = dn[year_ > 2017]
 dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
+dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
 DBI::dbDisconnect(con)
 
 # change projection
@@ -61,7 +62,7 @@ dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation 
 dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, lat_n = lat, lon_n = lon)]
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
@@ -79,8 +80,8 @@ IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
 d = d[ID %in% IDu]
 
 # merge with nest and initiation date
-dnIDu = rbind(dnID[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
-              dnID[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
+dnIDu = rbind(dnID[, .(year_, ID = female_id, nestID, initiation, nest_state_date, sex = 'F')], 
+              dnID[, .(year_, ID = male_id, nestID, initiation, nest_state_date, sex = 'M')])
 
 d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
 d = d[!is.na(nestID)]
@@ -217,7 +218,7 @@ ds = ds[!(initiation_rel < 0 & per_together < 50)]
 
 setorder(ds, initiation_rel0)
 
-ggplot(data = ds) +
+ggplot(data = ds[datetime_1 < nest_state_date]) +
   geom_point(aes(initiation_rel0, per_together, color = N_daily, group = nestID), size = 2, alpha = 1) +
   geom_path(aes(initiation_rel0, per_together, color = N_daily, group = nestID), size = 1, alpha = 0.5) +
   scale_color_viridis(direction = -1, name = 'N positions') +
