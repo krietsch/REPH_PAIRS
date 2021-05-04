@@ -199,86 +199,7 @@ d[, prop_at_nest := mean(prop_at_nest, na.rm = TRUE), by = .(nestID, ID, nest_vi
 # time when nest is active 
 d[, nest_active := datetime_ < nest_state_date]
 
-
-# example one pair
-ds = d[dist_n30 == TRUE & nestID == 'R903_19'] # R218_19
-dsv = dv[nestID == 'R903_19'] 
-datetime_min = min(ds[, datetime_])
-datetime_max = max(ds[, datetime_])
-
-
-p1 = 
-  ggplot() +
-  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
-  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
-  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
-    geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
-  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
-  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
-  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
-  ylab('Proportion at nest') + xlab('') +
-  scale_color_viridis() +
-  theme_classic()
-
-
-
-p2 = 
-  ggplot(data = ds[sex == 'M']) +
-  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  geom_tile(aes(datetime_, 'M_30m', fill = distance_nest), show.legend = FALSE) +
-  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
-  ylab('') + xlab('') +
-  scale_fill_viridis() +
-  theme_classic()
-
-p3 = 
-  ggplot(data = ds[dist_n10 == TRUE & sex == 'M']) +
-  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  geom_tile(aes(datetime_, 'M_10m', fill = distance_nest), show.legend = FALSE) +
-  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
-  ylab('') + xlab('') +
-  scale_fill_viridis() +
-  theme_classic()
-
-
-
-p4 = 
-ggplot(data = ds[sex == 'F']) +
-  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  geom_tile(aes(datetime_, 'F_30m', fill = distance_nest), show.legend = FALSE) +
-  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
-  ylab('') + xlab('') +
-  scale_fill_viridis() +
-  theme_classic()
-
-p5 = 
-ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
-  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:51:58', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-19 07:11:27', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
-  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
-  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%b %d') +
-  ylab('') + xlab('Date') +
-  scale_fill_viridis() +
-  theme_classic()
-
-
-patchwork = p1 / p2 / p3 / p4 / p5
-patchwork + plot_layout(heights = c(10, 1, 1, 1, 1))
-
-
-
+# unique nests
 nestIDu = d[, nestID] %>% unique
 nestIDu = dv[nestID %in% nestIDu, nestID] %>% unique
 
@@ -429,21 +350,9 @@ foreach(i = nestIDu, .packages = c('data.table', 'ggplot2', 'patchwork')) %dopar
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#--------------------------------------------------------------------------------------------------------------
+#' # Other plots
+#--------------------------------------------------------------------------------------------------------------
 
 
 
@@ -473,24 +382,6 @@ ggplot(data = ds) +
   geom_vline(aes(xintercept = as.POSIXct('2019-06-20 04:26:47', tz = 'UTC')), color = 'black', size = 3, alpha = 0.5) +
   scale_color_viridis() +
   theme_classic()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
