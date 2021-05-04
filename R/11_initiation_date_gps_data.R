@@ -201,11 +201,10 @@ d[, nest_active := datetime_ < nest_state_date]
 
 # unique nests
 nestIDu = d[, nestID] %>% unique
-nestIDu = dv[nestID %in% nestIDu, nestID] %>% unique
 
 # register cores
-# registerDoFuture()
-# plan(multiprocess)
+registerDoFuture()
+plan(multiprocess)
 
 
 foreach(i = nestIDu, .packages = c('data.table', 'ggplot2', 'patchwork')) %dopar% {
@@ -345,7 +344,7 @@ foreach(i = nestIDu, .packages = c('data.table', 'ggplot2', 'patchwork')) %dopar
   patchwork = p1 / p2 / p3 / p4 / p5 / p6
   patchwork + plot_layout(heights = c(10, 1, 1, 1, 1, 1))
   
-  ggsave(paste0('./OUTPUTS/INITIATION_PAIRS/', initial_clutch_size, '_', i,'.png'), plot = last_plot(),  width = 300, height = 200, units = c('mm'), dpi = 'print')
+  ggsave(paste0('./OUTPUTS/INITIATION_PAIRS/', i, '_', initial_clutch_size,'.png'), plot = last_plot(),  width = 300, height = 200, units = c('mm'), dpi = 'print')
   
 }
 
