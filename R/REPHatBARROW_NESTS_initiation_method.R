@@ -2012,10 +2012,10 @@ dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
 dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
                   est_hatching_datetime, hatching_datetime, comments)]
 
-egg1 = as.POSIXct('2019-06-22 12:00:00', tz = 'UTC')
-egg2 = as.POSIXct('2019-06-23 12:00:00', tz = 'UTC')
-egg3 = as.POSIXct('2019-06-24 12:00:00', tz = 'UTC')
-egg4 = as.POSIXct('2019-06-25 12:00:00', tz = 'UTC')
+egg1 = as.POSIXct('2019-06-15 11:43:23', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-16 11:11:44', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-17 13:50:46', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-18 14:21:12', tz = 'UTC')
 
 
 ggplot() +
@@ -2062,7 +2062,91 @@ ggplot(data = dps) +
 
 ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
 
-ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[32]
+i = 'R226_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no better data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[33]
+i = 'R227_19'
+#--------------------------------------------------------------------------------------------------------------
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-16 11:07:10', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-17 10:40:16', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-18 12:57:54', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-19 14:11:33', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
 
 
 dn[nestID == i, initiation_egg1 := egg1]
@@ -2074,43 +2158,38 @@ dn[nestID == i, initiation_method := 4]
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[34]
+i = 'R228_19'
+#--------------------------------------------------------------------------------------------------------------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# no data at initiation
 
 
 #--------------------------------------------------------------------------------------------------------------
-nestIDu[]
-i = ''
+nestIDu[35]
+i = 'R229_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no female data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[36]
+i = 'R230_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no female data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[37]
+i = 'R231_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[38]
+i = 'R232_19'
 #--------------------------------------------------------------------------------------------------------------
 
 ds = d[dist_n30 == TRUE & nestID == i] 
@@ -2124,10 +2203,2047 @@ dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
 dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
                   est_hatching_datetime, hatching_datetime, comments)]
 
-egg1 = as.POSIXct('2019-06-22 12:00:00', tz = 'UTC')
-egg2 = as.POSIXct('2019-06-23 12:00:00', tz = 'UTC')
-egg3 = as.POSIXct('2019-06-24 12:00:00', tz = 'UTC')
-egg4 = as.POSIXct('2019-06-25 12:00:00', tz = 'UTC')
+egg1 = as.POSIXct('2019-06-22 14:01:25', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-23 07:21:25', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-24 10:59:01', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-25 11:20:13', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[39]
+i = 'R233_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[40]
+i = 'R234_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[41]
+i = 'R302_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-10 15:47:51', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-11 11:21:57', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-12 15:06:07', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-14 08:10:34', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[42]
+i = 'R303_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[43]
+i = 'R304_18'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-24 11:29:00', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-25 14:27:41', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-26 16:34:11', tz = 'UTC')
+egg4 = as.POSIXct('2018-06-27 17:10:32', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+d[ID == 270170747]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[44]
+i = 'R304_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-10 13:41:56', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-11 11:28:07', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-12 10:46:53', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-13 20:17:54', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[45]
+i = 'R305_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-13 11:45:02', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-14 05:20:13', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[46]
+i = 'R306_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no overlap with initiation
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[47]
+i = 'R307_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-07 12:00:00', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-08 12:00:15', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-09 08:47:05', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-10 15:58:32', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[48]
+i = 'R308_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-10 08:56:46', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-11 04:26:55', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-12 20:07:35', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-13 23:19:40', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[49]
+i = 'R309_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-12 14:39:09', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-13 12:05:50', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-14 16:09:11', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-15 17:19:33', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[50]
+i = 'R310_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-13 12:00:00', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-14 07:50:24', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-15 12:28:25', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-16 11:58:57', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[51]
+i = 'R311_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[52]
+i = 'R312_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-17 13:12:19', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-18 02:59:59', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-19 14:52:27', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[53]
+i = 'R313_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[54]
+i = 'R314_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-15 12:39:18', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-16 09:53:27', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-17 21:24:50', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-18 21:30:56', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[55]
+i = 'R317_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-17 08:45:50', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-18 16:01:00', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-19 14:56:48', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[56]
+i = 'R319_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[57]
+i = 'R320_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[58]
+i = 'R321_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data 
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[59]
+i = 'R322_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[60]
+i = 'R325_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[61]
+i = 'R401_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[62]
+i = 'R402_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[63]
+i = 'R404_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-14 13:31:02', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-15 20:36:08', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-16 18:06:49', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-17 17:10:36', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[64]
+i = 'R405_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[65]
+i = 'R406_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-18 11:11:51', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-19 12:17:09', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-20 08:46:07', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-21 15:55:27', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[66]
+i = 'R407_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-15 10:46:01', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-16 08:07:01', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[67]
+i = 'R408_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-14 14:40:45', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-15 10:42:49', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-16 11:01:38', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-17 15:05:10', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'F'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[68]
+i = 'R409_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[69]
+i = 'R410_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data 
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[70]
+i = 'R501_18'
+#--------------------------------------------------------------------------------------------------------------
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-21 04:46:36', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-22 02:58:36', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-23 05:58:39', tz = 'UTC')
+egg4 = as.POSIXct('2018-06-24 13:29:08', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'F'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[71]
+i = 'R501_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[72]
+i = 'R502_19'
+#--------------------------------------------------------------------------------------------------------------
+
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-11 12:00:00', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-12 15:23:12', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[73]
+i = 'R503_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[74]
+i = 'R505_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[75]
+i = 'R601_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[76]
+i = 'R602_18'
+#--------------------------------------------------------------------------------------------------------------
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-23 15:18:05', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-24 14:42:32', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-25 05:37:13', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-26 12:00:00', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[77]
+i = 'R602_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[78]
+i = 'R603_19'
+#--------------------------------------------------------------------------------------------------------------
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-13 06:52:15', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-14 11:36:52', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-15 13:20:02', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-16 12:00:00', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[79]
+i = 'R604_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-13 11:55:08', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-14 11:00:48', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-15 11:25:05', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-16 18:48:29', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[80]
+i = 'R605_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-16 13:36:46', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-17 10:36:35', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-18 14:19:41', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[81]
+i = 'R607_18'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[82]
+i = 'R611_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data 
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[83]
+i = 'R703_19'
+#--------------------------------------------------------------------------------------------------------------
+
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-20 10:56:43', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-21 11:14:41', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-22 10:54:45', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[84]
+i = 'R801_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-12 09:36:40', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-13 10:49:39', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-14 15:03:45', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-15 15:16:55', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[85]
+i = 'R803_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-19 13:19:05', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-20 10:16:39', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-21 07:02:58', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-22 04:08:09', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'F'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[86]
+i = 'R807_18'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[87]
+i = 'R812_18'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[88]
+i = 'R901_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[89]
+i = 'R903_18'
+#--------------------------------------------------------------------------------------------------------------
+
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-23 09:52:54', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-24 08:15:22', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-25 15:46:58', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-26 12:00:00', tz = 'UTC')
 
 
 ggplot() +
@@ -2188,5 +4304,469 @@ dn[nestID == i, initiation_method := 4]
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[90]
+i = 'R903_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# data with gaps
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[91]
+i = 'R904_19'
+#--------------------------------------------------------------------------------------------------------------
 
 
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-15 01:58:19', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-16 01:35:31', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-17 07:22:32', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-18 04:46:56', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'F'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[92]
+i = 'R905_18'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-23 05:06:47', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-24 05:24:33', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-25 06:11:25', tz = 'UTC')
+egg4 = as.POSIXct('2018-06-26 17:49:31', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[93]
+i = 'R905_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[94]
+i = 'R907_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[95]
+i = 'R909_18'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[96]
+i = 'R910_18'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2018-06-26 08:14:44', tz = 'UTC')
+egg2 = as.POSIXct('2018-06-27 12:10:28', tz = 'UTC')
+egg3 = as.POSIXct('2018-06-28 12:19:15', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[97]
+i = 'R910_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-17 10:06:06', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-18 10:38:50', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-19 09:33:42', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-20 09:46:43', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[98]
+i = 'R911_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-20 08:36:18', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-21 16:20:38', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-22 13:57:28', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-23 13:29:52', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+x = ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[99]
+i = 'R913_19'
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[dist_n30 == TRUE & nestID == i] 
+dsv = dv[nestID == i] 
+datetime_min = min(ds[, datetime_])
+datetime_max = min(max(ds[, datetime_]), ds[1, initiation] + 6*86400)
+initial_clutch_size = ds[1, initial_clutch_size]
+
+dps = dp[ID1 == dn[nestID == i, male_id] & ID2 == dn[nestID == i, female_id]]
+
+dn[nestID == i, .(initiation, initiation_method, initial_clutch_size, clutch_size, found_datetime, 
+                  est_hatching_datetime, hatching_datetime, comments)]
+
+egg1 = as.POSIXct('2019-06-21 14:19:56', tz = 'UTC')
+egg2 = as.POSIXct('2019-06-22 16:39:31', tz = 'UTC')
+egg3 = as.POSIXct('2019-06-23 12:00:00', tz = 'UTC')
+egg4 = as.POSIXct('2019-06-24 12:00:00', tz = 'UTC')
+
+
+ggplot() +
+  ggtitle(i) +
+  geom_vline(data = ds[sex == 'M'], aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(data = dsv, aes(xintercept = datetime_), color = 'grey50', size = 3, alpha = 0.5) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = clutch_size), vjust = 1) +
+  geom_label(data = dsv, aes(datetime_, Inf, label = substr(time_appr, 0, 5)), vjust = 2) +
+  geom_point(data = ds[sex == 'M'], aes(datetime_, prop_at_nest), color = 'dodgerblue3') +
+  geom_point(data = ds[sex == 'F'], aes(datetime_, prop_at_nest), color = 'darkorange') +
+  geom_point(data = dps, aes(datetime_1, prop_together), color = 'darkgreen') +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('Proportion at nest') + xlab('') +
+  scale_color_viridis() +
+  theme_classic()
+
+
+ggplot(data = ds[dist_n10 == TRUE & sex == 'F']) +
+  geom_vline(aes(xintercept = initiation), color = 'firebrick2', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  geom_tile(aes(datetime_, 'F_10m', fill = distance_nest), show.legend = FALSE) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('') +
+  scale_fill_viridis() +
+  theme_classic()
+
+ggplot(data = dps) +
+  geom_tile(aes(datetime_1, 'int', fill = interaction), show.legend = FALSE) +
+  geom_vline(aes(xintercept = egg1), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg2), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg3), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = egg4), color = 'black', size = 3, alpha = 0.5) +
+  scale_x_datetime(limits = c(datetime_min, datetime_max), date_breaks = 'days', date_labels = '%d') +
+  ylab('') + xlab('Date') +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  theme_classic()
+
+ds[dist_n10 == TRUE & sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+ds[sex == 'F', .(nestID, distance_nest, nest_visit_start, nest_visit_end, nest_visit_length)]
+
+
+dn[nestID == i, initiation_egg1 := egg1]
+dn[nestID == i, initiation_egg2 := egg2]
+dn[nestID == i, initiation_egg3 := egg3]
+dn[nestID == i, initiation_egg4 := egg4]
+dn[nestID == i, initiation_method := 4]
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+nestIDu[100]
+i = 'REPH475_19'
+#--------------------------------------------------------------------------------------------------------------
+
+# no further data 
