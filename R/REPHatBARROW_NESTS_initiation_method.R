@@ -4770,3 +4770,58 @@ i = 'REPH475_19'
 #--------------------------------------------------------------------------------------------------------------
 
 # no further data 
+
+
+#--------------------------------------------------------------------------------------------------------------
+# add to database
+#--------------------------------------------------------------------------------------------------------------
+
+require(DBI)
+
+# UPDATE db
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+
+
+dn1 = dn[!is.na(initiation_egg1), .(nestID, initiation_egg1, pk)]
+
+# save new values from d in a temp table
+dbWriteTable(con, 'temp', dn1 , row.names = FALSE)
+
+# update target table based on values in temp table
+dbExecute(con, "update NESTS n, temp t set n.egg1 = t.initiation_egg1 where n.pk = t.pk")
+dbExecute(con,"drop table temp")
+
+
+dn2 = dn[!is.na(initiation_egg2), .(nestID, initiation_egg2, pk)]
+
+# save new values from d in a temp table
+dbWriteTable(con, 'temp', dn2 , row.names = FALSE)
+
+# update target table based on values in temp table
+dbExecute(con, "update NESTS n, temp t set n.egg2 = t.initiation_egg2 where n.pk = t.pk")
+dbExecute(con,"drop table temp")
+
+
+dn3 = dn[!is.na(initiation_egg3), .(nestID, initiation_egg3, pk)]
+
+# save new values from d in a temp table
+dbWriteTable(con, 'temp', dn3 , row.names = FALSE)
+
+# update target table based on values in temp table
+dbExecute(con, "update NESTS n, temp t set n.egg3 = t.initiation_egg3 where n.pk = t.pk")
+dbExecute(con,"drop table temp")
+
+
+dn4 = dn[!is.na(initiation_egg4), .(nestID, initiation_egg4, pk)]
+
+# save new values from d in a temp table
+dbWriteTable(con, 'temp', dn4, row.names = FALSE)
+
+# update target table based on values in temp table
+dbExecute(con, "update NESTS n, temp t set n.egg4 = t.initiation_egg4 where n.pk = t.pk")
+dbExecute(con,"drop table temp")
+
+
+
+
+DBI::dbDisconnect(con)
