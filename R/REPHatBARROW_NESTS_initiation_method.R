@@ -4822,6 +4822,37 @@ dbExecute(con, "update NESTS n, temp t set n.egg4 = t.initiation_egg4 where n.pk
 dbExecute(con,"drop table temp")
 
 
+DBI::dbDisconnect(con)
+
+
+#--------------------------------------------------------------------------------------------------------------
+# replace initiation date wit egg1 date 
+#--------------------------------------------------------------------------------------------------------------
+
+# UPDATE db
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+
+dn = dbq(con, 'select * FROM NESTS')
+
+dn = dn[!is.na(egg1), .(nest, egg1, pk)]
+
+
+# save new values from d in a temp table
+dbWriteTable(con, 'temp', dn, row.names = FALSE)
+
+# update target table based on values in temp table
+dbExecute(con, "update NESTS n, temp t set n.initiation = t.egg1 where n.pk = t.pk")
+dbExecute(con,"drop table temp")
 
 
 DBI::dbDisconnect(con)
+
+
+
+
+
+
+
+
+
+
