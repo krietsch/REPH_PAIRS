@@ -21,7 +21,7 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
+dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
@@ -59,7 +59,7 @@ dn = dn[overlap > 0]
 # check overlap with initiation date
 dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
 dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
+# dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
@@ -69,9 +69,10 @@ dnID = unique(dnID, by = 'nestID')
 dnID[, male_id := as.integer(male_id)]
 dnID[, female_id := as.integer(female_id)]
 
-# create directory for each of these breeding pairs
-dnID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION_EACH/', nestID)]
-dnID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dnID)]
+# assign clutch order
+setorder(dnID, male_id, initiation)
+
+dnID[, clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
 
 # unique IDs
 IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
@@ -90,71 +91,11 @@ d = d[!is.na(nestID)]
 #' # Define interactions
 #--------------------------------------------------------------------------------------------------------------
 
-distance_threshold = 30
-
 # merge with nests
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
 
 # relative nest initiation date
 dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
-
-### positions before and after
-
-# shift positions
-dp[, lat1_before := shift(lat1, type = 'lag'), by = nestID]
-dp[, lon1_before := shift(lon1, type = 'lag'), by = nestID]
-dp[, lat2_before := shift(lat2, type = 'lag'), by = nestID]
-dp[, lon2_before := shift(lon2, type = 'lag'), by = nestID]
-
-dp[, lat1_next := shift(lat1, type = 'lead'), by = nestID]
-dp[, lon1_next := shift(lon1, type = 'lead'), by = nestID]
-dp[, lat2_next := shift(lat2, type = 'lead'), by = nestID]
-dp[, lon2_next := shift(lon2, type = 'lead'), by = nestID]
-
-# distance to position before and after
-dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)) , by = 1:nrow(dp)]
-dp[, distance1_next := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)) , by = 1:nrow(dp)]
-dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)) , by = 1:nrow(dp)]
-dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
-
-# interactions
-dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
-# dp[, interaction := distance_pair < c(max(distance1_before, distance2_before) + distance_threshold), by = 1:nrow(dp)]
-
-# simple interactions
-dp[, interaction_threshold := distance_pair < distance_threshold]
-
-# count bouts of split and merge
-dp[, bout := bCounter(interaction), by = nestID]
-dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
-dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
-
-dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
-dp[any_interaction_threshold == FALSE, interaction := FALSE]
-
-# split points and merging points
-dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
-dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
-
-# correct for true splits
-dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
-
-# count bouts of split and merge
-dp[, bout := bCounter(interaction), by = nestID]
-dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
-dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
-
-# split points and merging points
-dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
-dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
-dp[, split := interaction_before == TRUE & interaction == FALSE]
-dp[, merge := interaction_before == FALSE & interaction == TRUE]
-
-# which ID split?
-dp[split == TRUE, split_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
-
-# which ID approached?
-dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 # mean and median
 dp[, date_ := as.Date(datetime_1)]
@@ -176,7 +117,7 @@ ds = dp[initiation_rel < 0 & interaction == TRUE, .N, by = nestID]
 setorder(ds, -N)
 
 # order nest ID
-dp[, nestID := factor(nestID %>% as.factor, levels = ds[, nestID])]
+# dp[, nestID := factor(nestID %>% as.factor, levels = ds[, nestID])]
 
 
 ggplot(data = dp) +
@@ -189,6 +130,42 @@ ggplot(data = dp) +
   theme_classic()
 
 # ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 177, height = 170, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = dp[clutch_together == 2]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+ggplot(data = dp[year_ == 2018]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+
+
+ggplot(data = dp[nestID == 'R231_19']) +
+  geom_tile(aes(datetime_1, nestID, fill = interaction), width = 400, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+
+
+
+
+
 
 
 dp = dp[!is.na(nestID)]
