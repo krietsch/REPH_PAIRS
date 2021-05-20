@@ -12,13 +12,8 @@
 # Calculate spatio-temporal distance of points
 #==============================================================================================================
 
-# Summary
-# 1. Apply speed filter 
-# 2. Apply distance filter 
-# 3. Check altitudes
-
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'knitr'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'knitr', 'windR'), 
         require, character.only = TRUE)
 
 # Functions
@@ -31,7 +26,6 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
-# Data
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
@@ -115,65 +109,6 @@ dp[split == TRUE, split_ID := ifelse(distance1_before > distance2_before, 'ID1',
 # which ID approached?
 dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
+# save data
+fwrite(dp, './DATA/PAIR_WISE_INTERACTIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
-dps = dp[interaction == TRUE, .(N_interactions = .N), by = .(pairID, ID1, ID2)]
-
-# nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
-dnID = unique(dnID, by = 'nestID')
-
-# as integer
-dnID[, male_id := as.integer(male_id)]
-dnID[, female_id := as.integer(female_id)]
-
-# merge with nests
-dps = merge(dps, dnID[, .(male_id, female_id, nestID1 = nestID)], by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'), all.x = TRUE)
-dps = merge(dps, dnID[, .(male_id, female_id, nestID2 = nestID)], by.x = c('ID1', 'ID2'), by.y = c('female_id', 'male_id'), all.x = TRUE)
-
-
-dps[!is.na(nestID1) | !is.na(nestID2), breeding_pair := TRUE]
-dps[is.na(breeding_pair), breeding_pair := FALSE]
-
-
-
-ggplot(data = dps) +
-  geom_boxplot(aes(breeding_pair, N_interactions))
-
-
-dps[N_interactions > 600 & breeding_pair == FALSE]
-
-
-dp[interaction == TRUE, N_interactions := .N, by = .(pairID, ID1, ID2)]
-dp[, N_interactions := mean(N_interactions, na.rm = TRUE), by = .(pairID, ID1, ID2)]
-
-# merge with nests
-dp = merge(dp, dnID[, .(male_id, female_id, nestID1 = nestID)], by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'), all.x = TRUE, allow.cartesian = TRUE)
-dp = merge(dp, dnID[, .(male_id, female_id, nestID2 = nestID)], by.x = c('ID1', 'ID2'), by.y = c('female_id', 'male_id'), all.x = TRUE, allow.cartesian = TRUE)
-
-dp[!is.na(nestID1) | !is.na(nestID2), breeding_pair := TRUE]
-dp[is.na(breeding_pair), breeding_pair := FALSE]
-
-
-dp[, year_ := year(datetime_1)]
-
-ggplot(data = dp[N_interactions > 600 & breeding_pair == FALSE & year_ == 2019]) +
-  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
-  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
-  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
-  # scale_x_continuous(limits = c(-12, 12)) +
-  theme_classic()
-
-ggplot(data = dp[N_interactions > 600 & breeding_pair == FALSE & year_ == 2018]) +
-  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
-  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
-  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
-  # scale_x_continuous(limits = c(-12, 12)) +
-  theme_classic()
-
-
-
-dp[pairID == '270170055_270170704' & interaction == TRUE]
