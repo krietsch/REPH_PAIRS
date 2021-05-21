@@ -132,7 +132,7 @@ ggplot(data = dp) +
 # ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 177, height = 170, units = c('mm'), dpi = 'print')
 
 
-ggplot(data = dp[clutch_together == 2]) +
+ggplot(data = dp[clutch_together == 1]) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
