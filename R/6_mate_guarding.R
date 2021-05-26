@@ -22,6 +22,7 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
+dp[, year_ := year(datetime_1)]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
@@ -92,7 +93,7 @@ d = d[!is.na(nestID)]
 #--------------------------------------------------------------------------------------------------------------
 
 # merge with nests
-dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'))
 
 # relative nest initiation date
 dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
@@ -120,19 +121,19 @@ setorder(ds, -N)
 # dp[, nestID := factor(nestID %>% as.factor, levels = ds[, nestID])]
 
 
-ggplot(data = dp) +
+ggplot(data = dp[datetime_1 < nest_state_date]) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
-  scale_x_continuous(limits = c(-12, 12)) +
+  # scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
 
 # ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 177, height = 170, units = c('mm'), dpi = 'print')
 
 
-ggplot(data = dp[clutch_together == 1]) +
+ggplot(data = dp[clutch_together == 2]) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +

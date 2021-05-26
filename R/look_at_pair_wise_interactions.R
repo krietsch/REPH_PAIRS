@@ -83,7 +83,7 @@ dp[is.na(breeding_pair), breeding_pair := FALSE]
 
 dp[, year_ := year(datetime_1)]
 
-ggplot(data = dp[ID1 < ID2 & N_interactions > 200 & breeding_pair == FALSE & year_ == 2019]) +
+ggplot(data = dp[ID1 < ID2 & N_interactions > 300 & breeding_pair == FALSE & year_ == 2019]) +
   geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
