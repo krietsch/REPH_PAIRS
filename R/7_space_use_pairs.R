@@ -6,7 +6,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork'), 
+          'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork','tdbscan'), 
         require, character.only = TRUE)
 
 # Functions
@@ -60,6 +60,7 @@ dn = dn[overlap > 0]
 # check overlap with initiation date
 dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
 dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
@@ -103,7 +104,7 @@ ID = unique(du[, ID])
   o = foreach(i = ID, .combine = rbind) %do% {
     
     # subset individual and create track
-    ds = d[ID == i]
+    ds = du[ID == i]
     
     track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
     
