@@ -76,6 +76,7 @@ dp[, interaction := distance_pair < c(distance1_before + distance2_before + dist
 
 # simple interactions
 dp[, interaction_threshold := distance_pair < distance_threshold]
+dp[is.na(interaction), interaction := interaction_threshold]
 
 # count bouts of split and merge
 dp[, bout := bCounter(interaction), by = pairID]
