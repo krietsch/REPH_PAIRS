@@ -60,7 +60,7 @@ dn = dn[overlap > 0]
 # check overlap with initiation date
 dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
 dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
-# dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
+dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
@@ -108,6 +108,26 @@ dp[, distance_pair_cor := ifelse(interaction == TRUE & distance_pair > distance_
 dp[interaction == FALSE, distance_pair_cor := distance_pair]
 dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(nestID, date_)]
 
+# first bout no interaction
+dp[bout == 1, bout1_interaction := interaction == TRUE, by = pairID]
+
+# longest seperation before initiation
+dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(pairID, bout)]
+dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(pairID, bout)]
+dp[, bout_length := difftime(bout_end, bout_start, units = 'mins') %>% as.numeric]
+dp[datetime_1 < initiation & interaction == FALSE, longest_split_before_initiation := max(bout_length, na.rm = TRUE), by = pairID]
+
+dp[longest_split_before_initiation > 360, last_long_split := max(bout_end), by = pairID]
+dp[, last_long_split := max(last_long_split, na.rm = TRUE), by = pairID]
+
+
+
+dp[nestID == 'R232_19']
+
+dss = unique(dp[!is.na(longest_split_before_initiation)], by = 'nestID')
+setorder(dss, -longest_split_before_initiation)
+
+dss[, .(nestID, longest_split_before_initiation)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Plot for each nest
@@ -120,6 +140,45 @@ setorder(ds, -N)
 # order nest ID
 # dp[, nestID := factor(nestID %>% as.factor, levels = ds[, nestID])]
 
+
+
+ggplot(data = dp[datetime_1 < nest_state_date & bout1_interaction != FALSE | is.na(bout1_interaction) & 
+                   datetime_1 > last_long_split | is.na(last_long_split)]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-13, 1)) +
+  theme_classic()
+
+ggplot(data = dp[datetime_1 < nest_state_date]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-13, 1)) +
+  theme_classic()
+
+
+
+
+
+
+
+
+
+
+
+ggplot(data = dp[datetime_1 < nest_state_date & bout1_interaction != FALSE | is.na(bout1_interaction)]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
 
 ggplot(data = dp[datetime_1 < nest_state_date]) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
