@@ -40,3 +40,137 @@ st_transform_DT(dn)
 #--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs with both sexes tagged
 #--------------------------------------------------------------------------------------------------------------
+
+# start and end of the data
+d[, start := min(datetime_), by = ID]
+d[, end   := max(datetime_), by = ID]
+dID = unique(d, by = 'ID')
+
+# check if data overlap
+dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_id', all.x = TRUE)
+dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
+
+# subset nests with both IDs tagged
+dn = dn[!is.na(start_m) & !is.na(start_f)]
+
+# subset nests with both IDs tagged and overlapping time intervals
+dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = nestID]
+dn = dn[overlap > 0]
+
+# check overlap with initiation date
+dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
+
+# nest data
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
+dnID = unique(dnID, by = 'nestID')
+
+# as integer
+dnID[, male_id := as.integer(male_id)]
+dnID[, female_id := as.integer(female_id)]
+
+# assign clutch order
+setorder(dnID, male_id, initiation)
+dnID[, clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
+
+# tagged breeders
+dnb = rbind(dnID[, .(year_, nestID, ID = male_id,   sex = 'M', initiation, lat_n, lon_n, clutch_together)],
+            dnID[, .(year_, nestID, ID = female_id, sex = 'F', initiation, lat_n, lon_n, clutch_together)])
+
+#--------------------------------------------------------------------------------------------------------------
+#' # pair-wise spatio temporal clusters
+#--------------------------------------------------------------------------------------------------------------
+
+d = merge(d, dnb, by = c('year_', 'ID'), all.x = TRUE, allow.cartesian = TRUE)
+d = d[!is.na(nestID)]
+
+setorder(d, ID, datetime_)
+d[, pointID := seq_len(.N), by = .(year_, ID)]
+
+# register cores
+require(doFuture)
+registerDoFuture()
+plan(multiprocess)
+
+
+do = foreach(j = 1:nrow(dnID), .combine = rbind, .packages = c('data.table','tdbscan') ) %dopar% {
+
+# subset pair
+du = d[nestID == dnID[j, nestID]]
+ID = unique(du[, ID])
+
+# tbscan for each pair
+  o = foreach(i = ID, .combine = rbind) %do% {
+    
+    # subset individual and create track
+    ds = d[ID == i]
+    
+    track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+    
+    z = tdbscan(track, eps = 30, minPts = 3, maxLag = 6, borderPoints = TRUE )
+    
+    ds[, clustID := z$clustID]
+    ds
+    
+  }
+  
+  
+  # stoscan for each pair
+  o[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
+  
+  # create dt with convex hull polygons
+  dc = dt2Convexhull(o[!is.na(clustID), .(ID_clustID, lat, lon, datetime_)],
+                     pid = 'ID_clustID', y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+  
+  s = stoscan(dc)
+  
+  # merge tdbscan and stoscan
+  o = merge(o, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
+  o
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# merge with spatio-temporal clusters
+d[, ID := as.integer(ID)]
+dp = merge(dp, d[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
+                     st_clustID1 = st_clustID)], 
+           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
+dp = merge(dp, d[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
+                     st_clustID2 = st_clustID)], 
+           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
