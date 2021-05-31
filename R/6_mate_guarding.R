@@ -60,7 +60,7 @@ dn = dn[overlap > 0]
 # check overlap with initiation date
 dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
 dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
+# dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
@@ -200,6 +200,19 @@ ggplot(data = dp[clutch_together == 2]) +
   xlab('Date relative to initiation') + ylab('Nest') +
   scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
+
+
+dp[, any_second_clutch := any(clutch_together == 2), by = pairID]
+
+ggplot(data = dp[any_second_clutch == TRUE]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 2500, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_point(aes(initiation, pairID), size = 4) +
+  geom_point(aes(nest_state_date, pairID), size = 4, color = 'grey') +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
 
 ggplot(data = dp[year_ == 2018]) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
