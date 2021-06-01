@@ -20,7 +20,6 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
 dp[, year_ := year(datetime_1)]
 
@@ -38,7 +37,32 @@ DBI::dbDisconnect(con)
 st_transform_DT(dn)
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Define breeding pairs with both sexes tagged
+#' # How to define mate guarding?
+#--------------------------------------------------------------------------------------------------------------
+
+# Number of interactions daily and overall
+# Percentage of time spend together daily and overall 
+# longest bout together daily and overall
+# usage of the same spatial areas together
+
+# When are the first pairs formed? When most and when last?
+# How many tagged before they paired up?
+
+# data of pair before initiation? 
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Define breeding pairs
 #--------------------------------------------------------------------------------------------------------------
 
 # start and end of the data
@@ -51,16 +75,18 @@ dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_
 dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
 
 # subset nests with both IDs tagged
-dn = dn[!is.na(start_m) & !is.na(start_f)]
+dn[, both_tagged := !is.na(start_m) & !is.na(start_f), by = nestID]
 
 # subset nests with both IDs tagged and overlapping time intervals
 dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = nestID]
-dn = dn[overlap > 0]
+dn[, both_tagged_overlapping := overlap > 0, by = nestID]
+dn[is.na(both_tagged_overlapping), both_tagged_overlapping := FALSE]
 
 # check overlap with initiation date
 dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
 dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
-# dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
+dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_f > 0, by = nestID]
+dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
@@ -72,21 +98,9 @@ dnID[, female_id := as.integer(female_id)]
 
 # assign clutch order
 setorder(dnID, male_id, initiation)
-
-dnID[, clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
-
-# unique IDs
-IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
-
-# subset d
-d = d[ID %in% IDu]
-
-# merge with nest and initiation date
-dnIDu = rbind(dnID[, .(year_, ID = female_id, nestID, initiation, nest_state_date, sex = 'F')], 
-              dnID[, .(year_, ID = male_id, nestID, initiation, nest_state_date, sex = 'M')])
-
-d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
-d = d[!is.na(nestID)]
+dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
+dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
+dnID[!is.na(female_id), female_clutch   := seq_len(.N), by = .(year_, female_id)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
@@ -98,20 +112,29 @@ dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'femal
 # relative nest initiation date
 dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
-# mean and median
+# mean and median daily 
 dp[, date_ := as.Date(datetime_1)]
-dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(nestID, date_)]
-dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(nestID, date_)]
+dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(pairID, nestID, date_)]
+dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(pairID, nestID, date_)]
 
 # median corrected
+distance_threshold = 30
 dp[, distance_pair_cor := ifelse(interaction == TRUE & distance_pair > distance_threshold, distance_threshold, distance_pair)]
 dp[interaction == FALSE, distance_pair_cor := distance_pair]
-dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(nestID, date_)]
+dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(pairID, nestID, date_)]
+
+# Number of interactions
+dp[interaction == TRUE, N_pairwise_interactions := .N, by = .(pairID, nestID)]
+
+
+
+
+
 
 # first bout no interaction
 dp[bout == 1, bout1_interaction := interaction == TRUE, by = pairID]
 
-# longest seperation before initiation
+# longest separation before initiation
 dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(pairID, bout)]
 dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(pairID, bout)]
 dp[, bout_length := difftime(bout_end, bout_start, units = 'mins') %>% as.numeric]
@@ -205,6 +228,15 @@ ggplot(data = dp[clutch_together == 2]) +
 dp[, any_second_clutch := any(clutch_together == 2), by = pairID]
 
 ggplot(data = dp[any_second_clutch == TRUE]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 2500, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_point(aes(initiation, pairID), size = 4) +
+  geom_point(aes(nest_state_date, pairID), size = 4, color = 'grey') +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+ggplot(data = dp[year_ == 2019]) +
   geom_tile(aes(datetime_1, pairID, fill = interaction), width = 2500, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   geom_point(aes(initiation, pairID), size = 4) +
