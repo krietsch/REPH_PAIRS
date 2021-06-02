@@ -166,18 +166,27 @@ ggplot(data = du) +
   geom_boxplot(aes(same_sex, N_pairwise_interactions)) +
   theme_classic()
 
-# look at data known breeders vs. other 
-ggplot(data = du[same_sex == FALSE]) +
-  geom_boxplot(aes(breeding_pair, N_pairwise_interactions)) +
+# look at data known breeders vs. same sex vs. opposite sex
+du[breeding_pair == TRUE, pair_type := 'breeding_pair']
+du[breeding_pair == FALSE, pair_type := 'non_breeding_sex']
+du[same_sex == TRUE, pair_type := 'same_sex_pair']
+
+ggplot(data = du) +
+  geom_boxplot(aes(pair_type, N_pairwise_interactions)) +
   theme_classic()
 
-ggplot(data = du[same_sex == FALSE]) +
-  geom_boxplot(aes(breeding_pair, N_pairwise_interactions_per)) +
+ggplot(data = du) +
+  geom_boxplot(aes(pair_type, N_pairwise_interactions_per)) +
   theme_classic()
 
-ggplot(data = du[same_sex == FALSE]) +
-  geom_boxplot(aes(breeding_pair, bout_max/60/24)) +
+ggplot(data = du) +
+  geom_boxplot(aes(pair_type, bout_max/60/24)) +
   theme_classic()
+
+
+
+
+
 
 # first bout no interaction
 dp[bout == 1, bout1_interaction := interaction == TRUE, by = pairID]
