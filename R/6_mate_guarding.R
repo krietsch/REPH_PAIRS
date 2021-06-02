@@ -107,37 +107,83 @@ dnID[!is.na(female_id), female_clutch   := seq_len(.N), by = .(year_, female_id)
 #--------------------------------------------------------------------------------------------------------------
 
 # merge with nests
-dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'))
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
 
 # relative nest initiation date
 dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
 # mean and median daily 
 dp[, date_ := as.Date(datetime_1)]
-dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(pairID, nestID, date_)]
-dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(pairID, nestID, date_)]
+dp[, mean_dist := mean(distance_pair, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 
 # median corrected
 distance_threshold = 30
 dp[, distance_pair_cor := ifelse(interaction == TRUE & distance_pair > distance_threshold, distance_threshold, distance_pair)]
 dp[interaction == FALSE, distance_pair_cor := distance_pair]
-dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(pairID, nestID, date_)]
+dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 
-# Number of interactions
-dp[interaction == TRUE, N_pairwise_interactions := .N, by = .(pairID, nestID)]
+# Number of interactions and percentage 
+dp[, N_pairwise_positions := .N, by = .(year_, pairID, nestID)]
+dp[interaction == TRUE, N_pairwise_interactions := .N, by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions := mean(N_pairwise_interactions, na.rm = TRUE), by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions_per := N_pairwise_interactions / N_pairwise_positions * 100]
 
+# Number of daily interactions and percentage 
+dp[, N_pairwise_positions_daily := .N, by = .(year_, pairID, nestID, date_)]
+dp[interaction == TRUE, N_pairwise_interactions_daily := .N, by = .(year_, pairID, nestID, date_)]
+dp[, N_pairwise_interactions_daily := mean(N_pairwise_interactions_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dp[, N_pairwise_interactions_daily_per := N_pairwise_interactions_daily / N_pairwise_positions_daily * 100]
 
+# Longest bout together
+dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
+dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
+dp[, bout_length := difftime(bout_end, bout_start, units = 'mins') %>% as.numeric]
+dp[interaction == TRUE, bout_max := max(bout_length, na.rm = TRUE), by = .(year_, pairID, nestID)]
+dp[, bout_max := mean(bout_max, na.rm = TRUE), by = .(year_, pairID, nestID)]
 
+# Longest bout together daily 
+dp[interaction == TRUE, bout_max_daily := max(bout_length, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dp[, bout_max_daily := mean(bout_max_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 
+# same sex interaction?
+dp[, same_sex := sex1 == sex2]
 
+# breeding pair
+dp[, breeding_pair := !is.na(nestID)]
+
+# summary by unique pair excluding pair wise duplicates
+dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
+dss = dp[same_sex == TRUE & ID1 > ID2] 
+
+ds = rbind(dsm, dss)
+
+du = unique(ds, by = c('year_', 'pairID', 'nestID'))
+dud = unique(ds, by = c('year_', 'pairID', 'nestID', 'date_'))
+
+# look at data same sex vs. opposite sex
+ggplot(data = du) +
+  geom_boxplot(aes(same_sex, N_pairwise_interactions)) +
+  theme_classic()
+
+# look at data known breeders vs. other 
+ggplot(data = du[same_sex == FALSE]) +
+  geom_boxplot(aes(breeding_pair, N_pairwise_interactions)) +
+  theme_classic()
+
+ggplot(data = du[same_sex == FALSE]) +
+  geom_boxplot(aes(breeding_pair, N_pairwise_interactions_per)) +
+  theme_classic()
+
+ggplot(data = du[same_sex == FALSE]) +
+  geom_boxplot(aes(breeding_pair, bout_max/60/24)) +
+  theme_classic()
 
 # first bout no interaction
 dp[bout == 1, bout1_interaction := interaction == TRUE, by = pairID]
 
 # longest separation before initiation
-dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(pairID, bout)]
-dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(pairID, bout)]
-dp[, bout_length := difftime(bout_end, bout_start, units = 'mins') %>% as.numeric]
+
 dp[datetime_1 < initiation & interaction == FALSE, longest_split_before_initiation := max(bout_length, na.rm = TRUE), by = pairID]
 
 dp[longest_split_before_initiation > 360, last_long_split := max(bout_end), by = pairID]
