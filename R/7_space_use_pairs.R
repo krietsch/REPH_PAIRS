@@ -132,46 +132,6 @@ ID = unique(du[, ID])
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# merge with spatio-temporal clusters
-d[, ID := as.integer(ID)]
-dp = merge(dp, d[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
-                     st_clustID1 = st_clustID)], 
-           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
-
-dp = merge(dp, d[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
-                     st_clustID2 = st_clustID)], 
-           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# save data
+fwrite(do, './DATA/PAIR_WISE_SPACE_USE.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
