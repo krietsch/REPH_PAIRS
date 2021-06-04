@@ -23,6 +23,8 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
 dp[, year_ := year(datetime_1)]
 
+do = fread('./DATA/PAIR_WISE_SPACE_USE.txt', sep = '\t', header = TRUE) %>% data.table
+
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
 dn = dbq(con, 'select * FROM NESTS')
@@ -134,6 +136,8 @@ dp[, N_pairwise_positions_daily := .N, by = .(year_, pairID, nestID, date_)]
 dp[interaction == TRUE, N_pairwise_interactions_daily := .N, by = .(year_, pairID, nestID, date_)]
 dp[, N_pairwise_interactions_daily := mean(N_pairwise_interactions_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 dp[, N_pairwise_interactions_daily_per := N_pairwise_interactions_daily / N_pairwise_positions_daily * 100]
+dp[, N_pairwise_interactions_daily_per_50 := any(N_pairwise_interactions_daily_per > 50), by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions_daily_per_90 := any(N_pairwise_interactions_daily_per > 90), by = .(year_, pairID, nestID)]
 
 # Longest bout together
 dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
@@ -146,6 +150,10 @@ dp[, bout_max := mean(bout_max, na.rm = TRUE), by = .(year_, pairID, nestID)]
 dp[interaction == TRUE, bout_max_daily := max(bout_length, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 dp[, bout_max_daily := mean(bout_max_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 
+# pairs with known nest and mate guarding data before clutch initiation
+dp[, mg_before_initiation := any(initiation_rel < 0), by = .(year_, pairID, nestID)]
+dp[nestID == 'R812_18' | nestID == 'R604_18', mg_before_initiation := FALSE] # pair with data before paired
+
 # same sex interaction?
 dp[, same_sex := sex1 == sex2]
 
@@ -156,10 +164,10 @@ dp[, breeding_pair := !is.na(nestID)]
 dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
 dss = dp[same_sex == TRUE & ID1 > ID2] 
 
-ds = rbind(dsm, dss)
+dps = rbind(dsm, dss)
 
-du = unique(ds, by = c('year_', 'pairID', 'nestID'))
-dud = unique(ds, by = c('year_', 'pairID', 'nestID', 'date_'))
+du = unique(dps, by = c('year_', 'pairID', 'nestID'))
+dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
 
 # look at data same sex vs. opposite sex
 ggplot(data = du) +
@@ -168,8 +176,15 @@ ggplot(data = du) +
 
 # look at data known breeders vs. same sex vs. opposite sex
 du[breeding_pair == TRUE, pair_type := 'breeding_pair']
+du[breeding_pair == TRUE & mg_before_initiation == TRUE, pair_type := 'breeding_pair_mg']
 du[breeding_pair == FALSE, pair_type := 'non_breeding_sex']
 du[same_sex == TRUE, pair_type := 'same_sex_pair']
+
+dud[breeding_pair == TRUE, pair_type := 'breeding_pair']
+dud[breeding_pair == TRUE & mg_before_initiation == TRUE, pair_type := 'breeding_pair_mg']
+dud[breeding_pair == FALSE, pair_type := 'non_breeding_sex']
+dud[same_sex == TRUE, pair_type := 'same_sex_pair']
+
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions)) +
@@ -181,6 +196,12 @@ ggplot(data = du) +
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, bout_max/60/24)) +
+  theme_classic()
+
+
+
+ggplot(data = dud) +
+  geom_boxplot(aes(pair_type,N_pairwise_interactions_daily_per)) +
   theme_classic()
 
 
@@ -267,7 +288,64 @@ ggplot(data = dp[datetime_1 < nest_state_date]) +
   # scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
 
-# ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 177, height = 170, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions.png', plot = last_plot(),  width = 250, height = 170, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = dp[datetime_1 < nest_state_date]) +
+  geom_tile(aes(initiation_rel, nestID, fill = N_pairwise_interactions_daily_per), show.legend = FALSE, width = 0.5) +
+  scale_fill_viridis() +
+  # scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+# ggsave('./OUTPUTS/ALL_PAIRS/Barplot_interactions_daily_per.png', plot = last_plot(),  width = 250, height = 170, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = dp[datetime_1 < nest_state_date & mg_before_initiation == TRUE]) +
+  geom_tile(aes(initiation_rel, nestID, fill = N_pairwise_interactions_daily_per), show.legend = FALSE, width = 0.5) +
+  scale_fill_viridis() +
+  # scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+ggplot(data = dp[ID1 < ID2 & N_pairwise_interactions_daily_per_50 == TRUE & year_ == 2019 & breeding_pair == FALSE]) +
+  geom_tile(aes(datetime_1, pairID, fill = N_pairwise_interactions_daily_per), show.legend = FALSE, width = 2500) +
+  scale_fill_viridis() +
+  # scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+
+ggplot(data = dp[ID1 < ID2 & N_pairwise_interactions_daily_per_90 == TRUE & year_ == 2019 & breeding_pair == FALSE]) +
+  geom_tile(aes(datetime_1, pairID, fill = N_pairwise_interactions_daily_per), show.legend = FALSE, width = 2500) +
+  scale_fill_viridis() +
+  # scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+ggplot(data = dps[ID1 < ID2 & N_pairwise_interactions_daily_per_50 == TRUE & year_ == 2019 & breeding_pair == FALSE]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 2500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+
+dp[ID1 == 273145065 & ID2 == 270170834 & breeding_pair == FALSE]
 
 
 ggplot(data = dp[clutch_together == 2]) +
@@ -453,5 +531,46 @@ ggplot(data = ds) +
   theme_classic(base_size = 12)
 
 # ggsave('./OUTPUTS/ALL_PAIRS/median_dist_cor.png', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Space use
+#--------------------------------------------------------------------------------------------------------------
+
+# merge with spatio-temporal clusters
+do[, ID := as.integer(ID)]
+
+dp = merge(dp, do[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
+                     st_clustID1 = st_clustID)], 
+           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
+dp = merge(dp, do[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
+                     st_clustID2 = st_clustID)], 
+           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+
 
 
