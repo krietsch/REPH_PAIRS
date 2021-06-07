@@ -38,6 +38,85 @@ DBI::dbDisconnect(con)
 st_transform_DT(dn)
 
 #--------------------------------------------------------------------------------------------------------------
+#' # For all pairs
+#--------------------------------------------------------------------------------------------------------------
+
+# any interactions?
+dp[, any_interactions := any(interaction == TRUE), by = pairID]
+
+# unique pair combinations 
+dpu = unique(dp[ID1 < ID2], by = 'pairID')
+dpu[, .N, any_interactions]
+
+dpu = dpu[any_interactions == TRUE]
+
+setorder(d, ID, datetime_)
+d[, pointID := seq_len(.N), by = .(year_, ID)]
+
+# register cores
+require(doFuture)
+registerDoFuture()
+plan(multiprocess)
+
+
+do = foreach(j = 1:nrow(dpu), .combine = rbind, .packages = c('data.table','tdbscan') ) %dopar% {
+  
+  # subset pair
+  du = d[ID == dpu[j, ID1] | ID == dpu[j, ID2]]
+  du[, pairID := dpu[j, pairID]]
+  ID = unique(du[, ID])
+  
+  # tbscan for each pair
+  o = foreach(i = ID, .combine = rbind) %do% {
+    
+    # subset individual and create track
+    ds = du[ID == i]
+    
+    track = dt2Track(ds, y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+    
+    z = tdbscan(track, eps = 30, minPts = 3, maxLag = 6, borderPoints = TRUE )
+    
+    ds[, clustID := z$clustID]
+    ds
+    
+  }
+  
+  
+  # stoscan for each pair
+  o[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
+  
+  # create dt with convex hull polygons
+  dc = dt2Convexhull(o[!is.na(clustID), .(ID_clustID, lat, lon, datetime_)],
+                     pid = 'ID_clustID', y = 'lat', x = 'lon', dt = 'datetime_', projection = PROJ)
+  
+  s = stoscan(dc)
+  
+  # merge tdbscan and stoscan
+  o = merge(o, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
+  o
+  
+}
+
+
+# save data
+fwrite(do, './DATA/PAIR_WISE_SPACE_USE.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs with both sexes tagged
 #--------------------------------------------------------------------------------------------------------------
 
