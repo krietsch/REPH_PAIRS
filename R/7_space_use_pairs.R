@@ -99,7 +99,7 @@ do = foreach(j = 1:nrow(dpu), .combine = rbind, .packages = c('data.table','tdbs
 
 
 # save data
-fwrite(do, './DATA/PAIR_WISE_SPACE_USE.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+fwrite(do, './DATA/PAIR_WISE_SPACE_USE_ALL.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 
