@@ -56,7 +56,7 @@ d[, pointID := seq_len(.N), by = .(year_, ID)]
 # register cores
 require(doFuture)
 registerDoFuture()
-plan(multiprocess)
+plan(multisession)
 
 
 do = foreach(j = 1:nrow(dpu), .combine = rbind, .packages = c('data.table','tdbscan') ) %dopar% {
@@ -81,6 +81,7 @@ do = foreach(j = 1:nrow(dpu), .combine = rbind, .packages = c('data.table','tdbs
     
   }
   
+  write.table(j, './progress.txt', append = TRUE, row.names = FALSE, col.names = FALSE, quote = FALSE)
   
   # stoscan for each pair
   o[!is.na(clustID), ID_clustID := paste0(ID, '_', clustID)]
@@ -94,6 +95,7 @@ do = foreach(j = 1:nrow(dpu), .combine = rbind, .packages = c('data.table','tdbs
   # merge tdbscan and stoscan
   o = merge(o, s, by.x = 'ID_clustID', by.y = 'pid', all.x = TRUE)
   o
+
   
 }
 
