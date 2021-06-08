@@ -564,13 +564,75 @@ ggplot(data = ds) +
 # merge with spatio-temporal clusters
 do[, ID := as.integer(ID)]
 
-dp = merge(dp, do[, .(ID, datetime_, c_start1 = start, c_end1 = end, clustID1 = clustID, s_clustID1 = s_clustID,
-                     st_clustID1 = st_clustID)], 
-           by.x = c('ID1', 'datetime_1'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+dp = merge(dp, do[, .(ID, datetime_, nestID, c_start1 = start, c_end1 = end, clustID1 = clustID, 
+                      s_clustID1 = s_clustID, st_clustID1 = st_clustID)], 
+           by.x = c('ID1', 'datetime_1', 'nestID'), by.y = c('ID', 'datetime_', 'nestID'), all.x = TRUE)
 
-dp = merge(dp, do[, .(ID, datetime_, c_start2 = start, c_end2 = end, clustID2 = clustID, s_clustID2 = s_clustID,
-                     st_clustID2 = st_clustID)], 
-           by.x = c('ID2', 'datetime_2'), by.y = c('ID', 'datetime_'), all.x = TRUE)
+dp = merge(dp, do[, .(ID, datetime_, nestID, c_start2 = start, c_end2 = end, clustID2 = clustID, 
+                      s_clustID2 = s_clustID, st_clustID2 = st_clustID)], 
+           by.x = c('ID2', 'datetime_2', 'nestID'), by.y = c('ID', 'datetime_', 'nestID'), all.x = TRUE)
+
+# subset breeders
+ds = dp[!is.na(nestID)]
+
+
+# positions at nest
+ds[, distance_nest1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)) , by = 1:nrow(ds)]
+ds[, distance_nest2 := sqrt(sum((c(lon2, lat2) - c(lon_n, lat_n))^2)) , by = 1:nrow(ds)]
+
+# at nest?
+ds[, ID1_at_nest := distance_nest1 < 30]
+ds[, ID2_at_nest := distance_nest2 < 30]
+
+ds1 = ds[ID1_at_nest == TRUE & !is.na(s_clustID1), .N, .(year_, ID1, s_clustID1, nestID)]
+ds2 = ds[ID2_at_nest == TRUE & !is.na(s_clustID2), .N, .(year_, ID1, s_clustID2, nestID)]
+
+# check if unique
+ds1 %>% nrow == unique(ds1, by = c('year_', 'ID1', 'nestID')) %>% nrow
+ds2 %>% nrow == unique(ds2, by = c('year_', 'ID1', 'nestID')) %>% nrow
+
+setnames(ds1, 's_clustID1', 'nest_clust')
+
+ds = merge(ds, ds1[, .(nestID, nest_clust)], by = 'nestID', all.x = TRUE)
+
+# Times a site was used
+ds1 = unique(ds[!is.na(clustID1) & !is.na(s_clustID1), .(ID1, nestID, clustID1, s_clustID1)])
+ds1 = ds1[, .N, by = .(ID1, nestID, s_clustID1)]
+setnames(ds1, 'N', 's_clustID1_N')
+
+ds = merge(ds, ds1[, .(nestID, s_clustID1, s_clustID1_N)], by = c('nestID', 's_clustID1'), all.x = TRUE)
+
+ds[, visited_once := s_clustID1_N == 1]
+
+
+
+
+
+
+ds[, st_overlap := st_clustID1 == st_clustID2]
+
+dss = ds[nestID == 'R304_18']
+
+
+ggplot(data = dss) +
+  geom_hline(yintercept = dss[1, nest_clust]) +
+  geom_vline(xintercept = dss[1, initiation]) +
+  geom_point(aes(datetime_1, s_clustID1, color = visited_once)) +
+  geom_point(aes(datetime_2, s_clustID2+0.1, color = visited_once))
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_1, s_clustID1, color = interaction)) +
+  geom_point(aes(datetime_2, s_clustID2+0.1, color = interaction))
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_1, s_clustID1, color = ID1_at_nest)) +
+  geom_point(aes(datetime_2, s_clustID2+0.1, color = ID2_at_nest))
+
+
+ggplot(data = dss) +
+  geom_point(aes(datetime_1, st_clustID1), color = 'blue') +
+  geom_point(aes(datetime_2, st_clustID2+0.1), color = 'red')
+
 
 
 
