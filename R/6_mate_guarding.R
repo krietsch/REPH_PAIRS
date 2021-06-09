@@ -603,15 +603,24 @@ setnames(ds1, 'N', 's_clustID1_N')
 ds = merge(ds, ds1[, .(nestID, s_clustID1, s_clustID1_N)], by = c('nestID', 's_clustID1'), all.x = TRUE)
 
 ds[, visited_once := s_clustID1_N == 1]
+ds[is.na(s_clustID1), visited_once := NA]
+ds[is.na(s_clustID1_N), visited_once := NA]
 
+ds[is.na(s_clustID2), visited_once := NA]
+ds[is.na(s_clustID2_N), visited_once := NA]
 
+# 
 
 
 
 
 ds[, st_overlap := st_clustID1 == st_clustID2]
+dss = ds[nestID == 'R219_19']
+
 
 dss = ds[nestID == 'R304_18']
+dos = do[nestID == 'R304_18']
+
 
 
 ggplot(data = dss) +
@@ -619,6 +628,53 @@ ggplot(data = dss) +
   geom_vline(xintercept = dss[1, initiation]) +
   geom_point(aes(datetime_1, s_clustID1, color = visited_once)) +
   geom_point(aes(datetime_2, s_clustID2+0.1, color = visited_once))
+
+ggplot(data = dos) +
+  geom_hline(yintercept = dss[1, nest_clust]) +
+  geom_vline(xintercept = dss[1, initiation]) +
+  geom_point(data = dss[interaction == TRUE], aes(datetime_1, s_clustID1+0.05), color = 'grey70', size = 7, alpha = 0.5) +
+  geom_point(data = dos[sex == 'M'], aes(datetime_, s_clustID), color = 'dodgerblue3') +
+  geom_point(data = dos[sex == 'F'], aes(datetime_, s_clustID+0.1), color = 'firebrick3') +
+  ggtitle(dss[1, nestID]) +
+  xlab('Datetime') + ylab('Spatial cluster') +
+  theme_classic()
+
+
+
+
+
+
+
+
+foreach(i = ds[, nestID] %>% unique, .packages = c('data.table', 'ggplot2')) %do%{
+  
+  # subset data
+  dss = ds[nestID == i]
+  dos = do[nestID == i]
+  
+  # plot for each nest
+  ggplot(data = dos) +
+    geom_hline(yintercept = dss[1, nest_clust]) +
+    geom_vline(xintercept = dss[1, initiation]) +
+    geom_point(data = dss[interaction == TRUE], aes(datetime_1, s_clustID1+0.05), color = 'grey70', size = 7, alpha = 0.5) +
+    geom_point(data = dos[sex == 'M'], aes(datetime_, s_clustID), color = 'dodgerblue3') +
+    geom_point(data = dos[sex == 'F'], aes(datetime_, s_clustID+0.1), color = 'firebrick3') +
+    ggtitle(dss[1, nestID]) +
+    xlab('Datetime') + ylab('Spatial cluster') +
+    theme_classic()
+  
+  ggsave(paste0('./OUTPUTS/SPACE_USE_PAIRS/', i, '.png'), plot = last_plot(),
+         width = 250, height = 177, units = c('mm'), dpi = 'print')
+
+}
+
+
+
+
+
+
+
+
 
 ggplot(data = dss) +
   geom_point(aes(datetime_1, s_clustID1, color = interaction)) +
@@ -633,6 +689,35 @@ ggplot(data = dss) +
   geom_point(aes(datetime_1, st_clustID1), color = 'blue') +
   geom_point(aes(datetime_2, st_clustID2+0.1), color = 'red')
 
+
+
+bm = create_bm(dss, lat = 'lat1', lon = 'lon1')
+
+bm + 
+  geom_point(data = dss[1, ], aes(lon_n, lat_n), color = 'black', size = 15) +
+  geom_point(data = dss, aes(lon1, lat1, color = as.character(st_clustID1))) +
+  geom_point(data = dss, aes(lon2, lat2, color = as.character(st_clustID2)))
+  
+bm + 
+  geom_point(data = dss[1, ], aes(lon_n, lat_n), color = 'black', size = 15) +
+  geom_point(data = dss, aes(lon1, lat1, color = as.character(visited_once))) +
+  geom_point(data = dss, aes(lon2, lat2, color = as.character(visited_once)))
+
+
+  
+bm + 
+  geom_point(data = ds, aes(lon1, lat1, color = as.character(visited_once))) +
+  geom_point(data = ds, aes(lon2, lat2, color = as.character(visited_once)))
+
+
+bm + 
+  geom_point(data = ds[visited_once == TRUE], aes(lon1, lat1, color = as.character(visited_once))) +
+  geom_point(data = ds[visited_once == TRUE], aes(lon2, lat2, color = as.character(visited_once)))
+  
+  
+bm + 
+  geom_point(data = ds[visited_once == FALSE & year_ == 2019], aes(lon1, lat1, color = datetime_1)) +
+  geom_point(data = ds[visited_once == FALSE & year_ == 2019], aes(lon2, lat2, color = datetime_2))
 
 
 
