@@ -201,22 +201,32 @@ dud[same_sex == TRUE, pair_type := 'same_sex_pair']
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions)) +
   xlab('Pair type') + ylab('Number of pair-wise interactions') +
-  theme_classic()
+  theme_classic(base_size = 14)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/N_pair_wise_interactions.png', plot = last_plot(),  width = 170, height = 150, units = c('mm'), dpi = 'print')
+
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions_per)) +
   xlab('Pair type') + ylab('Number of pair-wise interactions (%)') +
-  theme_classic()
+  theme_classic(base_size = 14)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/N_pair_wise_interactions_per.png', plot = last_plot(),  width = 170, height = 150, units = c('mm'), dpi = 'print')
+
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, bout_max/60/24)) +
-  theme_classic()
+  theme_classic(base_size = 14)
 
 
 
 ggplot(data = dud) +
   geom_boxplot(aes(pair_type,N_pairwise_interactions_daily_per)) +
-  theme_classic()
+  xlab('Pair type') + ylab('Number of pair-wise interactions daily (%)') +
+  theme_classic(base_size = 14)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/N_pair_wise_interactions_per_daily.png', plot = last_plot(),  width = 170, height = 150, units = c('mm'), dpi = 'print')
+
 
 # number of days with more than 50% together
 dud[N_pairwise_interactions_daily_per > 50, N_pi_daily_50 := .N, by = .(year_, pairID, nestID)]
@@ -229,11 +239,14 @@ dud_max = dud[, .(N_pairwise_interactions_daily_per_max = max(N_pairwise_interac
 
 ggplot(data = dud_max) +
   geom_boxplot(aes(pair_type, N_pi_daily_50)) +
-  theme_classic()
+  theme_classic(base_size = 14)
 
 ggplot(data = dud_max) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions_daily_per_max)) +
-  theme_classic()
+  xlab('Pair type') + ylab('Number of pair-wise interactions daily MAX (%)') +
+  theme_classic(base_size = 14)
+
+# ggsave('./OUTPUTS/ALL_PAIRS/N_pair_wise_interactions_per_daily_max.png', plot = last_plot(),  width = 170, height = 150, units = c('mm'), dpi = 'print')
 
 
 
@@ -257,7 +270,7 @@ ggplot(data = dp[pairID %in% pairs & year_ == 2018]) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
+  xlab('Date') + ylab('PairID') +
   # scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
 
@@ -266,11 +279,13 @@ ggplot(data = dp[pairID %in% pairs & year_ == 2019]) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
   # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Date relative to initiation') + ylab('Nest') +
+  xlab('Date') + ylab('PairID') +
   # scale_x_continuous(limits = c(-12, 12)) +
   theme_classic()
 
 
+ggplot(data = dp[pairID %in% pairs & year_ == 2018 & distance_pair < 100]) +
+  geom_point(aes(datetime_1, distance_pair, color = interaction))
 
 
 
