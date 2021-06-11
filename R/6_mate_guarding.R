@@ -27,6 +27,7 @@ do = fread('./DATA/PAIR_WISE_SPACE_USE.txt', sep = '\t', header = TRUE) %>% data
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
+dpa = dbq(con, 'select * FROM PATERNITY')
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dn = dn[year_ > 2017]
@@ -37,6 +38,17 @@ DBI::dbDisconnect(con)
 
 # change projection
 st_transform_DT(dn)
+
+# any EPP in nest?
+dpa[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+dpa[, any_EPY := any(EPY == 1), by = nestID]
+
+dpau = unique(dpa, by = 'nestID')
+
+dn = merge(dn, dpau[, .(nestID, any_EPY)], by = 'nestID', all.x = TRUE)
+
+# males that sired EPY 
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # How to define mate guarding?
@@ -91,7 +103,7 @@ dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_
 dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, lat_n = lat, lon_n = lon)]
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, any_EPY, lat_n = lat, lon_n = lon)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
@@ -188,10 +200,12 @@ dud[same_sex == TRUE, pair_type := 'same_sex_pair']
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions)) +
+  xlab('Pair type') + ylab('Number of pair-wise interactions') +
   theme_classic()
 
 ggplot(data = du) +
   geom_boxplot(aes(pair_type, N_pairwise_interactions_per)) +
+  xlab('Pair type') + ylab('Number of pair-wise interactions (%)') +
   theme_classic()
 
 ggplot(data = du) +
@@ -204,9 +218,81 @@ ggplot(data = dud) +
   geom_boxplot(aes(pair_type,N_pairwise_interactions_daily_per)) +
   theme_classic()
 
+# number of days with more than 50% together
+dud[N_pairwise_interactions_daily_per > 50, N_pi_daily_50 := .N, by = .(year_, pairID, nestID)]
+dud[is.na(N_pi_daily_50), N_pi_daily_50 := 0]
+
+
+dud_max = dud[, .(N_pairwise_interactions_daily_per_max = max(N_pairwise_interactions_daily_per, na.rm = TRUE),
+                  N_pi_daily_50 = max(N_pi_daily_50)), 
+              by = .(year_, pairID, nestID, pair_type)]
+
+ggplot(data = dud_max) +
+  geom_boxplot(aes(pair_type, N_pi_daily_50)) +
+  theme_classic()
+
+ggplot(data = dud_max) +
+  geom_boxplot(aes(pair_type, N_pairwise_interactions_daily_per_max)) +
+  theme_classic()
 
 
 
+dud_max[pair_type == 'non_breeding_sex' & N_pairwise_interactions_daily_per_max > 50 | 
+        pair_type == 'same_sex_pair' & N_pairwise_interactions_daily_per_max > 50]
+
+
+ds = dud_max[pair_type == 'non_breeding_sex' & N_pi_daily_50 > 1 | 
+             pair_type == 'same_sex_pair' & N_pi_daily_50 > 1]
+
+
+setorder(ds, N_pi_daily_50)
+
+
+pairs = ds[pair_type == 'non_breeding_sex' & N_pi_daily_50 > 2, pairID]
+pairs = ds[pair_type == 'same_sex_pair' & N_pi_daily_50 > 2, pairID]
+
+
+ggplot(data = dp[pairID %in% pairs & year_ == 2018]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 2500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+ggplot(data = dp[pairID %in% pairs & year_ == 2019]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 2500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+
+
+
+
+ggplot(data = dp[pairID == '270170055_270170704']) +
+  geom_tile(aes(datetime_1, pairID, fill = N_pairwise_interactions_daily_per), show.legend = FALSE, width = 2500) +
+  scale_fill_viridis() +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  theme_classic()
+
+ggplot(data = dp[pairID == '270170055_270170704']) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  theme_classic()
+
+
+
+dus = du[pair_type == 'breeding_pair_mg']
+
+setorder(dus, N_pairwise_interactions_per)
+
+dus[, .(nestID, N_pairwise_interactions, N_pairwise_interactions_per)]
 
 
 # first bout no interaction
@@ -249,6 +335,16 @@ ggplot(data = dp[datetime_1 < nest_state_date & bout1_interaction != FALSE | is.
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
   scale_x_continuous(limits = c(-13, 1)) +
+  theme_classic()
+
+ggplot(data = dp[datetime_1 < nest_state_date & bout1_interaction != FALSE | is.na(bout1_interaction) & 
+                   datetime_1 > last_long_split | is.na(last_long_split)]) +
+  geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  facet_grid(.~any_EPY) +
   theme_classic()
 
 ggplot(data = dp[datetime_1 < nest_state_date]) +
@@ -445,6 +541,30 @@ ggplot(data = ds[datetime_1 < nest_state_date]) +
   theme(legend.position = c(0.8, 0.7))
 
 # ggsave('./OUTPUTS/ALL_PAIRS/Percentage_daily_interactions.png', plot = last_plot(),  width = 177, height = 150, units = c('mm'), dpi = 'print')
+
+
+ggplot(data = ds[datetime_1 < nest_state_date]) +
+  geom_point(data = ds[datetime_1 < nest_state_date], aes(initiation_rel0, per_together, group = nestID), 
+             color = 'grey75', size = 2, alpha = 1) +
+  geom_point(data = ds[datetime_1 < nest_state_date & any_EPY == TRUE], aes(initiation_rel0, per_together, group = nestID), 
+             color = 'firebrick3', size = 3, alpha = 1) +
+  geom_path(data = ds[datetime_1 < nest_state_date], aes(initiation_rel0, per_together, group = nestID), 
+            color = 'grey75', size = 1, alpha = 0.5) +
+  geom_path(data = ds[datetime_1 < nest_state_date & any_EPY == TRUE], aes(initiation_rel0, per_together, group = nestID), 
+            color = 'firebrick3', size = 1, alpha = 0.5) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  scale_x_continuous(limits = c(-10, 16)) +
+  theme(legend.position = c(0.8, 0.7))
+
+
+
+
+ds[initiation_rel0 == -3 & any_EPY == TRUE, .(nestID, per_together)]
+
+
 
 
 # split and merges
