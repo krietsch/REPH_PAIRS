@@ -264,6 +264,9 @@ setorder(ds, N_pi_daily_50)
 pairs = ds[pair_type == 'non_breeding_sex' & N_pi_daily_50 > 2, pairID]
 pairs = ds[pair_type == 'same_sex_pair' & N_pi_daily_50 > 2, pairID]
 
+
+pairs = dud_max[pair_type == 'breeding_pair_mg' | pair_type == 'breeding_pair', pairID]
+
 p1 = 
 ggplot(data = dp[pairID %in% pairs & year_ == 2018]) +
   ggtitle('2018') +
@@ -291,6 +294,35 @@ p1 + p2 + plot_layout(ncol = 1, heights = c(4, 1))
 # ggsave('./OUTPUTS/ALL_PAIRS/Non_breeders_interactions.png', plot = last_plot(),  width = 170, height = 250, units = c('mm'), dpi = 'print')
 # ggsave('./OUTPUTS/ALL_PAIRS/same_sex_interactions.png', plot = last_plot(),  width = 170, height = 250, units = c('mm'), dpi = 'print')
 
+
+
+pairs = dud_max[pair_type == 'breeding_pair_mg' | pair_type == 'breeding_pair', pairID]
+
+p1 = 
+  ggplot(data = dp[pairID %in% pairs & year_ == 2018]) +
+  ggtitle('2018') +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 2500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('PairID') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+p2 = 
+  ggplot(data = dp[pairID %in% pairs & year_ == 2019]) +
+  ggtitle('2019') +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), show.legend = FALSE, width = 2500) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  # geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('PairID') +
+  # scale_x_continuous(limits = c(-12, 12)) +
+  theme_classic()
+
+p1 + p2 + plot_layout(ncol = 1, heights = c(1, 4))
+
+# ggsave('./OUTPUTS/ALL_PAIRS/breeders_interactions.png', plot = last_plot(),  width = 170, height = 250, units = c('mm'), dpi = 'print')
 
 
 ggplot(data = dp[pairID %in% pairs & year_ == 2018 & distance_pair < 100]) +
