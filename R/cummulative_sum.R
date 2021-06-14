@@ -60,27 +60,78 @@ d[, lat_next := shift(lat, type = 'lead'), by = .(year_, ID)]
 d[, lon_next := shift(lon, type = 'lead'), by = .(year_, ID)]
 d[, distance_next := sqrt(sum((c(lon, lat) - c(lon_next, lat_next))^2)), by = 1:nrow(d)]
 
-# cummulative distance
+# cumulative distance
 d[, cum_distance := cumsum(distance_next), by = .(year_, ID)]
+d[, cum_distance_max := max(cum_distance, na.rm = TRUE), by = .(year_, ID)]
 
+# before initiation
+d[datetime_ < first_initiation, initiation_cat := 'before']
+d[datetime_ > first_initiation, initiation_cat := 'after']
+d[is.na(initiation_cat), initiation_cat := 'none']
 
-ggplot(d[year_ == 2018]) +
-  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = sex)) +
+d[, initiation_rel := difftime(datetime_, first_initiation, units = 'days') %>% as.numeric()]
+
+d[, datetime_y := as.POSIXct(format(datetime_, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
+
+ggplot(d) +
+  geom_line(aes(datetime_y, cum_distance/1000, group = ID, color = sex)) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4')) +
+  xlab('Date') + ylab('cumulative distance (km)') +
+  facet_grid(year_~.) +
   theme_classic()
+
+# ggsave('./OUTPUTS/ALL_PAIRS/cum_dist_sex.png', plot = last_plot(),  width = 170, height = 250, units = c('mm'), dpi = 'print')
+
+
+
+
+ggplot(d) +
+  geom_line(aes(datetime_y, cum_distance/1000, group = ID, color = initiation_cat)) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4', 'grey50')) +
+  xlab('Date') + ylab('cumulative distance (km)') +
+  facet_grid(year_~.) +
+  theme_classic()
+
+# ggsave('./OUTPUTS/ALL_PAIRS/cum_dist_initiation.png', plot = last_plot(),  width = 170, height = 250, units = c('mm'), dpi = 'print')
+
+
+
 
 ggplot(d[year_ == 2018]) +
   geom_line(aes(datetime_, cum_distance/1000, group = ID, color = breeder)) +
   theme_classic()
 
 
+ggplot(d[year_ == 2018]) +
+  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = initiation_cat)) +
+  theme_classic()
+
+
+ggplot(d[year_ == 2019]) +
+  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = initiation_cat)) +
+  theme_classic()
+
+ggplot(d[year_ == 2018 & initiation_cat != 'none' & cum_distance_max > 150/1000]) +
+  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = initiation_cat)) +
+  theme_classic()
+
+ggplot(d[year_ == 2019 & initiation_cat != 'none' & cum_distance_max > 150/1000]) +
+  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = initiation_cat)) +
+  theme_classic()
+
+ggplot(d[year_ == 2019 & initiation_cat != 'none' & cum_distance_max > 150/1000]) +
+  geom_line(aes(datetime_, cum_distance/1000, group = ID, color = sex)) +
+  theme_classic()
 
 
 
+ggplot(d[initiation_rel > -100]) +
+  geom_line(aes(initiation_rel, cum_distance/1000, group = ID, color = as.character(year_))) +
+  theme_classic()
 
-
-
-
-
+ggplot(d[initiation_rel > -100]) +
+  geom_line(aes(initiation_rel, cum_distance/1000, group = ID, color = sex)) +
+  theme_classic()
 
 
 
