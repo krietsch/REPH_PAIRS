@@ -51,31 +51,6 @@ dn = merge(dn, dpau[, .(nestID, any_EPY)], by = 'nestID', all.x = TRUE)
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' # How to define mate guarding?
-#--------------------------------------------------------------------------------------------------------------
-
-# Number of interactions daily and overall
-# Percentage of time spend together daily and overall 
-# longest bout together daily and overall
-# usage of the same spatial areas together
-
-# When are the first pairs formed? When most and when last?
-# How many tagged before they paired up?
-
-# data of pair before initiation? 
-
-
-
-
-
-
-
-
-
-
-
-
-#--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs
 #--------------------------------------------------------------------------------------------------------------
 
@@ -581,7 +556,7 @@ n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
 ds = ds[!(nestID %in% n2)]
 
 # exclude pairs before mate guarding started
-ds = ds[!(initiation_rel < 0 & per_together < 50)]
+# ds = ds[!(initiation_rel < 0 & per_together < 50)]
 
 setorder(ds, initiation_rel0)
 
@@ -797,7 +772,7 @@ dss = ds[nestID == 'R219_19']
 dss = ds[nestID == 'R304_18']
 dos = do[nestID == 'R304_18']
 
-
+dss = ds[nestID == 'R605_19']
 
 ggplot(data = dss) +
   geom_hline(yintercept = dss[1, nest_clust]) +
