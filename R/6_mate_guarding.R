@@ -20,6 +20,7 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
+d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
 dp[, year_ := year(datetime_1)]
 
@@ -89,7 +90,7 @@ dnID[, female_id := as.integer(female_id)]
 setorder(dnID, male_id, initiation)
 dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
-dnID[!is.na(female_id), female_clutch   := seq_len(.N), by = .(year_, female_id)]
+dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
@@ -201,6 +202,14 @@ ggplot(data = dud) +
   theme_classic(base_size = 14)
 
 # ggsave('./OUTPUTS/ALL_PAIRS/N_pair_wise_interactions_per_daily.png', plot = last_plot(),  width = 170, height = 150, units = c('mm'), dpi = 'print')
+
+
+
+ggplot(data = dud[pair_type == 'non_breeding_sex' & year_ == 2019 | pair_type == 'breeding_pair_mg' & year_ == 2019]) +
+  geom_point(aes(as.POSIXct(date_), N_pairwise_interactions_daily_per, color = pair_type)) +
+  geom_smooth(aes(as.POSIXct(date_), N_pairwise_interactions_daily_per, group = pair_type)) +
+  xlab('Pair type') + ylab('Number of pair-wise interactions daily (%)') +
+  theme_classic(base_size = 14)
 
 
 # number of days with more than 50% together
