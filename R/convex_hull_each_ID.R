@@ -65,11 +65,21 @@ d_ch = d_sf %>% dplyr::group_by(ID_year) %>% dplyr::summarise() %>%  st_convex_h
 
 plot(d_ch)
 
-st_area(d_ch)
+du = unique(d, by = 'ID_year')
+
+
+du[, area := st_area(d_ch) %>% as.numeric /1000]
 
 
 
+ggplot(data = du) +
+  geom_boxplot(aes(as.character(year_), area)) +
+  theme_classic()
 
+
+ggplot(data = du[area < 100000]) +
+  geom_boxplot(aes(as.character(sex), area/1000)) +
+  theme_classic()
 
 
 
