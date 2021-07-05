@@ -157,6 +157,29 @@ dps = rbind(dsm, dss)
 du = unique(dps, by = c('year_', 'pairID', 'nestID'))
 dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
 
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Define "null model" 
+#--------------------------------------------------------------------------------------------------------------
+
+# N interactions of unpaired birds for a given day relative to the initiation date 
+
+# Identify all dates linked to relative initiation dates 
+# Use N interaction of these unpaired birds 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # look at data same sex vs. opposite sex
 ggplot(data = du) +
   geom_boxplot(aes(same_sex, N_pairwise_interactions)) +
