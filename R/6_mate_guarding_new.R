@@ -167,3 +167,64 @@ dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
 # Identify all dates linked to relative initiation dates 
 # Use N interaction of these unpaired birds 
 
+
+
+
+
+
+
+dp = dp[!is.na(nestID)]
+
+# round to days
+dp[, initiation_rel0 := round(initiation_rel, 0)]
+
+# daily points of both individuals
+dp[, N_daily := .N, by = .(nestID, initiation_rel0)]
+
+# daily interactions
+dp[interaction == TRUE, N_together := .N, by = .(nestID, initiation_rel0)]
+dp[interaction == FALSE, N_together := NA]
+dp[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, initiation_rel0)]
+dp[is.na(N_together), N_together := 0]
+
+# unique data
+ds = unique(dp, by = c('nestID', 'initiation_rel0'))
+ds[, per_together := N_together / N_daily * 100]
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
+
+# exclude pairs before mate guarding started
+# ds = ds[!(initiation_rel < 0 & per_together < 50)]
+
+setorder(ds, initiation_rel0)
+
+ggplot(data = ds[datetime_1 < nest_state_date]) +
+  geom_point(aes(initiation_rel0, per_together, color = N_daily, group = nestID), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0, per_together, color = N_daily, group = nestID), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, name = 'N positions') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  scale_x_continuous(limits = c(-10, 16)) +
+  theme(legend.position = c(0.8, 0.7))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
