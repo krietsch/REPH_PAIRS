@@ -214,17 +214,65 @@ ggplot(data = ds[datetime_1 < nest_state_date]) +
 
 
 
+# data needed for null model
+d0 = ds[, .(initiation_rel0, date_)] %>% unique
+
+dsm = dsm[breeding_pair == FALSE]
+
+# daily points of both individuals
+dsm[, N_daily := .N, by = .(nestID, date_)]
+
+# daily interactions
+dsm[interaction == TRUE, N_together := .N, by = .(nestID, date_)]
+dsm[interaction == FALSE, N_together := NA]
+dsm[, N_together := mean(N_together, na.rm = TRUE), by = .(nestID, date_)]
+dsm[is.na(N_together), N_together := 0]
+
+
+dsmu = unique(dsm, by = c('pairID', 'date_'))
+
+dsmu[, per_together := N_together / N_daily * 100]
+
+x = unique(d0[, .(initiation_rel0)])
+
+x = -10:10
+
+
+d0a = foreach(i = x, .combine = 'rbind') %do% {
+  
+  # subset relative day
+  dss = d0[initiation_rel0 == i]
+  
+  # subset all pairwise interactions from this date 
+  dsms = dsmu[date_ %in% dss$date_]
+  
+  # assign type
+  dsms[, initiation_rel0_type := i]
+  
+  dsms
+  
+}
 
 
 
 
+ggplot(data = d0a) +
+  geom_point(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, name = 'N positions') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  scale_x_continuous(limits = c(-10, 16)) +
+  theme(legend.position = c(0.8, 0.7))
 
 
 
-
-
-
-
-
-
-
+ggplot(data = d0a) +
+  geom_boxplot(aes(initiation_rel0_type, per_together) 
+               
+               
+               
+               
+               
