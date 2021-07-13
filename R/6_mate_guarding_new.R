@@ -256,23 +256,46 @@ d0a = foreach(i = x, .combine = 'rbind') %do% {
 
 
 
-ggplot(data = d0a) +
-  geom_point(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 1, alpha = 0.5) +
-  scale_color_viridis(direction = -1, name = 'N positions') +
-  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
-  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  theme_classic(base_size = 8) +
-  scale_x_continuous(limits = c(-10, 16)) +
-  theme(legend.position = c(0.8, 0.7))
+# ggplot(data = d0a) +
+#   geom_point(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 2, alpha = 1) +
+#   geom_path(aes(initiation_rel0_type, per_together, color = N_daily, group = pairID), size = 1, alpha = 0.5) +
+#   scale_color_viridis(direction = -1, name = 'N positions') +
+#   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+#   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+#   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+#   theme_classic(base_size = 8) +
+#   scale_x_continuous(limits = c(-10, 16)) +
+#   theme(legend.position = c(0.8, 0.7))
 
 
 
 ggplot(data = d0a) +
-  geom_boxplot(aes(initiation_rel0_type, per_together) 
+  geom_boxplot(aes(as.factor(initiation_rel0_type), per_together))
                
-               
-               
-               
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                
