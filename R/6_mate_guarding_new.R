@@ -19,12 +19,11 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
+
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE) %>% data.table
 dp[, year_ := year(datetime_1)]
-
-do = fread('./DATA/PAIR_WISE_SPACE_USE.txt', sep = '\t', header = TRUE) %>% data.table
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dg = dbq(con, 'select * FROM SEX')
@@ -39,6 +38,10 @@ DBI::dbDisconnect(con)
 
 # change projection
 st_transform_DT(dn)
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Sired or received EPP?
+#--------------------------------------------------------------------------------------------------------------
 
 # any EPP in nest?
 dpa[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
@@ -91,6 +94,21 @@ setorder(dnID, male_id, initiation)
 dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
