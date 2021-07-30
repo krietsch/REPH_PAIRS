@@ -52,7 +52,10 @@ dpau = unique(dpa, by = 'nestID')
 dn = merge(dn, dpau[, .(nestID, any_EPY)], by = 'nestID', all.x = TRUE)
 
 # males that sired EPY 
+dpam = dpa[EPY == 1 & !is.na(IDfather)]
+dpam[, sired_EPY := TRUE]
 
+dp = merge(dp, dpam[, .(year_, IDfather, sired_EPY)], by.x = c('ID1', 'year_'), by.y = c('IDfather', 'year_'), all.x = TRUE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs
@@ -94,21 +97,6 @@ setorder(dnID, male_id, initiation)
 dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
