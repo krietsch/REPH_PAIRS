@@ -99,7 +99,7 @@ dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Define interactions
+#' # Daily interactions
 #--------------------------------------------------------------------------------------------------------------
 
 # merge with nests
@@ -160,8 +160,52 @@ dss = dp[same_sex == TRUE & ID1 > ID2]
 
 dps = rbind(dsm, dss)
 
+# round to days
+dps[, initiation_rel0 := round(initiation_rel, 0)]
+
 du = unique(dps, by = c('year_', 'pairID', 'nestID'))
 dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
+
+
+
+
+
+
+
+
+
+
+# N daily interactions
+ds = unique(dp, by = c('nestID', 'date_'))
+ds[, per_together := N_together / N_daily * 100]
+ds[, per_sampled := N_daily / 140 * 100]
+
+ds = ds[initiation_rel0 > -9 & initiation_rel0 < 17]
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
+
+
+dss = ds[, .N, by = initiation_rel0]
+
+ggplot(data = dud) +
+  geom_boxplot(aes(as.factor(initiation_rel0), N_pairwise_interactions_daily_per), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+            position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------------------------
