@@ -162,6 +162,7 @@ dps = rbind(dsm, dss)
 
 # round to days
 dps[, initiation_rel0 := round(initiation_rel, 0)]
+dp[, initiation_rel0 := round(initiation_rel, 0)]
 
 du = unique(dps, by = c('year_', 'pairID', 'nestID'))
 dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
@@ -180,7 +181,7 @@ ds = unique(dp, by = c('nestID', 'date_'))
 ds[, per_together := N_together / N_daily * 100]
 ds[, per_sampled := N_daily / 140 * 100]
 
-ds = ds[initiation_rel0 > -9 & initiation_rel0 < 17]
+ds = ds[initiation_rel0 > -9 & initiation_rel0 < 11]
 
 # nests to exclude
 n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
@@ -188,6 +189,10 @@ ds = ds[!(nestID %in% n2)]
 
 
 dss = ds[, .N, by = initiation_rel0]
+
+
+dud = dud[initiation_rel0 > -9 & initiation_rel0 < 11]
+
 
 ggplot(data = dud) +
   geom_boxplot(aes(as.factor(initiation_rel0), N_pairwise_interactions_daily_per), varwidth = TRUE) +
