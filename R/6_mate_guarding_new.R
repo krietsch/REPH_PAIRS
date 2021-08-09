@@ -169,7 +169,33 @@ dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
 
 
 
+dud[is.na(nestID)]
 
+dud[, .(nestID)]
+
+dud[is.na(nestID)]
+
+
+
+dud[, month_day := substr(date_, 7, 10)]
+
+
+
+ggplot(data = dud[same_sex == FALSE]) +
+  geom_boxplot(aes(as.factor(month_day), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+ggplot(data = dud[!is.na(nestID)]) +
+  geom_boxplot(aes(as.factor(month_day), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
 
 
 
