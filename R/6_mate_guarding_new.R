@@ -98,6 +98,12 @@ dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
 
+# relative timing of breeding
+di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+dp = merge(dp, di, by = 'year_', all.x = TRUE)
+dp[, datetime_rel := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Daily interactions
 #--------------------------------------------------------------------------------------------------------------
@@ -189,13 +195,24 @@ ggplot(data = dud[same_sex == FALSE]) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
 
-ggplot(data = dud[!is.na(nestID)]) +
+ggplot(data = dud[is.na(nestID)]) +
   geom_boxplot(aes(as.factor(month_day), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
   geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
+
+
+ggplot(data = dud[!is.na(nestID)]) +
+  geom_boxplot(aes(as.factor(datetime_rel), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
 
 
 
