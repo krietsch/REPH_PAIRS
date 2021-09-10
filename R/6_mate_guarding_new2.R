@@ -193,39 +193,36 @@ ggplot(data = dud) +
   theme_classic()
 
 
-ggplot(data = dud[same_sex == FALSE]) +
-  geom_boxplot(aes(as.Date(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
-                   group = interaction(year_, date_y)), varwidth = TRUE) +
-  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
-  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+ggplot(data = dud[same_sex == FALSE & date_y < as.Date('2021-07-01')]) +
+  geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
+                   group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  scale_x_date(date_labels = "%b") +
+  scale_x_datetime(date_labels = "%b") +
   theme_classic(base_size = 12)
 
-dud[is.na(date_y)]
-
-dud$date_y
-
-dud[is.na(nestID)]
-
-dud[, .(nestID)]
-
-dud[is.na(nestID)]
+ggplot(data = dud[breeding_pair == TRUE & date_y < as.Date('2021-07-01')]) +
+  geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
+                   group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_datetime(date_labels = "%b") +
+  theme_classic(base_size = 12)
 
 
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Look at variation in connection to EPP
+#--------------------------------------------------------------------------------------------------------------
+
+# EPP in clutch of female
 dud[is.na(any_EPY), any_EPY := FALSE]
-
-ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = any_EPY, 
-                   group = interaction(initiation_rel0, any_EPY)), varwidth = TRUE) +
-  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
-  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  theme_classic(base_size = 12)
-
-
 
 ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = any_EPY, 
@@ -236,6 +233,27 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
+
+# Epp sired by male
+dud[is.na(m_sired_EPY), m_sired_EPY := FALSE]
+
+ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = m_sired_EPY, 
+                   group = interaction(initiation_rel0, m_sired_EPY)), varwidth = TRUE) +
+  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = m_sired_EPY, color = m_sired_EPY)) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+
+
+
+
+
+
 
 
 
