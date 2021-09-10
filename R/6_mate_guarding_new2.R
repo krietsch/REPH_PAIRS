@@ -5,8 +5,8 @@
 # Summary
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
+          'stringr', 'ggnewscale', 'doFuture', 'patchwork'), 
         require, character.only = TRUE)
 
 # Functions
@@ -53,11 +53,10 @@ dpam[, m_sired_EPY := TRUE]
 # merge with social nests
 dpas = dpa[EPY == 0 & !is.na(IDfather)]
 dpas = merge(dpas, dpam[, .(year_, IDfather, m_sired_EPY)], by = c('IDfather', 'year_'), all.x = TRUE )
-dpas[m_sired_EPY == TRUE]
 
 # merge with nest data
 dpau = unique(dpa, by = 'nestID')
-dn = merge(dn, dpau[, .(nestID, any_EPY)], by = 'nestID', all.x = TRUE)
+dn = merge(dn, dpas[, .(nestID, any_EPY, m_sired_EPY)], by = 'nestID', all.x = TRUE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define breeding pairs
@@ -87,7 +86,8 @@ dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_
 dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, any_EPY, lat_n = lat, lon_n = lon)]
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, any_EPY, m_sired_EPY, 
+              lat_n = lat, lon_n = lon)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
@@ -105,6 +105,147 @@ di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.
 
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
 dp[, datetime_rel := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Percentage of daily interactions
+#--------------------------------------------------------------------------------------------------------------
+
+# merge with nests
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
+
+# relative nest initiation date
+dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
+
+# median daily 
+dp[, date_ := as.Date(datetime_1)]
+# dp[, median_dist := median(distance_pair, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+
+# median corrected
+# distance_threshold = 30
+# dp[, distance_pair_cor := ifelse(interaction == TRUE & distance_pair > distance_threshold, distance_threshold, distance_pair)]
+# dp[interaction == FALSE, distance_pair_cor := distance_pair]
+# dp[, median_dist_cor := median(distance_pair_cor, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+
+# total number of interactions and percentage 
+dp[, N_pairwise_positions := .N, by = .(year_, pairID, nestID)]
+dp[interaction == TRUE, N_pairwise_interactions := .N, by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions := mean(N_pairwise_interactions, na.rm = TRUE), by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions_per := N_pairwise_interactions / N_pairwise_positions * 100]
+
+# number of daily interactions and percentage 
+dp[, N_pairwise_positions_daily := .N, by = .(year_, pairID, nestID, date_)]
+dp[interaction == TRUE, N_pairwise_interactions_daily := .N, by = .(year_, pairID, nestID, date_)]
+dp[, N_pairwise_interactions_daily := mean(N_pairwise_interactions_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dp[, N_pairwise_interactions_daily_per := N_pairwise_interactions_daily / N_pairwise_positions_daily * 100]
+dp[, N_pairwise_interactions_daily_per_50 := any(N_pairwise_interactions_daily_per > 50), by = .(year_, pairID, nestID)]
+dp[, N_pairwise_interactions_daily_per_90 := any(N_pairwise_interactions_daily_per > 90), by = .(year_, pairID, nestID)]
+
+# longest bout together
+dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
+dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
+dp[, bout_length := difftime(bout_end, bout_start, units = 'mins') %>% as.numeric]
+dp[interaction == TRUE, bout_max := max(bout_length, na.rm = TRUE), by = .(year_, pairID, nestID)]
+dp[, bout_max := mean(bout_max, na.rm = TRUE), by = .(year_, pairID, nestID)]
+
+# longest bout together daily 
+dp[interaction == TRUE, bout_max_daily := max(bout_length, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dp[, bout_max_daily := mean(bout_max_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+
+# pairs with known nest and mate guarding data before clutch initiation
+dp[, mg_before_initiation := any(initiation_rel < 0), by = .(year_, pairID, nestID)]
+dp[nestID == 'R812_18' | nestID == 'R604_18', mg_before_initiation := FALSE] # pair with data before paired
+
+# same sex interaction?
+dp[, same_sex := sex1 == sex2]
+
+# breeding pair
+dp[, breeding_pair := !is.na(nestID)]
+
+# summary by unique pair excluding pair wise duplicates
+dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
+dss = dp[same_sex == TRUE & ID1 > ID2] 
+
+dps = rbind(dsm, dss)
+
+# round to days
+dps[, initiation_rel0 := round(initiation_rel, 0)]
+dp[, initiation_rel0 := round(initiation_rel, 0)]
+
+du = unique(dps, by = c('year_', 'pairID', 'nestID'))
+dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Look at variation over the season
+#--------------------------------------------------------------------------------------------------------------
+
+# extract day and month
+dud[, month_day := substr(date_, 7, 10)]
+dud[, datetime_y := as.POSIXct(format(datetime_1, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+dud[, date_y := as.Date(format(date_, format = '%m-%d'), format = '%m-%d')]
+
+# Period with data
+ggplot(data = dud) +
+  geom_density(aes(x = datetime_y, group = year_, color = as.factor(year_)))
+
+ggplot(data = dud) +
+  geom_bar(aes(x = as.POSIXct(date_y), group = year_, fill = as.factor(year_))) +
+  scale_x_datetime(date_labels = "%b") +
+  theme_classic()
+
+
+ggplot(data = dud[same_sex == FALSE]) +
+  geom_boxplot(aes(as.Date(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
+                   group = interaction(year_, date_y)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_date(date_labels = "%b") +
+  theme_classic(base_size = 12)
+
+dud[is.na(date_y)]
+
+dud$date_y
+
+dud[is.na(nestID)]
+
+dud[, .(nestID)]
+
+dud[is.na(nestID)]
+
+
+
+
+
+
+ggplot(data = dud[same_sex == FALSE]) +
+  geom_boxplot(aes(as.factor(month_day), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+ggplot(data = dud[is.na(nestID)]) +
+  geom_boxplot(aes(as.factor(month_day), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+ggplot(data = dud[!is.na(nestID)]) +
+  geom_boxplot(aes(as.factor(datetime_rel), N_pairwise_interactions_daily_per, color = as.factor(year_)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+
+
 
 
 
