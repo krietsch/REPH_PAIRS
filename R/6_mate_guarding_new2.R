@@ -214,6 +214,40 @@ dud[, .(nestID)]
 dud[is.na(nestID)]
 
 
+dud[is.na(any_EPY), any_EPY := FALSE]
+
+ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = any_EPY, 
+                   group = interaction(initiation_rel0, any_EPY)), varwidth = TRUE) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+
+ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = any_EPY, 
+                   group = interaction(initiation_rel0, any_EPY)), varwidth = TRUE) +
+  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = any_EPY, color = any_EPY)) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
+
+ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per)) +
+  geom_vline(aes(xintercept = '0'), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
+
+
 
 
 
