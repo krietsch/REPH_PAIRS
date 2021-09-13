@@ -106,6 +106,25 @@ di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
 dp[, datetime_rel := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
+# early and late clutches?
+di = dn[!is.na(year_) & plot == 'NARL']
+di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
+di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+
+di[initiation_rel < -3, initiation_type := 'early']
+di[initiation_rel > 3, initiation_type := 'late']
+di[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
+
+di[, .N, by = initiation_type]
+
+dnID = merge(dnID, di[, .(nestID, initiation_type)], by = 'nestID', all.x = TRUE)
+
+ggplot(data = di) +
+  geom_violin(aes(as.character(year_), initiation_rel), show.legend = FALSE, fill = 'grey85')
+
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Percentage of daily interactions
 #--------------------------------------------------------------------------------------------------------------
@@ -208,10 +227,16 @@ ggplot(data = dud[breeding_pair == TRUE & date_y < as.Date('2021-07-01')]) +
   theme_classic(base_size = 12)
 
 
-
-
-
-
+# early, peak or late breeders
+ggplot(data = dud[breeding_pair == TRUE & !is.na(initiation_rel0) & !is.na(initiation_type)]) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_type, 
+                   group = interaction(initiation_rel0, initiation_type)), varwidth = TRUE) +
+  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 12)
 
 
 
@@ -246,6 +271,17 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
