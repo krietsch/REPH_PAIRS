@@ -216,15 +216,40 @@ ggplot(data = dud[same_sex == FALSE & date_y < as.Date('2021-07-01')]) +
   geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
                    group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  scale_x_datetime(date_labels = "%b") +
+  scale_x_datetime(date_labels = "%d %b") +
   theme_classic(base_size = 12)
 
-ggplot(data = dud[breeding_pair == TRUE & date_y < as.Date('2021-07-01')]) +
+
+
+min(dud$date_y)
+min(di$initiation_y, na.rm = TRUE)
+
+max(dud$date_y)
+max(di$initiation_y, na.rm = TRUE)
+
+p1 = 
+ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
                    group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  scale_x_datetime(date_labels = "%b") +
+  geom_smooth(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  xlab('Date') + ylab('Percentage of positions together') +
+  scale_x_datetime(date_labels = "%d %b", limits = c(as.POSIXct('2021-06-02 00:00:00'), as.POSIXct('2021-07-02 00:00:00'))) +
   theme_classic(base_size = 12)
+
+
+
+p2 = 
+ggplot(data = di) +
+  geom_violin(aes(as.POSIXct(as.Date(initiation_y)), as.character(year_), color = as.character(year_), fill = as.character(year_)), 
+              show.legend = FALSE, alpha = 0.5) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_fill_manual(values = c('darkorange', 'dodgerblue3')) +
+  xlab('Initiation date') + ylab('Year') +
+  scale_x_datetime(date_labels = "%d %b", limits = c(as.POSIXct('2021-06-02 00:00:00'), as.POSIXct('2021-07-02 00:00:00'))) +
+  theme_classic(base_size = 12)
+
+p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 
 
 # early, peak or late breeders
@@ -256,6 +281,7 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
 
@@ -269,6 +295,7 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
 
