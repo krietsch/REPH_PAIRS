@@ -159,6 +159,15 @@ dp[, N_pairwise_interactions_daily_per := N_pairwise_interactions_daily / N_pair
 dp[, N_pairwise_interactions_daily_per_50 := any(N_pairwise_interactions_daily_per > 50), by = .(year_, pairID, nestID)]
 dp[, N_pairwise_interactions_daily_per_90 := any(N_pairwise_interactions_daily_per > 90), by = .(year_, pairID, nestID)]
 
+# number of nest attendance and percentage
+dp[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dp)]
+
+########################################################################################################
+# subset breeding pairs
+# calculate for each day percentage at nest
+# merge back with data
+
+
 # longest bout together
 dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
 dp[, bout_end := max(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
@@ -226,7 +235,7 @@ ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
                    group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
   geom_smooth(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Year') +
   xlab('Date') + ylab('Percentage of positions together') +
   scale_x_datetime(date_labels = "%d %b", limits = c(as.POSIXct('2021-06-02 00:00:00'), as.POSIXct('2021-07-02 00:00:00'))) +
   scale_y_continuous(limits = c(0, 110)) +
@@ -251,7 +260,7 @@ p1 =
   geom_boxplot(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, color = as.factor(year_), 
                    group = interaction(year_, as.POSIXct(date_y))), varwidth = TRUE) +
   geom_smooth(aes(as.POSIXct(date_y), N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Year') +
   xlab('Date') + ylab('Percentage of positions together') +
   scale_x_datetime(date_labels = "%d %b", limits = c(as.POSIXct('2021-06-02 00:00:00'), as.POSIXct('2021-07-02 00:00:00'))) +
   scale_y_continuous(limits = c(0, 110)) +
@@ -277,7 +286,7 @@ p1 =
                    group = interaction(year_, initiation_rel0)), varwidth = TRUE) +
   geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Year') +
   xlab('Date') + ylab('Percentage of positions together') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(0, 110)) +
@@ -301,7 +310,7 @@ ggplot(data = dud[breeding_pair == TRUE & !is.na(initiation_rel0) & !is.na(initi
   geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_type, 
                    group = interaction(initiation_rel0, initiation_type)), varwidth = TRUE) +
   geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen')) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation timing') +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
@@ -356,17 +365,46 @@ duds[, initiation_rel0_type := 'breeding_pair']
 
 dud0 = rbind(duds, d0a)
 
-p1 = 
-  ggplot(data = dud0) +
+
+ggplot(data = dud0) +
   geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_rel0_type, 
                    group = interaction(initiation_rel0_type, initiation_rel0)), varwidth = TRUE) +
   geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_rel0_type, color = initiation_rel0_type)) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Data type') +
   xlab('Date') + ylab('Percentage of positions together') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(0, 110)) +
   theme_classic(base_size = 12)
+
+
+dud0[, .N, by = .(initiation_rel0_type, initiation_rel0)]
+
+# same thing, but with only 50 random pairs in comparision
+d0a = d0a[!is.na(N_pairwise_interactions_daily_per)]
+
+# shuffle data
+d0ar <- d0a[sample(dim(d0a)[1])]
+
+# name rows by initiation_rel0
+d0ar[, initiation_rel0_id := seq_len(.N), by = initiation_rel0]
+d0ar = d0ar[initiation_rel0_id < 50]
+d0ar[, initiation_rel0_id := NULL]
+
+dud0 = rbind(duds, d0ar)
+
+
+ggplot(data = dud0) +
+  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_rel0_type, 
+                   group = interaction(initiation_rel0_type, initiation_rel0)), varwidth = TRUE) +
+  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_rel0_type, color = initiation_rel0_type), method = 'gam') +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Data type') +
+  xlab('Date') + ylab('Percentage of positions together') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  scale_y_continuous(limits = c(0, 110)) +
+  theme_classic(base_size = 12)
+
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -383,7 +421,7 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Female with EPY') +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(0, 110)) +
@@ -399,7 +437,7 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(0, 110)) +
