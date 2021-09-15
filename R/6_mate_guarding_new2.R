@@ -100,22 +100,11 @@ dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
 
-# relative timing of breeding
+# relative timing 
 di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
 
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
 dp[, datetime_rel := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-# early and late clutches?
-di = dn[!is.na(year_) & plot == 'NARL']
-di = di[, .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
-
-dnID = merge(dnID, di[, .(year_, initiation_mean)], by = 'year_', all.x = TRUE)
-
-dnID[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-dnID[initiation_rel < -3, initiation_type := 'early']
-dnID[initiation_rel > 3, initiation_type := 'late']
-dnID[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
 
 # for plots subset study site nests
 di = dn[!is.na(year_) & plot == 'NARL']
@@ -132,8 +121,16 @@ dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'femal
 # unique data
 dp = unique(dp)
 
-# relative nest initiation date
-dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
+# relative initiation date
+dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+# early and late clutches?
+dp[initiation_rel < -3, initiation_type := 'early']
+dp[initiation_rel > 3, initiation_type := 'late']
+dp[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
+
+# datetime relative to nest initiation date
+dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
 # median daily 
 dp[, date_ := as.Date(datetime_1)]
@@ -184,7 +181,7 @@ dp[interaction == TRUE, bout_max_daily := max(bout_length, na.rm = TRUE), by = .
 dp[, bout_max_daily := mean(bout_max_daily, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 
 # pairs with known nest and mate guarding data before clutch initiation
-dp[, mg_before_initiation := any(initiation_rel < 0), by = .(year_, pairID, nestID)]
+dp[, mg_before_initiation := any(datetime_rel_initiation < 0), by = .(year_, pairID, nestID)]
 dp[nestID == 'R812_18' | nestID == 'R604_18', mg_before_initiation := FALSE] # pair with data before paired
 
 # same sex interaction?
@@ -200,8 +197,8 @@ dss = dp[same_sex == TRUE & ID1 > ID2]
 dps = rbind(dsm, dss)
 
 # round to days
-dps[, initiation_rel0 := round(initiation_rel, 0)]
-dp[, initiation_rel0 := round(initiation_rel, 0)]
+dps[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
+dp[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
 
 du = unique(dps, by = c('year_', 'pairID', 'nestID'))
 dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
@@ -286,9 +283,9 @@ p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 # relative to clutch initiation date
 p1 = 
   ggplot(data = dud[breeding_pair == TRUE]) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = as.factor(year_), 
-                   group = interaction(year_, initiation_rel0)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = as.factor(year_), 
+                   group = interaction(year_, datetime_rel_initiation0)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Year') +
   xlab('Date') + ylab('Percentage of positions together') +
@@ -298,7 +295,7 @@ p1 =
 
 p2 = 
   ggplot(data = di) +
-  geom_violin(aes(initiation_rel, as.character(year_), color = as.character(year_), fill = as.character(year_)), 
+  geom_violin(aes(datetime_rel_initiation, as.character(year_), color = as.character(year_), fill = as.character(year_)), 
               show.legend = FALSE, alpha = 0.5) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
   scale_fill_manual(values = c('darkorange', 'dodgerblue3')) +
@@ -310,13 +307,13 @@ p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 
 
 # early, peak or late breeders
-ggplot(data = dud[breeding_pair == TRUE & !is.na(initiation_rel0) & !is.na(initiation_type)]) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_type, 
-                   group = interaction(initiation_rel0, initiation_type)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
+ggplot(data = dud[breeding_pair == TRUE & !is.na(datetime_rel_initiation0) & !is.na(initiation_type)]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = initiation_type, 
+                   group = interaction(datetime_rel_initiation0, initiation_type)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
   scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation timing') +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  # geom_text(data = dss, aes(as.factor(datetime_rel_initiation0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
@@ -326,15 +323,15 @@ ggplot(data = dud[breeding_pair == TRUE & !is.na(initiation_rel0) & !is.na(initi
 #--------------------------------------------------------------------------------------------------------------
 
 # unique data
-ds = unique(dp, by = c('nestID', 'initiation_rel0'))
-ds = ds[!is.na(initiation_rel)]
+ds = unique(dp, by = c('nestID', 'datetime_rel_initiation0'))
+ds = ds[!is.na(datetime_rel_initiation)]
 
 # nests to exclude
 n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
 ds = ds[!(nestID %in% n2)]
 
 # data needed for null model
-d0 = ds[, .(initiation_rel0, date_)] %>% unique
+d0 = ds[, .(datetime_rel_initiation0, date_)] %>% unique
 
 # subset non-breeders pairs within breeders
 breeding_males = du[breeding_pair == TRUE]$ID1
@@ -343,37 +340,37 @@ breeding_females = du[breeding_pair == TRUE]$ID2
 duds = dud[breeding_pair == FALSE & ID1 %in% breeding_males & ID2 %in% breeding_females]
 
 # subset all interactions on days with relative initiation date for breeders
-x = d0$initiation_rel0 %>% unique
+x = d0$datetime_rel_initiation0 %>% unique
 
 d0a = foreach(i = x, .combine = 'rbind') %do% {
   
   # subset relative day
-  dss = d0[initiation_rel0 == i]
+  dss = d0[datetime_rel_initiation0 == i]
   
   # subset all pairwise interactions from this date 
   dsms = duds[date_ %in% dss$date_]
   
   # assign type
-  dsms[, initiation_rel0 := i]
+  dsms[, datetime_rel_initiation0 := i]
   
   dsms
   
 }
 
-d0a[, initiation_rel0_type := 'null_model']
+d0a[, datetime_rel_initiation0_type := 'null_model']
 
 
 # merge with breeding pairs 
 duds = dud[breeding_pair == TRUE]
-duds[, initiation_rel0_type := 'breeding_pair']
+duds[, datetime_rel_initiation0_type := 'breeding_pair']
 
 dud0 = rbind(duds, d0a)
 
 
 ggplot(data = dud0) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_rel0_type, 
-                   group = interaction(initiation_rel0_type, initiation_rel0)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_rel0_type, color = initiation_rel0_type)) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = datetime_rel_initiation0_type, 
+                   group = interaction(datetime_rel_initiation0_type, datetime_rel_initiation0)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = datetime_rel_initiation0_type, color = datetime_rel_initiation0_type)) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Data type') +
   xlab('Date') + ylab('Percentage of positions together') +
@@ -382,7 +379,7 @@ ggplot(data = dud0) +
   theme_classic(base_size = 12)
 
 
-dud0[, .N, by = .(initiation_rel0_type, initiation_rel0)]
+dud0[, .N, by = .(datetime_rel_initiation0_type, datetime_rel_initiation0)]
 
 # same thing, but with only 50 random pairs in comparision
 d0a = d0a[!is.na(N_pairwise_interactions_daily_per)]
@@ -390,18 +387,19 @@ d0a = d0a[!is.na(N_pairwise_interactions_daily_per)]
 # shuffle data
 d0ar <- d0a[sample(dim(d0a)[1])]
 
-# name rows by initiation_rel0
-d0ar[, initiation_rel0_id := seq_len(.N), by = initiation_rel0]
-d0ar = d0ar[initiation_rel0_id < 50]
-d0ar[, initiation_rel0_id := NULL]
+# name rows by datetime_rel_initiation0
+d0ar[, datetime_rel_initiation0_id := seq_len(.N), by = datetime_rel_initiation0]
+d0ar = d0ar[datetime_rel_initiation0_id < 50]
+d0ar[, datetime_rel_initiation0_id := NULL]
 
 dud0 = rbind(duds, d0ar)
 
 
 ggplot(data = dud0) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = initiation_rel0_type, 
-                   group = interaction(initiation_rel0_type, initiation_rel0)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = initiation_rel0_type, color = initiation_rel0_type), method = 'gam') +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = datetime_rel_initiation0_type, 
+                   group = interaction(datetime_rel_initiation0_type, datetime_rel_initiation0)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = datetime_rel_initiation0_type, 
+                  color = datetime_rel_initiation0_type)) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Data type') +
   xlab('Date') + ylab('Percentage of positions together') +
@@ -418,12 +416,12 @@ ggplot(data = dud0) +
 # EPP in clutch of female
 dud[is.na(any_EPY), any_EPY := FALSE]
 
-ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = any_EPY, 
-                   group = interaction(initiation_rel0, any_EPY)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = any_EPY, color = any_EPY)) +
+ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = any_EPY, 
+                   group = interaction(datetime_rel_initiation0, any_EPY)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = any_EPY, color = any_EPY)) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  # geom_text(data = dss, aes(as.factor(datetime_rel_initiation0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Female with EPY') +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
@@ -434,12 +432,12 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
 # Epp sired by male
 dud[is.na(m_sired_EPY), m_sired_EPY := FALSE]
 
-ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
-  geom_boxplot(aes(initiation_rel0, N_pairwise_interactions_daily_per, color = m_sired_EPY, 
-                   group = interaction(initiation_rel0, m_sired_EPY)), varwidth = TRUE) +
-  geom_smooth(aes(initiation_rel0, N_pairwise_interactions_daily_per, group = m_sired_EPY, color = m_sired_EPY)) +
+ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = m_sired_EPY, 
+                   group = interaction(datetime_rel_initiation0, m_sired_EPY)), varwidth = TRUE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = m_sired_EPY, color = m_sired_EPY)) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(as.factor(initiation_rel0), Inf, label = N), 
+  # geom_text(data = dss, aes(as.factor(datetime_rel_initiation0), Inf, label = N), 
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
@@ -452,8 +450,6 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
 
 
 du[m_sired_EPY == TRUE]
-
-
 
 
 
