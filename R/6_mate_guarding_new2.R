@@ -206,6 +206,51 @@ dss = dp[same_sex == TRUE & ID1 > ID2]
 
 dps = rbind(dsm, dss)
 
+# # Males interacting with other females
+# dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID1_other_interactions = .N), 
+#          by = .(datetime_1, ID1, nestID)]
+# 
+# dps = merge(dps, dpi[, .(datetime_1, ID1, nestID, N_ID1_other_interactions)], by = c('datetime_1', 'ID1', 'nestID'), all.x = TRUE)
+# dps[is.na(N_ID1_other_interactions), N_ID1_other_interactions := 0]
+# 
+# 
+# ggplot(data = dud) +
+#   geom_point(aes(datetime_1, N_ID1_other_interactions))
+# 
+# dud[nestID == 'R320_19']$N_ID1_other_interactions
+# dud[ID1 == 270170938 ]$N_ID1_other_interactions_daily
+# 
+# 
+# dps[!is.na(N_ID1_other_interactions) & breeding_pair == TRUE]
+# 
+# # how many per day? and how many while not interacting with partner
+# dps[, N_ID1_other_interactions_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+# dps[interaction == FALSE & breeding_pair == FALSE, 
+#    N_ID1_other_interactions_not_with_partner_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+# dps[, N_ID1_other_interactions_not_with_partner_daily := mean(N_ID1_other_interactions_not_with_partner_daily, na.rm = TRUE), by = .(year_, ID1, nestID, date_)]
+# dps[, N_ID1_other_interactions_not_with_partner_daily_per := N_ID1_other_interactions_not_with_partner_daily / N_ID1_other_interactions_daily * 100]
+# 
+# 
+# dps[, .(ID1, N_ID1_other_interactions, N_ID1_other_interactions_daily, N_ID1_other_interactions_not_with_partner_daily, N_ID1_other_interactions_not_with_partner_daily_per)]
+# 
+# 
+# dps[N_ID1_other_interactions_daily != 0 & !is.na(N_ID1_other_interactions_daily) & breeding_pair == TRUE]$N_ID1_other_interactions_daily
+# 
+# 
+# 
+# # Females interacting with other females
+# dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID2_other_interactions = .N), 
+#           by = .(datetime_2, ID2, nestID)]
+# 
+# dps = merge(dps, dpi[, .(datetime_2, ID2, nestID, N_ID2_other_interactions)], by = c('datetime_2', 'ID2', 'nestID'), all.x = TRUE)
+# dps[is.na(N_ID2_other_interactions), N_ID2_other_interactions := 0]
+# 
+# # how many per day? and how many while not interacting with partner
+# dps[, N_ID2_other_interactions_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
+# dps[interaction == FALSE & breeding_pair == FALSE, 
+#    N_ID2_other_interactions_not_with_partner_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
+# dps[, N_ID2_other_interactions_not_with_partner_daily_per := N_ID2_other_interactions_not_with_partner_daily / N_ID2_other_interactions_daily * 100]
+
 # round to days
 dps[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
 dp[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
@@ -453,8 +498,6 @@ ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_female_with_EPY.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
-
-
 du[any_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
 
 # Epp sired by male
@@ -483,21 +526,21 @@ du[m_sired_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
 #' # Look at variation in connection to males at nest
 #--------------------------------------------------------------------------------------------------------------
 
-
-
 ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per, 
                    group = interaction(datetime_rel_initiation0)), varwidth = TRUE) +
   
   geom_smooth(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per)) +
   
-  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per), color = 'black') +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(-10, 110)) +
   theme_classic(base_size = 12)
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
 ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
@@ -513,6 +556,8 @@ ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & dateti
   guides(color = guide_legend('Initiation std')) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
 
 # When the male is not with the female is it at the nest?
 ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
@@ -523,5 +568,42 @@ ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & dateti
   guides(color = guide_legend('Initiation std')) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_When_no_interaction.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Do males and females interact with other opposite sex IDs?
+#--------------------------------------------------------------------------------------------------------------
+
+# dud[is.infinite(N_ID1_other_interactions_not_with_partner_daily_per), N_ID1_other_interactions_not_with_partner_daily_per := NA]
+
+
+
+ggplot(data = dps[breeding_pair == TRUE]) +
+  geom_point(aes(datetime_rel_initiation0, N_ID1_other_interactions))
+
+
+
+ggplot(data = dud) +
+  geom_point(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily)) +
+  
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_not_with_partner_daily_per)) +
+  
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per)) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  scale_y_continuous(limits = c(-10, 110)) +
+  theme_classic(base_size = 12)
+
+dud[!is.na(nestID) & !is.na(N_ID1_other_interactions_not_with_partner_daily_per), .(datetime_rel_initiation0, N_ID1_other_interactions_not_with_partner_daily_per)]
+
+
+N_ID1_other_interactions
+
+
+dp[ID1 == 270170049 & datetime_1 == as.POSIXct('2018-06-14 14:09:06', tz = 'UTC') & same_sex == FALSE & interaction == TRUE]
+
+
+N_ID1_other_interactions_not_with_partner_daily_per
