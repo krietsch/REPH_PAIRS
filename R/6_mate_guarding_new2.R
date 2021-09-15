@@ -108,22 +108,19 @@ dp[, datetime_rel := difftime(datetime_1, initiation_mean, units = 'days') %>% a
 
 # early and late clutches?
 di = dn[!is.na(year_) & plot == 'NARL']
+di = di[, .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+dnID = merge(dnID, di[, .(year_, initiation_mean)], by = 'year_', all.x = TRUE)
+
+dnID[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+dnID[initiation_rel < -3, initiation_type := 'early']
+dnID[initiation_rel > 3, initiation_type := 'late']
+dnID[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
+
+# for plots subset study site nests
+di = dn[!is.na(year_) & plot == 'NARL']
 di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
 di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-
-di[initiation_rel < -3, initiation_type := 'early']
-di[initiation_rel > 3, initiation_type := 'late']
-di[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
-
-di[, .N, by = initiation_type]
-
-dnID = merge(dnID, di[, .(nestID, initiation_type)], by = 'nestID', all.x = TRUE)
-
-ggplot(data = di) +
-  geom_violin(aes(as.character(year_), initiation_rel), show.legend = FALSE, fill = 'grey85')
-
-
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Percentage of daily interactions
@@ -131,6 +128,9 @@ ggplot(data = di) +
 
 # merge with nests
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
+
+# unique data
+dp = unique(dp)
 
 # relative nest initiation date
 dp[, initiation_rel := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
@@ -160,13 +160,17 @@ dp[, N_pairwise_interactions_daily_per_50 := any(N_pairwise_interactions_daily_p
 dp[, N_pairwise_interactions_daily_per_90 := any(N_pairwise_interactions_daily_per > 90), by = .(year_, pairID, nestID)]
 
 # number of nest attendance and percentage
-dp[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dp)]
+dps = dp[!is.na(nestID)]
+dps[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
+dps[, at_nest := distance_nest_1 < 10]
 
-########################################################################################################
-# subset breeding pairs
-# calculate for each day percentage at nest
+dps[at_nest == TRUE, N_pairwise_positions_daily_at_nest := .N, by = .(year_, pairID, nestID, date_)]
+dps[, N_pairwise_positions_daily_at_nest := mean(N_pairwise_positions_daily_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[, N_pairwise_positions_daily_at_nest_per := N_pairwise_positions_daily_at_nest / N_pairwise_positions_daily * 100]
+
 # merge back with data
-
+dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest, N_pairwise_positions_daily_at_nest_per)], 
+           by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
 
 # longest bout together
 dp[, bout_start := min(c(datetime_1, datetime_2)), by = .(year_, pairID, bout)]
@@ -447,9 +451,7 @@ ggplot(data = dud[same_sex == FALSE & !is.na(initiation_rel0)]) +
 
 
 
-
-
-
+du[m_sired_EPY == TRUE]
 
 
 
