@@ -156,6 +156,9 @@ dp[, N_pairwise_interactions_daily_per := N_pairwise_interactions_daily / N_pair
 dp[, N_pairwise_interactions_daily_per_50 := any(N_pairwise_interactions_daily_per > 50), by = .(year_, pairID, nestID)]
 dp[, N_pairwise_interactions_daily_per_90 := any(N_pairwise_interactions_daily_per > 90), by = .(year_, pairID, nestID)]
 
+# non interactions
+dp[, N_pairwise_no_interactions_daily := N_pairwise_positions_daily - N_pairwise_interactions_daily]
+
 # number of nest attendance and percentage
 dps = dp[!is.na(nestID)]
 dps[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
@@ -165,8 +168,15 @@ dps[at_nest == TRUE, N_pairwise_positions_daily_at_nest := .N, by = .(year_, pai
 dps[, N_pairwise_positions_daily_at_nest := mean(N_pairwise_positions_daily_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 dps[, N_pairwise_positions_daily_at_nest_per := N_pairwise_positions_daily_at_nest / N_pairwise_positions_daily * 100]
 
+# no interaction and at nest? 
+dps[, no_interaction_at_nest := interaction == FALSE & at_nest == TRUE]
+dps[no_interaction_at_nest == TRUE, N_no_interaction_at_nest := .N, by = .(year_, pairID, nestID, date_)]
+dps[, N_no_interaction_at_nest := mean(N_no_interaction_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[, percent_at_nest_when_no_interaction := N_no_interaction_at_nest / N_pairwise_no_interactions_daily * 100]
+
 # merge back with data
-dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest, N_pairwise_positions_daily_at_nest_per)], 
+dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest, N_pairwise_positions_daily_at_nest_per, 
+                       N_no_interaction_at_nest, percent_at_nest_when_no_interaction)], 
            by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
 
 # longest bout together
@@ -469,18 +479,49 @@ ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
 du[m_sired_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Look at variation in connection to males at nest
+#--------------------------------------------------------------------------------------------------------------
 
 
 
+ggplot(data = dud[breeding_pair == TRUE]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per, 
+                   group = interaction(datetime_rel_initiation0)), varwidth = TRUE) +
+  
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per)) +
+  
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per)) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  scale_y_continuous(limits = c(-10, 110)) +
+  theme_classic(base_size = 12)
 
 
+ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
+  geom_point(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per)) +
+  geom_smooth(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per), method = 'lm') +
+  theme_classic(base_size = 12)
+
+ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
+  geom_point(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per, 
+                 color = as.factor(datetime_rel_initiation0))) +
+  geom_smooth(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per, 
+                  color = as.factor(datetime_rel_initiation0)), method = 'lm') +
+  guides(color = guide_legend('Initiation std')) +
+  theme_classic(base_size = 12)
 
 
-
-
-
-
-
+# When the male is not with the female is it at the nest?
+ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
+  geom_boxplot(aes(datetime_rel_initiation0, percent_at_nest_when_no_interaction, 
+                 color = as.factor(datetime_rel_initiation0))) +
+  geom_smooth(aes(datetime_rel_initiation0, percent_at_nest_when_no_interaction, 
+                  color = as.factor(datetime_rel_initiation0)), method = 'lm') +
+  guides(color = guide_legend('Initiation std')) +
+  theme_classic(base_size = 12)
 
 
 
