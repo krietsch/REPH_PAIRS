@@ -254,6 +254,9 @@ ggplot(data = di) +
 
 p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
 
 # same for non-breeders
 p1 = 
@@ -279,6 +282,8 @@ p2 =
 
 p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_non_breeders.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
 
 # relative to clutch initiation date
 p1 = 
@@ -295,7 +300,7 @@ p1 =
 
 p2 = 
   ggplot(data = di) +
-  geom_violin(aes(datetime_rel_initiation, as.character(year_), color = as.character(year_), fill = as.character(year_)), 
+  geom_violin(aes(initiation_rel, as.character(year_), color = as.character(year_), fill = as.character(year_)), 
               show.legend = FALSE, alpha = 0.5) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3')) +
   scale_fill_manual(values = c('darkorange', 'dodgerblue3')) +
@@ -305,6 +310,7 @@ p2 =
 
 p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_rel.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 # early, peak or late breeders
 ggplot(data = dud[breeding_pair == TRUE & !is.na(datetime_rel_initiation0) & !is.na(initiation_type)]) +
@@ -317,6 +323,9 @@ ggplot(data = dud[breeding_pair == TRUE & !is.na(datetime_rel_initiation0) & !is
   #           position = position_dodge(width = 0.9), vjust = 1, size = 2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
   theme_classic(base_size = 12)
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_initiation_type.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Null model for interactions
@@ -378,6 +387,8 @@ ggplot(data = dud0) +
   scale_y_continuous(limits = c(0, 110)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_all.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
 
 dud0[, .N, by = .(datetime_rel_initiation0_type, datetime_rel_initiation0)]
 
@@ -407,7 +418,7 @@ ggplot(data = dud0) +
   scale_y_continuous(limits = c(0, 110)) +
   theme_classic(base_size = 12)
 
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Look at variation in connection to EPP
@@ -429,6 +440,13 @@ ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
   scale_y_continuous(limits = c(0, 110)) +
   theme_classic(base_size = 12)
 
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_female_with_EPY.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+
+du[any_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
+
 # Epp sired by male
 dud[is.na(m_sired_EPY), m_sired_EPY := FALSE]
 
@@ -445,11 +463,14 @@ ggplot(data = dud[same_sex == FALSE & !is.na(datetime_rel_initiation0)]) +
   scale_y_continuous(limits = c(0, 110)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_with_EPY.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+du[m_sired_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
 
 
 
 
-du[m_sired_EPY == TRUE]
 
 
 
