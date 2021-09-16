@@ -125,8 +125,8 @@ dp = unique(dp)
 dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 # early and late clutches?
-dp[initiation_rel < -3, initiation_type := 'early']
-dp[initiation_rel > 3, initiation_type := 'late']
+dp[initiation_rel < -2, initiation_type := 'early']
+dp[initiation_rel > 2, initiation_type := 'late']
 dp[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
 
 # datetime relative to nest initiation date
@@ -206,50 +206,95 @@ dss = dp[same_sex == TRUE & ID1 > ID2]
 
 dps = rbind(dsm, dss)
 
-# # Males interacting with other females
-# dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID1_other_interactions = .N), 
-#          by = .(datetime_1, ID1, nestID)]
-# 
-# dps = merge(dps, dpi[, .(datetime_1, ID1, nestID, N_ID1_other_interactions)], by = c('datetime_1', 'ID1', 'nestID'), all.x = TRUE)
-# dps[is.na(N_ID1_other_interactions), N_ID1_other_interactions := 0]
-# 
-# 
-# ggplot(data = dud) +
-#   geom_point(aes(datetime_1, N_ID1_other_interactions))
-# 
-# dud[nestID == 'R320_19']$N_ID1_other_interactions
-# dud[ID1 == 270170938 ]$N_ID1_other_interactions_daily
-# 
-# 
-# dps[!is.na(N_ID1_other_interactions) & breeding_pair == TRUE]
-# 
-# # how many per day? and how many while not interacting with partner
-# dps[, N_ID1_other_interactions_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
-# dps[interaction == FALSE & breeding_pair == FALSE, 
-#    N_ID1_other_interactions_not_with_partner_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
-# dps[, N_ID1_other_interactions_not_with_partner_daily := mean(N_ID1_other_interactions_not_with_partner_daily, na.rm = TRUE), by = .(year_, ID1, nestID, date_)]
-# dps[, N_ID1_other_interactions_not_with_partner_daily_per := N_ID1_other_interactions_not_with_partner_daily / N_ID1_other_interactions_daily * 100]
-# 
-# 
-# dps[, .(ID1, N_ID1_other_interactions, N_ID1_other_interactions_daily, N_ID1_other_interactions_not_with_partner_daily, N_ID1_other_interactions_not_with_partner_daily_per)]
-# 
-# 
-# dps[N_ID1_other_interactions_daily != 0 & !is.na(N_ID1_other_interactions_daily) & breeding_pair == TRUE]$N_ID1_other_interactions_daily
-# 
-# 
-# 
-# # Females interacting with other females
-# dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID2_other_interactions = .N), 
-#           by = .(datetime_2, ID2, nestID)]
-# 
-# dps = merge(dps, dpi[, .(datetime_2, ID2, nestID, N_ID2_other_interactions)], by = c('datetime_2', 'ID2', 'nestID'), all.x = TRUE)
-# dps[is.na(N_ID2_other_interactions), N_ID2_other_interactions := 0]
-# 
-# # how many per day? and how many while not interacting with partner
-# dps[, N_ID2_other_interactions_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
-# dps[interaction == FALSE & breeding_pair == FALSE, 
-#    N_ID2_other_interactions_not_with_partner_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
-# dps[, N_ID2_other_interactions_not_with_partner_daily_per := N_ID2_other_interactions_not_with_partner_daily / N_ID2_other_interactions_daily * 100]
+# assign all datetimes in which the males was interacting with the breeding partner
+dpib = dps[interaction == TRUE & breeding_pair == TRUE]
+dpib = dpib[, .(ID1, datetime_1, interaction_with_partner = TRUE)]
+dpib = unique(dpib)
+
+# merge with data
+dps = merge(dps, dpib, by = c('ID1', 'datetime_1'), all.x = TRUE)
+dps[is.na(interaction_with_partner), interaction_with_partner := FALSE]
+
+# Males interacting with other females
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE]
+dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
+
+dpia = dpi[, .(N_ID1_other_interactions_daily = .N), by = .(ID1, date_)]
+
+# Males interacting with other females while not with breeding partner
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == FALSE]
+dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
+
+dpibn = dpi[, .(N_ID1_other_interactions_daily_without_partner = .N), by = .(ID1, date_)]
+
+# Males interacting with other females while with breeding partner
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == TRUE]
+dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
+
+dpiby = dpi[, .(N_ID1_other_interactions_daily_without_partner = .N), by = .(ID1, date_)]
+
+
+
+
+
+
+
+ggplot(data = dpi) +
+  geom_density(aes(N_ID1_other_interactions_daily))
+
+
+dpis = dpi[, .(N_ID1_other_interactions_daily_sum = sum(N_ID1_other_interactions_daily)), by = date_]
+
+ggplot(data = dpis) +
+  geom_line(aes(as.POSIXct(date_), N_ID1_other_interactions_daily_sum)) +
+  scale_x_datetime()
+
+
+N_ID1_other_interactions
+
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID1_other_interactions = .N),
+         by = .(datetime_1, ID1, nestID)]
+
+dps = merge(dps, dpi[, .(datetime_1, ID1, nestID, N_ID1_other_interactions)], by = c('datetime_1', 'ID1', 'nestID'), all.x = TRUE)
+dps[is.na(N_ID1_other_interactions), N_ID1_other_interactions := 0]
+
+
+ggplot(data = dud) +
+  geom_point(aes(datetime_1, N_ID1_other_interactions))
+
+dud[nestID == 'R320_19']$N_ID1_other_interactions
+dud[ID1 == 270170938 ]$N_ID1_other_interactions_daily
+
+
+dps[!is.na(N_ID1_other_interactions) & breeding_pair == TRUE]
+
+# how many per day? and how many while not interacting with partner
+dps[, N_ID1_other_interactions_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[interaction == FALSE & breeding_pair == FALSE,
+   N_ID1_other_interactions_not_with_partner_daily := sum(N_ID1_other_interactions, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[, N_ID1_other_interactions_not_with_partner_daily := mean(N_ID1_other_interactions_not_with_partner_daily, na.rm = TRUE), by = .(year_, ID1, nestID, date_)]
+dps[, N_ID1_other_interactions_not_with_partner_daily_per := N_ID1_other_interactions_not_with_partner_daily / N_ID1_other_interactions_daily * 100]
+
+
+dps[, .(ID1, N_ID1_other_interactions, N_ID1_other_interactions_daily, N_ID1_other_interactions_not_with_partner_daily, N_ID1_other_interactions_not_with_partner_daily_per)]
+
+
+dps[N_ID1_other_interactions_daily != 0 & !is.na(N_ID1_other_interactions_daily) & breeding_pair == TRUE]$N_ID1_other_interactions_daily
+
+
+
+# Females interacting with other females
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE, .(N_ID2_other_interactions = .N),
+          by = .(datetime_2, ID2, nestID)]
+
+dps = merge(dps, dpi[, .(datetime_2, ID2, nestID, N_ID2_other_interactions)], by = c('datetime_2', 'ID2', 'nestID'), all.x = TRUE)
+dps[is.na(N_ID2_other_interactions), N_ID2_other_interactions := 0]
+
+# how many per day? and how many while not interacting with partner
+dps[, N_ID2_other_interactions_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
+dps[interaction == FALSE & breeding_pair == FALSE,
+   N_ID2_other_interactions_not_with_partner_daily := sum(N_ID2_other_interactions, na.rm = TRUE), by = .(year_, ID2, nestID, date_)]
+dps[, N_ID2_other_interactions_not_with_partner_daily_per := N_ID2_other_interactions_not_with_partner_daily / N_ID2_other_interactions_daily * 100]
 
 # round to days
 dps[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
@@ -381,6 +426,7 @@ ggplot(data = dud[breeding_pair == TRUE & !is.na(datetime_rel_initiation0) & !is
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_initiation_type.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
+du[, .N, by = initiation_type]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Null model for interactions
