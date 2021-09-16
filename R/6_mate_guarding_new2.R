@@ -249,6 +249,41 @@ dps = merge(dps, dpia[, .(date_, ID1, N_ID1_other_interactions_daily,
                           N_ID1_other_interactions_daily_with_partner, N_ID1_other_interactions_daily_with_partner_per)], 
             by = c('date_', 'ID1'), all.x = TRUE)
 
+# females interacting with other females
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE]
+dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
+
+dpia = dpi[, .(N_ID2_other_interactions_daily = .N), by = .(ID2, date_)]
+
+# females interacting with other females while not with breeding partner
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == FALSE]
+dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
+
+dpibn = dpi[, .(N_ID2_other_interactions_daily_without_partner = .N), by = .(ID2, date_)]
+
+# females interacting with other females while with breeding partner
+dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == TRUE]
+dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
+
+dpiby = dpi[, .(N_ID2_other_interactions_daily_with_partner = .N), by = .(ID2, date_)]
+
+# merge data
+dpia = merge(dpia, dpibn, by = c('ID2', 'date_'), all.x = TRUE)
+dpia = merge(dpia, dpiby, by = c('ID2', 'date_'), all.x = TRUE)
+dpia[is.na(N_ID2_other_interactions_daily_without_partner), N_ID2_other_interactions_daily_without_partner := 0]
+dpia[is.na(N_ID2_other_interactions_daily_with_partner), N_ID2_other_interactions_daily_with_partner := 0]
+
+# percentage of daily interactions with and without partner
+dpia[, N_ID2_other_interactions_daily_without_partner_per := N_ID2_other_interactions_daily_without_partner / N_ID2_other_interactions_daily * 200]
+dpia[, N_ID2_other_interactions_daily_with_partner_per := N_ID2_other_interactions_daily_with_partner / N_ID2_other_interactions_daily * 200]
+
+# merge back with dps
+dps = merge(dps, dpia[, .(date_, ID2, N_ID2_other_interactions_daily, 
+                          N_ID2_other_interactions_daily_without_partner, N_ID2_other_interactions_daily_without_partner_per, 
+                          N_ID2_other_interactions_daily_with_partner, N_ID2_other_interactions_daily_with_partner_per)], 
+            by = c('date_', 'ID2'), all.x = TRUE)
+
+
 # round to days
 dps[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
 dp[, datetime_rel_initiation0 := round(datetime_rel_initiation, 0)]
@@ -582,7 +617,7 @@ ggplot(data = dps[breeding_pair == TRUE]) +
 
 
 
-ggplot(data = dud) +
+ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner_per, 
                    group = datetime_rel_initiation0)) +
   geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner_per)) +
@@ -596,7 +631,7 @@ ggplot(data = dud) +
 
 
 ggplot(data = dud[breeding_pair == TRUE]) +
-  geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner, 
+  geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, 
                    group = datetime_rel_initiation0)) +
   geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner)) +
   geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner), color = 'black') +
@@ -607,6 +642,26 @@ ggplot(data = dud[breeding_pair == TRUE]) +
   scale_x_continuous(limits = c(-15, 15)) +
   # scale_y_continuous(limits = c(-10, 110)) +
   theme_classic(base_size = 12)
+
+
+
+ggplot(data = dud[breeding_pair == TRUE]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, 
+                   group = datetime_rel_initiation0)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner), color = 'black') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily), color = 'red') +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  # scale_y_continuous(limits = c(-10, 110)) +
+  theme_classic(base_size = 12)
+
+
+
+
+
 
 
 duds = dud[breeding_pair == TRUE, .(N_ID1_other_interactions_daily = sum(N_ID1_other_interactions_daily, na.rm = TRUE), 
@@ -630,17 +685,25 @@ ggplot(data = duds) +
 
 
 
+duds = dud[breeding_pair == TRUE, .(N_ID2_other_interactions_daily = sum(N_ID2_other_interactions_daily, na.rm = TRUE), 
+                                    N_ID2_other_interactions_daily_with_partner = sum(N_ID2_other_interactions_daily_with_partner, na.rm = TRUE),
+                                    N_ID2_other_interactions_daily_without_partner = sum(N_ID2_other_interactions_daily_without_partner, na.rm = TRUE)),
+           by = datetime_rel_initiation0]
+
+
+ggplot(data = duds) +
+  geom_bar(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily), stat = 'identity', fill = 'grey80') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner), color = 'black') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily), color = 'red') +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  # scale_y_continuous(limits = c(-10, 110)) +
+  theme_classic(base_size = 12)
 
 
 
 
-dud[!is.na(nestID) & !is.na(N_ID1_other_interactions_not_with_partner_daily_per), .(datetime_rel_initiation0, N_ID1_other_interactions_not_with_partner_daily_per)]
 
-
-N_ID1_other_interactions
-
-
-dp[ID1 == 270170049 & datetime_1 == as.POSIXct('2018-06-14 14:09:06', tz = 'UTC') & same_sex == FALSE & interaction == TRUE]
-
-
-N_ID1_other_interactions_not_with_partner_daily_per
