@@ -622,16 +622,19 @@ duds = dud[breeding_pair == TRUE, .(N_ID1_other_interactions_daily = sum(N_ID1_o
 
 ggplot(data = duds) +
   geom_bar(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily), stat = 'identity', fill = 'grey90') +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, color = 'all')) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner, color = 'with partner')) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner, color = 'without partner')) +
+  geom_point(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner, color = 'with partner')) +
+  geom_point(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner, color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, color = 'all'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner, color = 'with partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner, color = 'without partner'), se = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = colors, name = 'Type of interaction') +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Total number of extra-pair interactions (male)') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(-10, 210)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_total_males.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
 # females interacting with other females - population level
@@ -643,77 +646,81 @@ duds = dud[breeding_pair == TRUE, .(N_ID2_other_interactions_daily = sum(N_ID2_o
 
 ggplot(data = duds) +
   geom_bar(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily), stat = 'identity', fill = 'grey90') +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, color = 'all')) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner, color = 'with partner')) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner, color = 'without partner')) +
+  geom_point(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner, color = 'with partner')) +
+  geom_point(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner, color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, color = 'all'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner, color = 'with partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner, color = 'without partner'), se = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = colors, name = 'Type of interaction') +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Total number of extra-pair interactions (female)') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(-10, 210)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_total_females.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
-
+# male over season 
 ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, 
                    group = datetime_rel_initiation0)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner), color = 'black') +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily), color = 'red') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner, color = 'without partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner, color = 'with partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, color = 'all'), se = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_color_manual(values = colors, name = 'Type of interaction') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Number of extra-pair interactions (male)') +
   scale_x_continuous(limits = c(-15, 15)) +
-  # scale_y_continuous(limits = c(-10, 110)) +
+  scale_y_continuous(limits = c(0, 25)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_males.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
+# females over season
 ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, 
                    group = datetime_rel_initiation0)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner), color = 'black') +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily), color = 'red') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner, color = 'without partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner, color = 'with partner'), se = FALSE) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, color = 'all'), se = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_color_manual(values = colors, name = 'Type of interaction') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Number of extra-pair interactions (female)') +
   scale_x_continuous(limits = c(-15, 15)) +
-  # scale_y_continuous(limits = c(-10, 110)) +
+  scale_y_continuous(limits = c(0, 25)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_females.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
 
-
-
-
-
-
-
+# males: proportion of interactions with or without partner 
+colors = c('with partner' = 'dodgerblue3', 'without partner' = 'firebrick3')
 
 ggplot(data = dud[breeding_pair == TRUE]) +
-  geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily*10, 
-                   group = datetime_rel_initiation0)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner_per)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner_per), color = 'black') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_without_partner_per, color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily_with_partner_per, color = 'with partner')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
-  # xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_color_manual(values = colors, name = 'Type of interaction') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Proportion of extra-pair interactions (male)') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(-10, 110)) +
   theme_classic(base_size = 12)
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_males_prop.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
 
+
+# females: proportion of interactions with or without partner 
 ggplot(data = dud[breeding_pair == TRUE]) +
-  geom_boxplot(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily*10, 
-                   group = datetime_rel_initiation0)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner_per)) +
-  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner_per), color = 'black') +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner_per, color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner_per, color = 'with partner')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
-  # xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  scale_color_manual(values = colors, name = 'Type of interaction') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Proportion of extra-pair interactions (female)') +
   scale_x_continuous(limits = c(-15, 15)) +
   scale_y_continuous(limits = c(-10, 110)) +
   theme_classic(base_size = 12)
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_females_prop.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
