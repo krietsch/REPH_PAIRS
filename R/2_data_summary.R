@@ -47,8 +47,27 @@ dr = dr[year_ > 2017]
 DBI::dbDisconnect(con)
 
 #--------------------------------------------------------------------------------------------------------------
+#' # Prepare data
+#--------------------------------------------------------------------------------------------------------------
+
+# change projection
+ds = dc[is.na(lon)] # seperate data without position
+dc = dc[!is.na(lon)]
+st_transform_DT(dc)
+
+point_over_poly_DT(dc, poly = study_site, buffer = 60) # buffer including birds followed flying off plot
+setnames(dc, 'poly_overlap', 'study_site')
+
+# merge with data without position
+ds[, study_site := FALSE]
+dc = rbind(dc, ds)
+
+#--------------------------------------------------------------------------------------------------------------
 #' # Data available
 #--------------------------------------------------------------------------------------------------------------
+
+#  unique ID per year
+dc[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
 
 # Number of tags attached on REPH
 dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
@@ -56,9 +75,14 @@ dc[!is.na(gps_tag) & year_ == 2018]$gps_tag %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019]$gps_tag %>% unique %>% length
 
 # Number of REPH with tags
-dc[!is.na(gps_tag)]$ID %>% unique %>% length
+dc[!is.na(gps_tag)]$ID_year %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique %>% length
+
+dc[!is.na(gps_tag) & study_site == TRUE]$ID_year %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2018 & study_site == TRUE]$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2019 & study_site == TRUE]$ID %>% unique %>% length
+
 
 # ID's tagged in both years
 ID_tagged_18 = dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique
