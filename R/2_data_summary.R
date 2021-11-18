@@ -40,6 +40,7 @@ d[, datetime_ := anytime(datetime_)]
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dc = dbq(con, 'select * FROM CAPTURES')
+dc = dc[year_ > 2017]
 dn = dbq(con, 'select * FROM NESTS')
 dr = dbq(con, 'select * FROM RESIGHTINGS')
 dr[, year_ := year(datetime_)]
@@ -62,12 +63,26 @@ setnames(dc, 'poly_overlap', 'study_site')
 ds[, study_site := FALSE]
 dc = rbind(dc, ds)
 
+# exclude chick
+dc = dc[!is.na(sex_observed)]
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Data available
 #--------------------------------------------------------------------------------------------------------------
 
 #  unique ID per year
 dc[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
+
+# Assign first capture
+dc[, caught_time := as.POSIXct(caught_time)]
+setorder(dc, year_, caught_time)
+dc[, capture_id := seq_len(.N), by = ID]
+dc[, .N, capture_id]
+
+# Banded each year in intensive study site
+ds = dc[study_site == TRUE & capture_id == 1]
+ds[, .N, .(year_)]
+
 
 # Number of tags attached on REPH
 dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
@@ -80,9 +95,11 @@ dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique %>% length
 
 dc[!is.na(gps_tag) & study_site == TRUE]$ID_year %>% unique %>% length
+dc[!is.na(gps_tag) & study_site == TRUE & capture_id == 1]$ID_year %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018 & study_site == TRUE]$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019 & study_site == TRUE]$ID %>% unique %>% length
 
+dc[!is.na(gps_tag) & year_ == 2018 & study_site == FALSE]$ID 
 
 # ID's tagged in both years
 ID_tagged_18 = dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique
