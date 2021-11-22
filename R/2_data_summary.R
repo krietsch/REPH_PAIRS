@@ -83,7 +83,6 @@ dc[, .N, capture_id]
 ds = dc[study_site == TRUE & capture_id == 1]
 ds[, .N, .(year_)]
 
-
 # Number of tags attached on REPH
 dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018]$gps_tag %>% unique %>% length
@@ -93,6 +92,13 @@ dc[!is.na(gps_tag) & year_ == 2019]$gps_tag %>% unique %>% length
 dc[!is.na(gps_tag)]$ID_year %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique %>% length
+
+# sex
+dc[!is.na(gps_tag) & year_ == 2018 & sex_observed == 'M']$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2018 & sex_observed == 'F']$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2019 & sex_observed == 'M']$ID %>% unique %>% length
+dc[!is.na(gps_tag) & year_ == 2019 & sex_observed == 'F']$ID %>% unique %>% length
+
 
 dc[!is.na(gps_tag) & study_site == TRUE]$ID_year %>% unique %>% length
 dc[!is.na(gps_tag) & study_site == TRUE & capture_id == 1]$ID_year %>% unique %>% length
