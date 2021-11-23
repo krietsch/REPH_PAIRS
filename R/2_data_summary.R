@@ -21,7 +21,7 @@
 # Summary by ID
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr'),
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'sf', 'foreach', 'auksRuak', 'knitr', 'patchwork'),
         require, character.only = TRUE)
 
 # Functions
@@ -41,7 +41,7 @@ d[, datetime_ := anytime(datetime_)]
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dc = dbq(con, 'select * FROM CAPTURES')
 dc = dc[year_ > 2017]
-dn = dbq(con, 'select * FROM NESTS')
+dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
 dr = dbq(con, 'select * FROM RESIGHTINGS')
 dr[, year_ := year(datetime_)]
 dr = dr[year_ > 2017]
@@ -66,6 +66,9 @@ dc = rbind(dc, ds)
 # exclude chick
 dc = dc[!is.na(sex_observed)]
 
+# nest data
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Data available
 #--------------------------------------------------------------------------------------------------------------
@@ -73,44 +76,152 @@ dc = dc[!is.na(sex_observed)]
 #  unique ID per year
 dc[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
 
-# Assign first capture
+# assign first capture
 dc[, caught_time := as.POSIXct(caught_time)]
 setorder(dc, year_, caught_time)
 dc[, capture_id := seq_len(.N), by = ID]
 dc[, .N, capture_id]
 
-# Banded each year in intensive study site
+# banded each year in intensive study site
 ds = dc[study_site == TRUE & capture_id == 1]
 ds[, .N, .(year_)]
 
-# Number of tags attached on REPH
-dc[!is.na(gps_tag)]$gps_tag %>% unique %>% length
-dc[!is.na(gps_tag) & year_ == 2018]$gps_tag %>% unique %>% length
-dc[!is.na(gps_tag) & year_ == 2019]$gps_tag %>% unique %>% length
-
-# Number of REPH with tags
+# number of REPH with tags
 dc[!is.na(gps_tag)]$ID_year %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique %>% length
 
-# sex
+# split in sex 
 dc[!is.na(gps_tag) & year_ == 2018 & sex_observed == 'M']$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2018 & sex_observed == 'F']$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019 & sex_observed == 'M']$ID %>% unique %>% length
 dc[!is.na(gps_tag) & year_ == 2019 & sex_observed == 'F']$ID %>% unique %>% length
 
-
-dc[!is.na(gps_tag) & study_site == TRUE]$ID_year %>% unique %>% length
-dc[!is.na(gps_tag) & study_site == TRUE & capture_id == 1]$ID_year %>% unique %>% length
-dc[!is.na(gps_tag) & year_ == 2018 & study_site == TRUE]$ID %>% unique %>% length
-dc[!is.na(gps_tag) & year_ == 2019 & study_site == TRUE]$ID %>% unique %>% length
-
-dc[!is.na(gps_tag) & year_ == 2018 & study_site == FALSE]$ID 
-
 # ID's tagged in both years
 ID_tagged_18 = dc[!is.na(gps_tag) & year_ == 2018]$ID %>% unique
 ID_tagged_19 = dc[!is.na(gps_tag) & year_ == 2019]$ID %>% unique
-ID_tagged_19[ID_tagged_19 %in% ID_tagged_18]
+tagged_both_years = ID_tagged_19[ID_tagged_19 %in% ID_tagged_18]
+
+dc[ID %in% tagged_both_years, .(ID, sex_observed)] %>% unique(., by = 'ID')
+
+# timing of tag attachment
+setorder(dc, caught_time)
+ds = dc[!is.na(gps_tag)] %>% unique(., by = c('ID', 'gps_tag'))
+
+# first tag attachment (some ID's got a tag reglued)
+ds[, date_ := as.Date(caught_time)]
+ds[, date_y := as.Date(paste0('2021-', substr(date_, 6, 10)))]
+ds[, first_ID := min(date_), by = ID_year]
+ds = ds[date_ == first_ID]
+
+# population wide timing 
+ds[, first  := min(date_), by = year_]
+ds[, last   := max(date_), by = year_]
+ds[, median := median(date_), by = year_]
+
+dss = ds[, .(N = .N, 
+             first  = min(first),
+             last   = max(last),
+             median = min(median)), year_]
+
+
+# median clutch initiation
+dn[, initiation := as.POSIXct(initiation)]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S')]
+
+# Subset data from intensive study site with initiation date
+ds = dn[data_type == 'study_site' & !is.na(initiation_y)]
+ds[, initiation_date := as.Date(initiation)]
+
+dss = ds[, .(median = median(initiation_y), .N), by = year_]
+
+# plot data
+# p1 = 
+#   ggplot(data = ds[year_ == 2018]) +
+#   geom_bar(aes(date_), fill = 'grey80', color = 'grey50', size = 0.2) +
+#   geom_text(data = dss, aes(first, Inf), label = paste0('N = ', dss[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
+#   scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
+#   scale_x_date(limits = c(dss[year_ == 2018]$first, dss[year_ == 2018]$last), date_breaks = "weeks", date_labels = "%d %b") +
+#   xlab('Date') + ylab('Tags') +
+#   theme_classic(base_size = 11) +
+#   theme(axis.title.x = element_blank(), axis.text.x=element_blank())
+# 
+# p2 = 
+#   ggplot(data = ds[year_ == 2019]) +
+#   geom_bar(aes(date_), fill = 'grey80', color = 'grey50', size = 0.2) +
+#   geom_text(data = dss, aes(first, Inf), label = paste0('N = ', dss[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
+#   scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
+#   scale_x_date(limits = c(dss[year_ == 2019]$first, dss[year_ == 2019]$last), date_breaks = "weeks", date_labels = "%d %b") +
+#   xlab('Date') + ylab('Tags') +
+#   theme_classic(base_size = 11) +
+#   theme(axis.title.x = element_blank(), axis.text.x=element_blank(), axis.title.y = element_blank())
+# 
+# p1 + p2 + plot_layout(nrow = 2)
+
+# tags that fell off
+
+#  unique ID per tag
+dc[, ID_tagID := paste0(ID, '_', gps_tag)]
+dc[, tag_attached := min(caught_time), by = ID_tagID]
+
+ds = dc[!is.na(gps_tag) & tag_attached == caught_time]
+
+# last gps data
+d[, ID_tagID := paste0(ID, '_', tagID)]
+d[, last_data := max(datetime_), by = ID_tagID]
+du = unique(d, by = 'ID_tagID')
+
+# last observation
+dr[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
+dr[, last_observation := max(datetime_), by = ID_year]
+dru = unique(dr, by = 'ID_year')
+
+# merge everything
+ds = merge(ds, du[, .(ID_tagID, last_data)], by = 'ID_tagID', all.x = TRUE)
+ds = merge(ds, dru[, .(ID_year, last_observation)], by = 'ID_year', all.x = TRUE)
+
+# time between last data and last observation
+ds[, diff_data_obs := difftime(last_observation, last_data, units = 'days') %>% as.numeric, by = ID_tagID]
+
+# time between capture and last data
+ds[, diff_caught_data := difftime(last_data, caught_time, units = 'days') %>% as.numeric, by = ID_tagID]
+
+# first capture by tag
+ds[, first_attached := min(caught_time), by = gps_tag]
+
+# subset found tags
+tags_found = c(4, 8, 11, 19, 27, 28, 33, 34, 65, 77, 79)
+
+dss = ds[gps_tag %in% tags_found & first_attached == caught_time, 
+         .(ID, gps_tag, caught_time, diff_data_obs, diff_caught_data)]
+
+# summary
+dss[, mean(diff_caught_data)]
+dss[, min(diff_caught_data)]
+dss[, max(diff_caught_data)]
+
+
+ds = dc[!is.na(gps_tag), .(gps_tag, ID)]
+ds = ds[, .N, by = gps_tag]
+
+setorder(ds, N)
+
+setorder(ds, diff_data_obs)
+
+ds[diff_data_obs < 0, .(ID, ID_tagID, diff_data_obs)]
+
+dss = dc[gps_tag %in% ds[N > 1]$gps_tag, .(ID, gps_tag, caught_time)]
+setorder(dss, gps_tag)
+dss
+
+
+
+
+
+
+
+
+
 
 # Tags that never send data (while on bird)
 d[, ID_tagID := paste0(ID, '_', tagID)]
@@ -127,40 +238,7 @@ ds = dc[ID_tagID %in% d_no_data]
 ds = ds[, .(year_, tagID = gps_tag, ID, datetime_ = anytime(released_time), lat, lon, ID_tagID)]
 d = rbind(d, ds, fill = TRUE, use.names = TRUE)
 
-# timing of tag attachment
-setorder(dc, caught_time)
-ds = dc[!is.na(gps_tag)] %>% unique(., by = c('ID', 'gps_tag'))
-ds[, date_ := as.Date(caught_time)]
-ds[, date_y := as.Date(paste0('2021-', substr(date_, 6, 10)))]
 
-dss = ds[, .N, year_]
-
-p1 = 
-ggplot(data = ds[year_ == 2018]) +
-  geom_bar(aes(date_y), fill = 'grey80', color = 'grey50', size = 0.2) +
-  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2018, N]), hjust = 0.2, size = 3, vjust = 1) +
-  scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
-  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
-  xlab('Date') + ylab('Tags') +
-  theme_classic(base_size = 11) +
-  theme(axis.title.x = element_blank(), axis.text.x=element_blank())
-
-p2 = 
-ggplot(data = ds[year_ == 2019]) +
-  geom_bar(aes(date_y), fill = 'grey80', color = 'grey50', size = 0.2) +
-  geom_text(aes(min_date, Inf), label = paste0('N = ', dss[year_ == 2019, N]), hjust = 0.2, size = 3, vjust = 1) +
-  scale_y_continuous(limits = c(0, 35), expand = c(0, 0), breaks = c(0, 15, 30)) +
-  scale_x_date(limits = c(min_date, max_date), date_breaks = "weeks", date_labels = "%d %b") +
-  xlab('Date') + ylab('Tags') +
-  theme_classic(base_size = 11) +
-  theme(axis.title.x = element_blank(), axis.text.x=element_blank(), axis.title.y = element_blank())
-
-
-
-
-ds[, .(first  = min(date_), 
-       last   = max(date_), 
-       median = median(date_)), by = year_]
 
 # data availabilty 
 d[, ID_year := paste0(ID, '_', year_)]
