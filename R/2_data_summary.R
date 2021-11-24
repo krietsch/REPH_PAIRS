@@ -66,11 +66,8 @@ dc = rbind(dc, ds)
 # exclude chick
 dc = dc[!is.na(sex_observed)]
 
-# nest data
-
-
 #--------------------------------------------------------------------------------------------------------------
-#' # Data available
+#' # Number of tags attached and timing
 #--------------------------------------------------------------------------------------------------------------
 
 #  unique ID per year
@@ -158,7 +155,9 @@ dss = ds[, .(median = median(initiation_y), .N), by = year_]
 # 
 # p1 + p2 + plot_layout(nrow = 2)
 
-# tags that fell off
+#--------------------------------------------------------------------------------------------------------------
+#' # Tags that fell off
+#--------------------------------------------------------------------------------------------------------------
 
 #  unique ID per tag
 dc[, ID_tagID := paste0(ID, '_', gps_tag)]
@@ -189,39 +188,45 @@ ds[, diff_caught_data := difftime(last_data, caught_time, units = 'days') %>% as
 # first capture by tag
 ds[, first_attached := min(caught_time), by = gps_tag]
 
-# subset found tags
-tags_found = c(4, 8, 11, 19, 27, 28, 33, 34, 65, 77, 79)
+# subset found tags of sure fallen
+tags_found = c(4, 5, 8, 11, 19, 27, 28, 33, 34, 65, 77, 79)
 
 dss = ds[gps_tag %in% tags_found & first_attached == caught_time, 
          .(ID, gps_tag, caught_time, diff_data_obs, diff_caught_data)]
 
 # summary
+dss %>% nrow
 dss[, mean(diff_caught_data)]
 dss[, min(diff_caught_data)]
 dss[, max(diff_caught_data)]
 
-
 ds = dc[!is.na(gps_tag), .(gps_tag, ID)]
 ds = ds[, .N, by = gps_tag]
-
-setorder(ds, N)
-
-setorder(ds, diff_data_obs)
-
-ds[diff_data_obs < 0, .(ID, ID_tagID, diff_data_obs)]
 
 dss = dc[gps_tag %in% ds[N > 1]$gps_tag, .(ID, gps_tag, caught_time)]
 setorder(dss, gps_tag)
 dss
 
+# how many ID's got a tag reglued?
+ds = unique(dc[!is.na(gps_tag)], by = 'ID_tagID')
 
+ds[, N := .N, by = ID_year]
+ds = ds[N > 1]
 
+setorder(ds, ID, caught_time)
+ds[, .(ID, gps_tag, caught_time)]
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Number of IDs we got data from and for how long
+#--------------------------------------------------------------------------------------------------------------
 
+#  unique ID per year
+d[, ID_year := paste0(ID, '_', substr(year_, 3,4 ))]
 
-
-
-
+# IDs with data
+unique(d, by = 'ID_year') %>% nrow
+unique(d[year_ == 2018], by = 'ID_year') %>% nrow
+unique(d[year_ == 2019], by = 'ID_year') %>% nrow
 
 # Tags that never send data (while on bird)
 d[, ID_tagID := paste0(ID, '_', tagID)]
@@ -240,7 +245,21 @@ d = rbind(d, ds, fill = TRUE, use.names = TRUE)
 
 
 
-# data availabilty 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# data availability 
 d[, ID_year := paste0(ID, '_', year_)]
 
 d[, first := min(datetime_), by = ID_year]
