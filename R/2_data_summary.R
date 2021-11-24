@@ -42,6 +42,7 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 dc = dbq(con, 'select * FROM CAPTURES')
 dc = dc[year_ > 2017]
 dn = read.table('./DATA/NESTS.txt', sep = '\t', header = TRUE) %>% data.table
+dn = dn[year_ > 2017]
 dr = dbq(con, 'select * FROM RESIGHTINGS')
 dr[, year_ := year(datetime_)]
 dr = dr[year_ > 2017]
@@ -243,25 +244,7 @@ ds = dc[ID_tagID %in% d_no_data]
 ds = ds[, .(year_, tagID = gps_tag, ID, datetime_ = anytime(released_time), lat, lon, ID_tagID)]
 d = rbind(d, ds, fill = TRUE, use.names = TRUE)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # data availability 
-d[, ID_year := paste0(ID, '_', year_)]
-
 d[, first := min(datetime_), by = ID_year]
 d[, last := max(datetime_), by = ID_year]
 d[, days_data := as.numeric(difftime(last, first, units = 'days'))]
@@ -272,11 +255,16 @@ ds = unique(d, by = 'ID_year')
 # merge with sex
 ds = merge(ds, unique(dc[, .(ID_tagID, sex = sex_observed)]), by = 'ID_tagID', all.x = TRUE)
 
-ds[year_ == 2018]$days_data %>% mean
-ds[year_ == 2019]$days_data %>% mean
+ds$days_data %>% median
+ds[year_ == 2018]$days_data %>% median
+ds[year_ == 2019]$days_data %>% median
 ds[year_ == 2018]$days_data %>% max
 ds[year_ == 2019]$days_data %>% max
 ds[year_ == 2019 & days_data > 27] %>% nrow
+
+ggplot(data = ds) +
+  geom_histogram(aes(x = days_data))
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Data until 
@@ -399,9 +387,8 @@ ggplot(data = dts, aes(x = day, y = survival, col = as.character(sex))) +
 #--------------------------------------------------------------------------------------------------------------
 
 # prepare data for merge
-dn = dn[year_ > 2017]
-dn[, maleID_year   := paste0(male_id, '_', year_)]
-dn[, femaleID_year := paste0(female_id, '_', year_)]
+dn[, maleID_year   := paste0(male_id, '_', substr(year_, 3,4 ))]
+dn[, femaleID_year := paste0(female_id, '_',substr(year_, 3,4 ))]
 dn[, initiation := as.POSIXct(initiation)]
 dn[, nest_state_date := as.POSIXct(nest_state_date)]
 
@@ -410,7 +397,7 @@ du[, first := as.POSIXct(first)]
 du[, last := as.POSIXct(last)]
 
 # merge nest's with GPS data
-ds = merge(dn[, .(year_, nest, male_id, maleID_year, female_id, femaleID_year, initiation, nest_state_date)], 
+ds = merge(dn[, .(year_, nestID, male_id, maleID_year, female_id, femaleID_year, initiation, nest_state_date)], 
            du[, .(ID_year, m_first = first, m_last = last, m_days_data = days_data)], by.x = 'maleID_year', by.y = 'ID_year', all.x = TRUE)
 
 ds = merge(ds, du[, .(ID_year, f_first = first, f_last = last, f_days_data = days_data)], by.x = 'femaleID_year', by.y = 'ID_year', all.x = TRUE)
@@ -458,7 +445,7 @@ ds[, .N, by = mf_initiation]
 ds[, .N, by = mf_initiation5]
 
 ds[male_N_clutch == 2]
-ds[female_N_clutch == 2, .(nest, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
+ds[female_N_clutch == 2, .(nestID, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Proportion of individuals seen/tagged in the study site 
