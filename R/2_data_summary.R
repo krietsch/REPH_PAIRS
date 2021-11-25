@@ -417,6 +417,12 @@ ds[, f_last := as.POSIXct(f_last)]
 ds[!is.na(m_first)] %>% nrow 
 ds[!is.na(f_first)] %>% nrow
 
+# by year
+ds[!is.na(m_first) & year_ == 2018] %>% nrow 
+ds[!is.na(f_first) & year_ == 2018] %>% nrow
+ds[!is.na(m_first) & year_ == 2019] %>% nrow 
+ds[!is.na(f_first) & year_ == 2019] %>% nrow
+
 # summary 
 ds[, m_before_initiation := ifelse(m_first < initiation, TRUE, FALSE)]
 ds[, f_before_initiation := ifelse(f_first < initiation, TRUE, FALSE)]

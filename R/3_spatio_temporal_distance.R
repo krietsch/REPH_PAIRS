@@ -112,7 +112,7 @@ dg = dg[!is.na(ID)]
 dp = merge(dp, dg[, .(ID1 = ID, sex1 = sex)], by = 'ID1', all.x = TRUE)
 dp = merge(dp, dg[, .(ID2 = ID, sex2 = sex)], by = 'ID2', all.x = TRUE)
 
-# set colorder
+# set colour order
 setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'time_btw', 'lat1', 'lon1', 'lat2', 'lon2', 
                   'distance_pair', 'gps_speed1', 'gps_speed2', 'altitude1', 'altitude2'))
 
