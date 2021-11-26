@@ -56,11 +56,16 @@ st_transform_DT(d)
 # merge actual location with all points
 d = merge(d, dl[, .(tagID, lat_wp = lat, lon_wp = lon)], by = 'tagID', all.x = TRUE)
 
+# summary
+d %>% nrow
+d[, min(datetime_)]
+d[, max(datetime_)]
+
 # calculate difference between WP and Nanotag
 d[, dist := sqrt(sum((c(lat, lon) - c(lat_wp, lon_wp))^2)) , by = 1:nrow(d)]
 
 # exclude some data from tag 94 that had many totally wrong positions
-d = d[dist < 1000]
+d = d[dist < 500]
 
 # median tag position
 d[, lat_m := median(lat), by = tagID]
