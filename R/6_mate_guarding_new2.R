@@ -115,11 +115,17 @@ di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>%
 #' # How many breeders with overlap?
 #--------------------------------------------------------------------------------------------------------------
 
-ds = dnID[!is.na(male_id) & !is.na(female_id) & year_ > 2017 & !is.na(overlap)] %>% 
+ds = dnID[!is.na(male_id) & !is.na(female_id) & year_ > 2017 & !is.na(overlap) & overlap > 0] %>% 
   unique(., by = c('male_id', 'female_id', 'nestID'))
 
 ds[, N := .N, by = .(male_id, female_id)]
 ds[N > 1]
+
+# number of pairs with data for both at the same time
+ds%>% unique(., by = c('male_id', 'female_id')) %>% nrow
+
+# by nests 
+ds%>% unique(., by = c('male_id', 'female_id', 'nestID')) %>% nrow
 
 # look at pairs with two clutches 
 ggplot(data = dp[ID1 == 270170620 & ID2 == 273145050]) +
