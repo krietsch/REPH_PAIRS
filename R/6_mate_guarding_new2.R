@@ -68,8 +68,8 @@ d[, end   := max(datetime_), by = ID]
 dID = unique(d, by = 'ID')
 
 # check if data overlap
-dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_id', all.x = TRUE)
-dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
+dn = merge(dn, dID[, .(year_, male_id = ID, start_m = start, end_m = end)], by = c('male_id', 'year_'), all.x = TRUE)
+dn = merge(dn, dID[, .(year_, female_id = ID, start_f = start, end_f = end)], by = c('female_id', 'year_'), all.x = TRUE)
 
 # subset nests with both IDs tagged
 dn[, both_tagged := !is.na(start_m) & !is.na(start_f), by = nestID]
@@ -87,7 +87,7 @@ dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, any_EPY, m_sired_EPY, 
-              lat_n = lat, lon_n = lon)]
+              lat_n = lat, lon_n = lon, overlap)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
@@ -112,14 +112,69 @@ di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
 di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 #--------------------------------------------------------------------------------------------------------------
+#' # How many breeders with overlap?
+#--------------------------------------------------------------------------------------------------------------
+
+ds = dnID[!is.na(male_id) & !is.na(female_id) & year_ > 2017 & !is.na(overlap)] %>% 
+  unique(., by = c('male_id', 'female_id', 'nestID'))
+
+ds[, N := .N, by = .(male_id, female_id)]
+ds[N > 1]
+
+# look at pairs with two clutches 
+ggplot(data = dp[ID1 == 270170620 & ID2 == 273145050]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-18 10:37:00')), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('Nest') +
+  theme_classic()
+
+
+ggplot(data = dp[ID1 == 270170938 & ID2 == 270170935]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-21 17:55:00')), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('Nest') +
+  theme_classic()
+
+
+ggplot(data = dp[ID1 == 273145126 & ID2 == 270170942]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-14 00:02:36')), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('Nest') +
+  theme_classic()
+
+
+ggplot(data = dp[ID1 == 273145139 & ID2 == 270170970]) +
+  geom_tile(aes(datetime_1, pairID, fill = interaction), width = 900, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = as.POSIXct('2019-06-16 15:33:59')), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date') + ylab('Nest') +
+  theme_classic()
+
+# decided to split based on date first clutch failed
+
+# delete column 
+dnID[, overlap := NULL]
+
+#--------------------------------------------------------------------------------------------------------------
 #' # Percentage of daily interactions
 #--------------------------------------------------------------------------------------------------------------
 
-# merge with nests
-dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
+# merge with first nest number
+dp = merge(dp, dnID[clutch_together == 1, .(male_id, female_id, year_, clutch_together)], 
+           by.x = c('ID1', 'ID2', 'year_'), by.y = c('male_id', 'female_id', 'year_'), all.x = TRUE)
 
-# unique data
-dp = unique(dp)
+# assign second clutches
+dp[ID1 == 270170620 & ID2 == 273145050 & datetime_1 > as.POSIXct('2019-06-18 10:37:00'), clutch_together := 2]
+dp[ID1 == 270170938 & ID2 == 270170935 & datetime_1 > as.POSIXct('2019-06-21 17:55:00'), clutch_together := 2]
+dp[ID1 == 273145126 & ID2 == 270170942 & datetime_1 > as.POSIXct('2019-06-14 00:02:36'), clutch_together := 2]
+dp[ID1 == 273145139 & ID2 == 270170970 & datetime_1 > as.POSIXct('2019-06-16 15:33:59'), clutch_together := 2]
+
+# merge with nests
+dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_', 'clutch_together'), 
+                     by.y = c('male_id', 'female_id', 'year_', 'clutch_together'), all.x = TRUE)
 
 # relative initiation date
 dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
