@@ -122,10 +122,12 @@ ds[, N := .N, by = .(male_id, female_id)]
 ds[N > 1]
 
 # number of pairs with data for both at the same time
-ds%>% unique(., by = c('male_id', 'female_id')) %>% nrow
+ds %>% unique(., by = c('male_id', 'female_id')) %>% nrow
+ds[year_ == 2018] %>% unique(., by = c('male_id', 'female_id')) %>% nrow
+ds[year_ == 2019] %>% unique(., by = c('male_id', 'female_id')) %>% nrow
 
 # by nests 
-ds%>% unique(., by = c('male_id', 'female_id', 'nestID')) %>% nrow
+ds %>% unique(., by = c('male_id', 'female_id', 'nestID')) %>% nrow
 
 # look at pairs with two clutches 
 ggplot(data = dp[ID1 == 270170620 & ID2 == 273145050]) +
