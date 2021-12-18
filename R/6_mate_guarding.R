@@ -6,7 +6,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'ggnewscale', 'doFuture', 'patchwork'), 
+          'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
         require, character.only = TRUE)
 
 # Functions
@@ -571,6 +571,98 @@ ggplot(data = dud0) +
   theme_classic(base_size = 12)
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+
+
+
+# statistics
+
+
+# individual level relative date-time: relative to pair initiation
+dps[, datetime_rel_pair := difftime(datetime_1, initiation) |> as.numeric() ]
+
+# MODEL 1: probability of interactions for breeding pairs
+x = dps[!is.na(initiation) &
+         datetime_rel_pair / 3600 / 24  <= 10 &   # subset to 10 days before nest initiated and 
+         datetime_rel_pair / 3600 / 24  >= -10   # 10 days after nest is initiated
+]
+
+x[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+x[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+
+
+fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = x,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm1)
+
+
+
+
+
+
+e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+
+
+dss = data.table(clutch_identity = c('single', 'first', 'second', 'third'),
+                 sample_size = c('138', '15', '15', '2'))
+
+
+
+dss = unique(dud[breeding_pair == TRUE], by = c('nestID', 'datetime_rel_initiation0'))
+dss = dss[, .N, by = datetime_rel_initiation0]
+dss
+
+
+
+
+ggplot(e, aes(y = fit, x = datetime_rel_pair / 3600 / 24)) +
+
+  geom_boxplot(data = dud[breeding_pair == TRUE], 
+               aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per/100, 
+               group = interaction(datetime_rel_initiation0))) +
+  
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(datetime_rel_initiation0, Inf, label = N), vjust = 1, size = 3) +
+  scale_x_continuous(limits = c(-10.5, 10.5)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme_classic(base_size = 12) +
+  ylab("Probability of interaction") +
+  xlab("Date [0 = nest initiation date]") +
+  ggtitle("Breeding pairs")
+
+
+
+
+
+ggplot(data = dud[breeding_pair == TRUE]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per/100, 
+                   group = interaction(datetime_rel_initiation0))) +
+  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per/100)) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  xlab('Date') + ylab('Percentage of positions together') +
+
+
+
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Look at variation in connection to EPP
