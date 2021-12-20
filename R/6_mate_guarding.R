@@ -231,15 +231,25 @@ dps[at_nest == TRUE, N_pairwise_positions_daily_at_nest := .N, by = .(year_, pai
 dps[, N_pairwise_positions_daily_at_nest := mean(N_pairwise_positions_daily_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 dps[, N_pairwise_positions_daily_at_nest_per := N_pairwise_positions_daily_at_nest / N_pairwise_positions_daily * 100]
 
+dps[at_nest == TRUE & interaction == TRUE, N_pairwise_positions_daily_at_nest_with_female := .N, by = .(year_, pairID, nestID, date_)]
+dps[, N_pairwise_positions_daily_at_nest_with_female := mean(N_pairwise_positions_daily_at_nest_with_female, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[, N_pairwise_positions_daily_at_nest_with_female_per := N_pairwise_positions_daily_at_nest_with_female / N_pairwise_positions_daily * 100]
+
 # no interaction and at nest? 
 dps[, no_interaction_at_nest := interaction == FALSE & at_nest == TRUE]
 dps[no_interaction_at_nest == TRUE, N_no_interaction_at_nest := .N, by = .(year_, pairID, nestID, date_)]
 dps[, N_no_interaction_at_nest := mean(N_no_interaction_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
 dps[, percent_at_nest_when_no_interaction := N_no_interaction_at_nest / N_pairwise_no_interactions_daily * 100]
 
+# interaction and at nest? 
+dps[, interaction_at_nest := interaction == TRUE & at_nest == TRUE]
+dps[interaction_at_nest == TRUE, N_interaction_at_nest := .N, by = .(year_, pairID, nestID, date_)]
+dps[, N_interaction_at_nest := mean(N_interaction_at_nest, na.rm = TRUE), by = .(year_, pairID, nestID, date_)]
+dps[, percent_at_nest_when_interaction := N_interaction_at_nest / N_pairwise_interactions_daily * 100]
+
 # merge back with data
 dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest, N_pairwise_positions_daily_at_nest_per, 
-                       N_no_interaction_at_nest, percent_at_nest_when_no_interaction)], 
+                       N_no_interaction_at_nest, N_pairwise_positions_daily_at_nest_with_female_per, percent_at_nest_when_no_interaction, percent_at_nest_when_interaction)], 
            by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
 
 # longest bout together
@@ -728,21 +738,81 @@ du[m_sired_EPY == TRUE, .(nestID, initiation_type, initiation_rel)]
 #' # Look at variation in connection to males at nest
 #--------------------------------------------------------------------------------------------------------------
 
-ggplot(data = dud[breeding_pair == TRUE]) +
-  geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per, 
-                   group = interaction(datetime_rel_initiation0)), varwidth = TRUE) +
+# males at nest
+ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
+  geom_boxplot(data = dud[breeding_pair == TRUE], 
+               aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per/100, 
+                   group = interaction(datetime_rel_initiation0))) +
   
-  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_per)) +
-  
-  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per), color = 'black') +
-  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Male sired EPY') +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  scale_x_continuous(limits = c(-15, 15)) +
-  scale_y_continuous(limits = c(-10, 110)) +
-  theme_classic(base_size = 12)
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24), size = 0.8, color = 'firebrick4') +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
+              fill = 'firebrick4', alpha = 0.2) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(datetime_rel_initiation0, Inf, label = N), vjust = 1, size = 3) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank()) +
+  ylab('Proportion / probability at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+
+d0a[, datetime_rel_initiation0_type := 'null_model']
+
+
+# at nest total and with female
+duds = dud[breeding_pair == TRUE]
+duds[, N_pairwise_positions_daily_at_nest_total_and_with_female_per := N_pairwise_positions_daily_at_nest_per]
+duds[, at_nest_type := 'at_nest']
+
+dudss = dud[breeding_pair == TRUE]
+dudss[, N_pairwise_positions_daily_at_nest_total_and_with_female_per := N_pairwise_positions_daily_at_nest_with_female_per]
+dudss[, at_nest_type := 'at_nest_with_female']
+
+dudn = rbind(duds, dudss)
+
+
+
+# males at nest with female
+ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
+  geom_boxplot(data = dudn, 
+               aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_total_and_with_female_per/100, 
+                   group = interaction(at_nest_type, datetime_rel_initiation0), color = at_nest_type),
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
+                     labels = c('Total', 'With female')) +
+  geom_smooth(data = dudn,
+              aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_total_and_with_female_per/100, 
+                  group = at_nest_type, color = at_nest_type)) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24), size = 0.8, 
+            color = 'black') +
+  # geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
+  #             fill = 'black', alpha = 0.2) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  geom_text(data = dss, aes(datetime_rel_initiation0, Inf, label = N), vjust = 1, size = 3) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank()) +
+  ylab('Proportion / probability at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
 
 
 ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
