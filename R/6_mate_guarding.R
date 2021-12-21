@@ -781,6 +781,40 @@ dudn = rbind(duds, dudss)
 
 
 
+# MODEL 2: probability to be at the nest
+# x = dps[!is.na(initiation) & !is.na(at_nest) &
+#           datetime_rel_pair / 3600 / 24  <= 10 &   # subset to 7 days before nest initiated and 
+#           datetime_rel_pair / 3600 / 24  >= -7   # 10 days after nest is initiated
+# ]
+# 
+# x[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+# x[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+# 
+# 
+# fm2 <- glmmTMB(at_nest ~ datetime_rel_pair +
+#                  scale(sin_time) + scale(cos_time) +
+#                  (1 | pairID), # runs forever with 1 + datetime_rel_pair
+#                family = binomial, data = x,
+#                REML = FALSE,
+#                control = glmmTMBControl(parallel = 15)
+# )
+# 
+# summary(fm2)
+# 
+# 
+# e2 <- allEffects(fm2, xlevels = 100)$"datetime_rel_pair" |>
+#   data.frame() |>
+#   setDT()
+# 
+# 
+# ggplot() +
+#   geom_line(data = e2, aes(y = fit, x = datetime_rel_pair / 3600 / 24), size = 0.8, color = 'firebrick4') +
+#   geom_ribbon(data = e2, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
+#               fill = 'firebrick4', alpha = 0.2) 
+
+
+
+
 # males at nest with female
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
@@ -790,8 +824,9 @@ ggplot() +
                lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
                      labels = c('Total', 'With female')) +
+  
   geom_smooth(data = dudn,
-              aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_total_and_with_female_per/100, 
+              aes(datetime_rel_initiation0, N_pairwise_positions_daily_at_nest_total_and_with_female_per/100,
                   group = at_nest_type, color = at_nest_type)) +
   geom_line(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24), size = 0.8, 
             color = 'black') +
@@ -815,20 +850,60 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
   geom_point(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per)) +
   geom_smooth(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per), method = 'lm') +
   theme_classic(base_size = 12)
 
-ggplot(data = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]) +
-  geom_point(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per, 
-                 color = as.factor(datetime_rel_initiation0))) +
-  geom_smooth(aes(N_pairwise_positions_daily_at_nest_per, N_pairwise_interactions_daily_per, 
-                  color = as.factor(datetime_rel_initiation0)), method = 'lm') +
-  guides(color = guide_legend('Initiation std')) +
-  theme_classic(base_size = 12)
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+# Plot for correlation time at the nest with mate guarding
+
+dx = dud[breeding_pair == TRUE & datetime_rel_initiation0 > -3 & datetime_rel_initiation0 < 4]
+
+ggplot(data = dx) +
+
+  geom_point(aes(N_pairwise_positions_daily_at_nest_per/100, N_pairwise_interactions_daily_per/100, 
+               color = as.factor(datetime_rel_initiation0))) +
+  geom_smooth(aes(N_pairwise_positions_daily_at_nest_per/100, N_pairwise_interactions_daily_per/100, 
+                  color = as.factor(datetime_rel_initiation0), fill = as.factor(datetime_rel_initiation0)), method = 'lm', alpha = 0.2) +
+
+  scale_colour_manual(name = 'Egg date',
+                      values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
+  scale_fill_manual(name = 'Egg date',
+                    values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
+  
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     expand = expansion(add = c(0, 0.05))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     expand = expansion(add = c(0, 0.05))) +
+  # guides(color = guide_legend('Egg date ')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.75), legend.background = element_blank()) +
+  ylab('Proportion of interactions with female') +
+  xlab('Proportion of locations at nest')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor.tiff', plot = last_plot(),  width = 190, height = 190, units = c('mm'), dpi = 'print')
 
 
 # When the male is not with the female is it at the nest?
