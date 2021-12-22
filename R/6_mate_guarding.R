@@ -334,7 +334,7 @@ dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
 
 dpibn = dpi[, .(N_ID2_other_interactions_daily_without_partner = .N), by = .(ID2, date_)]
 
-# females interacting with other females while with breeding partner
+# males interacting with other females while with breeding partner
 dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == TRUE]
 dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
 
@@ -847,7 +847,7 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_new.tiff', plot = last_plot(), width = 180, height = 120, units = c('mm'), dpi = 'print')
 
 
 
@@ -988,7 +988,38 @@ ggplot(data = dud[breeding_pair == TRUE]) +
   scale_y_continuous(limits = c(0, 25)) +
   theme_classic(base_size = 12)
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_males.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+# merge for plot
+dxs = dud[breeding_pair == TRUE]
+dxs[, N_ID1_other_interactions_daily := N_ID1_other_interactions_daily_with_partner]
+dxs[, type := 'with partner']
+
+dxss = dud[breeding_pair == TRUE]
+dxss[, N_ID1_other_interactions_daily := N_ID1_other_interactions_daily_without_partner]
+dxss[, type := 'without partner']
+
+dx = rbind(dxs, dxss)
+
+pm = 
+ggplot(data = dx) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = Inf), fill = 'grey80') +
+  geom_boxplot(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily,
+                   group = interaction(type, datetime_rel_initiation0), color = type)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID1_other_interactions_daily, 
+                  color = type), se = FALSE) +
+  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Number of extra-pair interactions (male)') +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 25)) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(2, 2), legend.background = element_blank())
+  # theme(legend.position = c(0.85, 0.9), legend.background = element_blank())
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_males.tiff', plot = last_plot(), width = 180, height = 120, units = c('mm'), dpi = 'print')
 
 
 # females over season
@@ -1005,7 +1036,44 @@ ggplot(data = dud[breeding_pair == TRUE]) +
   scale_y_continuous(limits = c(0, 25)) +
   theme_classic(base_size = 12)
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_females.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+# merge for plot
+dxs = dud[breeding_pair == TRUE]
+dxs[, N_ID2_other_interactions_daily := N_ID2_other_interactions_daily_with_partner]
+dxs[, type := 'with partner']
+
+dxss = dud[breeding_pair == TRUE]
+dxss[, N_ID2_other_interactions_daily := N_ID2_other_interactions_daily_without_partner]
+dxss[, type := 'without partner']
+
+dx = rbind(dxs, dxss)
+
+pf = 
+ggplot(data = dx) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = Inf), fill = 'grey80') +
+  geom_boxplot(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily,
+                   group = interaction(type, datetime_rel_initiation0), color = type)) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily, 
+                  color = type), se = FALSE) +
+  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Number of extra-pair interactions (female)') +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 25)) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.85, 0.9), legend.background = element_blank())
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_females.tiff', plot = last_plot(), width = 180, height = 120, units = c('mm'), dpi = 'print')
+
+
+pm + pf
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_both.tiff', plot = last_plot(), width = 180, height = 120, units = c('mm'), dpi = 'print')
+
+
 
 
 # males: proportion of interactions with or without partner 
@@ -1035,5 +1103,45 @@ ggplot(data = dud[breeding_pair == TRUE]) +
   scale_y_continuous(limits = c(-10, 110)) +
   theme_classic(base_size = 12)
 
+
+ggplot(data = dud[breeding_pair == TRUE]) +
+  geom_boxplot(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner_per, 
+                   group = interaction(datetime_rel_initiation0), color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_without_partner_per, color = 'without partner')) +
+  geom_smooth(aes(datetime_rel_initiation0, N_ID2_other_interactions_daily_with_partner_per, color = 'with partner')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  scale_color_manual(values = colors, name = 'Type of interaction') +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Proportion of extra-pair interactions (female)') +
+  scale_x_continuous(limits = c(-15, 15)) +
+  scale_y_continuous(limits = c(-10, 110)) +
+  theme_classic(base_size = 12)
+
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/EP_interactions_perID_females_prop.tiff', plot = last_plot(),  width = 280, height = 190, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Proportion of extra-pair interactions guarded vs unguarded
+#--------------------------------------------------------------------------------------------------------------
+
+dud[, prop_epi_with_partner := ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
