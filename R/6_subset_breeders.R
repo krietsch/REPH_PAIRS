@@ -217,118 +217,59 @@ dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest1, at_nest2)],
 #' Extra-pair interactions
 #--------------------------------------------------------------------------------------------------------------
 
+# summary by unique pair excluding pair wise duplicates
+dps = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
 
+# any interaction with other than breeding partner?
+dps[, ID1_any_ep_int := any(interaction == TRUE & breeding_pair == FALSE), by = .(year_, ID1, datetime_1)]
+dps1 = unique(dps, by = c('year_', 'ID1', 'datetime_1'))
 
-# assign all datetimes in which the males was interacting with the breeding partner
-dpib = dps[interaction == TRUE & breeding_pair == TRUE]
-dpib = dpib[, .(ID1, datetime_1, interaction_with_partner = TRUE)]
-dpib = unique(dpib)
+dps[, ID2_any_ep_int := any(interaction == TRUE & breeding_pair == FALSE), by = .(year_, ID2, datetime_2)]
+dps2 = unique(dps, by = c('year_', 'ID2', 'datetime_2'))
 
-# merge with data
-dps = merge(dps, dpib, by = c('ID1', 'datetime_1'), all.x = TRUE)
-dps[is.na(interaction_with_partner), interaction_with_partner := FALSE]
+# merge with dp
+dp = merge(dp, dps1[, .(year_, ID1, datetime_1, ID1_any_ep_int)], 
+           by = c('year_', 'ID1', 'datetime_1'), all.x = TRUE)
 
-# Males interacting with other females
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE]
-dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
-
-dpia = dpi[, .(N_ID1_other_interactions_daily = .N), by = .(ID1, date_)]
-
-# Males interacting with other females while not with breeding partner
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == FALSE]
-dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
-
-dpibn = dpi[, .(N_ID1_other_interactions_daily_without_partner = .N), by = .(ID1, date_)]
-
-# Males interacting with other females while with breeding partner
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == TRUE]
-dpi = unique(dpi, by = c('ID1', 'pairID', 'date_'))
-
-dpiby = dpi[, .(N_ID1_other_interactions_daily_with_partner = .N), by = .(ID1, date_)]
-
-# merge data
-dpia = merge(dpia, dpibn, by = c('ID1', 'date_'), all.x = TRUE)
-dpia = merge(dpia, dpiby, by = c('ID1', 'date_'), all.x = TRUE)
-dpia[is.na(N_ID1_other_interactions_daily_without_partner), N_ID1_other_interactions_daily_without_partner := 0]
-dpia[is.na(N_ID1_other_interactions_daily_with_partner), N_ID1_other_interactions_daily_with_partner := 0]
-
-# percentage of daily interactions with and without partner
-dpia[, N_ID1_other_interactions_daily_without_partner_per := N_ID1_other_interactions_daily_without_partner / N_ID1_other_interactions_daily * 100]
-dpia[, N_ID1_other_interactions_daily_with_partner_per := N_ID1_other_interactions_daily_with_partner / N_ID1_other_interactions_daily * 100]
-
-# merge back with dps
-dps = merge(dps, dpia[, .(date_, ID1, N_ID1_other_interactions_daily, 
-                          N_ID1_other_interactions_daily_without_partner, N_ID1_other_interactions_daily_without_partner_per, 
-                          N_ID1_other_interactions_daily_with_partner, N_ID1_other_interactions_daily_with_partner_per)], 
-            by = c('date_', 'ID1'), all.x = TRUE)
-
-# females interacting with other females
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE]
-dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
-
-dpia = dpi[, .(N_ID2_other_interactions_daily = .N), by = .(ID2, date_)]
-
-# females interacting with other females while not with breeding partner
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == FALSE]
-dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
-
-dpibn = dpi[, .(N_ID2_other_interactions_daily_without_partner = .N), by = .(ID2, date_)]
-
-# males interacting with other females while with breeding partner
-dpi = dps[same_sex == FALSE & interaction == TRUE & breeding_pair == FALSE & interaction_with_partner == TRUE]
-dpi = unique(dpi, by = c('ID2', 'pairID', 'date_'))
-
-dpiby = dpi[, .(N_ID2_other_interactions_daily_with_partner = .N), by = .(ID2, date_)]
-
-# merge data
-dpia = merge(dpia, dpibn, by = c('ID2', 'date_'), all.x = TRUE)
-dpia = merge(dpia, dpiby, by = c('ID2', 'date_'), all.x = TRUE)
-dpia[is.na(N_ID2_other_interactions_daily_without_partner), N_ID2_other_interactions_daily_without_partner := 0]
-dpia[is.na(N_ID2_other_interactions_daily_with_partner), N_ID2_other_interactions_daily_with_partner := 0]
-
-# percentage of daily interactions with and without partner
-dpia[, N_ID2_other_interactions_daily_without_partner_per := N_ID2_other_interactions_daily_without_partner / N_ID2_other_interactions_daily * 200]
-dpia[, N_ID2_other_interactions_daily_with_partner_per := N_ID2_other_interactions_daily_with_partner / N_ID2_other_interactions_daily * 200]
-
-# merge back with dps
-dps = merge(dps, dpia[, .(date_, ID2, N_ID2_other_interactions_daily, 
-                          N_ID2_other_interactions_daily_without_partner, N_ID2_other_interactions_daily_without_partner_per, 
-                          N_ID2_other_interactions_daily_with_partner, N_ID2_other_interactions_daily_with_partner_per)], 
-            by = c('date_', 'ID2'), all.x = TRUE)
-
-
-
-
+dp = merge(dp, dps2[, .(year_, ID2, datetime_2, ID2_any_ep_int)], 
+           by = c('year_', 'ID2', 'datetime_2'), all.x = TRUE)
 
 
 #--------------------------------------------------------------------------------------------------------------
 #' Subset relevant data
 #--------------------------------------------------------------------------------------------------------------
 
-
-# summary by unique pair excluding pair wise duplicates
-dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
-dss = dp[same_sex == TRUE & ID1 > ID2] 
-
-dps = rbind(dsm, dss)
-
-
-
-
-
-
-dp[breeding_pair == TRUE, .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, datetime_rel_season,
-                            datetime_rel_pair, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, breeding_pair)]
+# N pairwise data per day
+dps = dp[breeding_pair == TRUE & sex1 == 'M']
 
 # round to days
 dps[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
-dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
+dps[, datetime_rel_season0 := round(datetime_rel_season, 0)]
+
+dpn = dps[, .N, by = .(pairID, nestID, datetime_rel_pair0)]
+
+dpn$N |> max()
+
+dp[N == 218]
 
 
-du = unique(dps, by = c('year_', 'pairID', 'nestID'))
-dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
+ds = dps[pairID == '273145139_270170970' & datetime_rel_pair0 == 2]
+
+dps[, dup := duplicated(dps, by = c('pairID', 'datetime_1'))]
+
+dps[dup == TRUE]
 
 
 
+60*24/10
+
+dp[breeding_pair == TRUE & sex1 == 'M', 
+   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, datetime_rel_season, datetime_rel_season0,
+     datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, 
+     ID1_any_ep_int, ID2_any_ep_int, breeding_pair)]
+
+
+# save data
+fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
