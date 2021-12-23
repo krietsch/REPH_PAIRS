@@ -5,8 +5,8 @@
 # Summary
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'knitr', 
+          'stringr', 'ggnewscale'), 
         require, character.only = TRUE)
 
 # Functions
@@ -39,7 +39,7 @@ DBI::dbDisconnect(con)
 st_transform_DT(dn)
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Sired or received EPP?
+#' Sired or received EPP?
 #--------------------------------------------------------------------------------------------------------------
 
 # any EPP in nest?
@@ -60,7 +60,7 @@ dn = merge(dn, dpas[, .(nestID, any_EPY, m_sired_EPY)], by = 'nestID', all.x = T
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Define breeding pairs
+#' Define breeding pairs
 #--------------------------------------------------------------------------------------------------------------
 
 # start and end of the data
@@ -113,7 +113,7 @@ di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
 di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 #--------------------------------------------------------------------------------------------------------------
-#' # How many breeders with overlap?
+#' How many breeders with overlap? Divide first and second clutch nest data
 #--------------------------------------------------------------------------------------------------------------
 
 ds = dnID[!is.na(male_id) & !is.na(female_id) & year_ > 2017 & !is.na(overlap) & overlap > 0] %>% 
@@ -168,7 +168,7 @@ ggplot(data = dp[ID1 == 273145139 & ID2 == 270170970]) +
 dnID[, overlap := NULL]
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Percentage of daily interactions
+#' Merge dp with nest data
 #--------------------------------------------------------------------------------------------------------------
 
 # merge with first nest number
@@ -185,24 +185,11 @@ dp[ID1 == 273145139 & ID2 == 270170970 & datetime_1 > as.POSIXct('2019-06-16 15:
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_', 'clutch_together'), 
            by.y = c('male_id', 'female_id', 'year_', 'clutch_together'), all.x = TRUE)
 
-# relative initiation date
-dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
 # datetime relative to nest initiation date
 dp[, datetime_rel_pair := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
 # date
 dp[, date_ := as.Date(datetime_1)]
-
-# number of nest attendance and percentage
-dps = dp[!is.na(nestID)]
-dps[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
-dps[, at_nest := distance_nest_1 < 15]
-
-# merge back with data
-dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest, N_pairwise_positions_daily_at_nest_per, 
-                       N_no_interaction_at_nest, N_pairwise_positions_daily_at_nest_with_female_per, percent_at_nest_when_no_interaction, percent_at_nest_when_interaction)], 
-           by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
 
 # same sex interaction?
 dp[, same_sex := sex1 == sex2]
@@ -210,11 +197,27 @@ dp[, same_sex := sex1 == sex2]
 # breeding pair
 dp[, breeding_pair := !is.na(nestID)]
 
-# summary by unique pair excluding pair wise duplicates
-dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
-dss = dp[same_sex == TRUE & ID1 > ID2] 
+#--------------------------------------------------------------------------------------------------------------
+#' Nest attendance 
+#--------------------------------------------------------------------------------------------------------------
 
-dps = rbind(dsm, dss)
+# distance to nest
+dps = dp[!is.na(nestID)]
+dps[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
+dps[, at_nest1 := distance_nest_1 < 15]
+
+dps[, distance_nest_2 := sqrt(sum((c(lon2, lat2) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
+dps[, at_nest2 := distance_nest_2 < 15]
+
+# merge back with data
+dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest1, at_nest2)], 
+           by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
+
+#--------------------------------------------------------------------------------------------------------------
+#' Extra-pair interactions
+#--------------------------------------------------------------------------------------------------------------
+
+
 
 # assign all datetimes in which the males was interacting with the breeding partner
 dpib = dps[interaction == TRUE & breeding_pair == TRUE]
@@ -294,33 +297,36 @@ dps = merge(dps, dpia[, .(date_, ID2, N_ID2_other_interactions_daily,
             by = c('date_', 'ID2'), all.x = TRUE)
 
 
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' Subset relevant data
+#--------------------------------------------------------------------------------------------------------------
+
+
+# summary by unique pair excluding pair wise duplicates
+dsm = dp[same_sex == FALSE & sex1 == 'M'] # because nests are merged with ID1 = male
+dss = dp[same_sex == TRUE & ID1 > ID2] 
+
+dps = rbind(dsm, dss)
+
+
+
+
+
+
+dp[breeding_pair == TRUE, .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, datetime_rel_season,
+                            datetime_rel_pair, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, breeding_pair)]
+
 # round to days
 dps[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 
+
 du = unique(dps, by = c('year_', 'pairID', 'nestID'))
 dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
-
-# number of nest attendance and percentage
-dps = dp[!is.na(nestID)]
-dps[, distance_nest_1 := sqrt(sum((c(lon1, lat1) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
-dps[, at_nest1 := distance_nest_1 < 15]
-
-dps[, distance_nest_2 := sqrt(sum((c(lon2, lat2) - c(lon_n, lat_n))^2)), by = 1:nrow(dps)]
-dps[, at_nest2 := distance_nest_2 < 15]
-
-# merge back with data
-dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest1, at_nest2)], 
-           by = c('ID1', 'ID2', 'datetime_1', 'nestID'), all.x = TRUE)
-
-dp[breeding_pair == TRUE, .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, datetime_rel_season,
-                            datetime_rel_pair, interaction, split, merge, nestID, at_nest1, at_nest2, breeding_pair)]
-
-
-
-
-
-
 
 
 
