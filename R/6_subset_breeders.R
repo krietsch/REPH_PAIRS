@@ -255,7 +255,7 @@ dpn[, N] |> max()
 dpn[, Np := N / 143]
 
 # merge with dp
-dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
 # subset 
 dps = 
@@ -266,6 +266,69 @@ dp[breeding_pair == TRUE & sex1 == 'M',
 
 
 # save data
-fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Randomization for interaction base line
+#--------------------------------------------------------------------------------------------------------------
+
+# unique data
+du = unique(dp, by = c('pairID'))
+ds = unique(dp, by = c('nestID', 'datetime_rel_pair0'))
+ds = ds[!is.na(datetime_rel_pair0)]
+
+# nests to exclude
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
+
+# data needed for null model
+d0 = ds[, .(datetime_rel_pair0, date_)] %>% unique
+
+# subset non-breeders pairs within breeders
+breeding_males = du[breeding_pair == TRUE]$ID1
+breeding_females = du[breeding_pair == TRUE]$ID2
+
+dps = dp[breeding_pair == FALSE & ID1 %in% breeding_males & ID2 %in% breeding_females]
+
+# subset all interactions on days with relative initiation date for breeders
+x = d0$datetime_rel_pair0 %>% unique
+
+d0a = foreach(i = x, .combine = 'rbind') %do% {
+  
+  # subset relative day
+  dss = d0[datetime_rel_pair0 == i]
+  
+  # subset all pairwise interactions from this date 
+  dsms = dps[date_ %in% dss$date_]
+  
+  # assign type
+  dsms[, datetime_rel_pair0 := i]
+  
+  dsms
+  
+}
+
+d0a[, datetime_rel_pair0_type := 'null_model']
 
 
+
+# same thing, but with only 50 random pairs in comparison
+d0a = d0a[!is.na(N_pairwise_interactions_daily_per)]
+
+# shuffle data
+d0ar <- d0a[sample(dim(d0a)[1])]
+
+# name rows by datetime_rel_initiation0
+d0ar[, datetime_rel_initiation0_id := seq_len(.N), by = datetime_rel_initiation0]
+d0ar = d0ar[datetime_rel_initiation0_id < 50]
+d0ar[, datetime_rel_initiation0_id := NULL]
+
+dud0 = rbind(duds, d0ar)
+
+
+
+# merge with breeding pairs 
+duds = dud[breeding_pair == TRUE]
+duds[, datetime_rel_initiation0_type := 'breeding_pair']
+
+dud0 = rbind(duds, d0a)
