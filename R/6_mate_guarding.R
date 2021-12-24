@@ -623,11 +623,6 @@ e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
 
 
 
-dss = data.table(clutch_identity = c('single', 'first', 'second', 'third'),
-                 sample_size = c('138', '15', '15', '2'))
-
-
-
 dss = unique(dud[breeding_pair == TRUE], by = c('nestID', 'datetime_rel_initiation0'))
 dss = dss[, .N, by = datetime_rel_initiation0]
 dss
