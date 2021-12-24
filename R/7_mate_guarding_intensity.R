@@ -114,11 +114,58 @@ ggplot() +
 
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' Time spent at the nest
+#--------------------------------------------------------------------------------------------------------------
+
+### Proportion of time at the nest
+
+# male in total at the nest
+dps = dp[at_nest1 == TRUE, .(N_at_nest1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+
+# male at nest with female
+dps = dp[at_nest1 == TRUE & interaction == TRUE, .(N_at_nest1_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+
+# proportion 
+du[, at_nest1_prop := N_at_nest1 / N]
+du[, at_nest1_int_prop := N_at_nest1_int / N]
+
+# merge for boxplot
+dup = rbind(du[, .(type = 'at nest', N_type = at_nest1_prop, pairID, nestID, datetime_rel_pair0)],
+            du[, .(type = 'at nest with female', N_type = at_nest1_int_prop, pairID, nestID, datetime_rel_pair0 )])
+
+# males at nest with female
+ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
+  geom_boxplot(data = dup, 
+               aes(datetime_rel_pair0, N_type, 
+                   group = interaction(type, datetime_rel_pair0), color = type),
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
+                     labels = c('Total', 'With female')) +
+  
+  geom_smooth(data = dup,
+              aes(datetime_rel_pair0, N_type,
+                  group = type, color = type)) +
+  # geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
+  #             fill = 'black', alpha = 0.2) +
+  # geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
+  # geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank()) +
+  ylab('Proportion / probability at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
 
 
 
-
-
-du = unique(dps, by = c('year_', 'pairID', 'nestID'))
-dud = unique(dps, by = c('year_', 'pairID', 'nestID', 'date_'))
 
