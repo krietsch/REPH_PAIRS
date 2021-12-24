@@ -239,32 +239,28 @@ dp = merge(dp, dps2[, .(year_, ID2, datetime_2, ID2_any_ep_int)],
 #' Subset relevant data
 #--------------------------------------------------------------------------------------------------------------
 
+# round to days
+dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
+dp[, datetime_rel_season0 := round(datetime_rel_season, 0)]
+
 # N pairwise data per day
 dps = dp[breeding_pair == TRUE & sex1 == 'M']
-
-# round to days
-dps[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
-dps[, datetime_rel_season0 := round(datetime_rel_season, 0)]
-
 dpn = dps[, .N, by = .(pairID, nestID, datetime_rel_pair0)]
 
-dpn$N |> max()
+# check max
+dpn[, N] |> max()
+60*24/10 -1 # max possible 
 
-dp[N == 218]
+# proportion of locations send
+dpn[, Np := N / 143]
 
+# merge with dp
+dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 
-ds = dps[pairID == '273145139_270170970' & datetime_rel_pair0 == 2]
-
-dps[, dup := duplicated(dps, by = c('pairID', 'datetime_1'))]
-
-dps[dup == TRUE]
-
-
-
-60*24/10
-
+# subset 
+dps = 
 dp[breeding_pair == TRUE & sex1 == 'M', 
-   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, datetime_rel_season, datetime_rel_season0,
+   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, Np, datetime_rel_season, datetime_rel_season0,
      datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, 
      ID1_any_ep_int, ID2_any_ep_int, breeding_pair)]
 
