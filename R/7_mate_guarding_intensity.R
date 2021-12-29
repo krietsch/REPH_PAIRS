@@ -27,7 +27,10 @@ dp = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', heade
 ### Proportion of time together
 dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+
+# check 0 interactions
+
 du[, int_prop := N_int / N]
 
 
@@ -123,7 +126,9 @@ ggplot() +
 # male in total at the nest
 dps = dp[at_nest1 == TRUE, .(N_at_nest1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+
+### CHECK 000000000000000
 
 # male at nest with female
 dps = dp[at_nest1 == TRUE & interaction == TRUE, .(N_at_nest1_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
