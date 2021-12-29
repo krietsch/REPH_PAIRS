@@ -244,8 +244,7 @@ dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 dp[, datetime_rel_season0 := round(datetime_rel_season, 0)]
 
 # N pairwise data per day
-dps = dp[breeding_pair == TRUE & sex1 == 'M']
-dpn = dps[, .N, by = .(pairID, nestID, datetime_rel_pair0)]
+dpn = dp[!is.na(datetime_rel_pair0), .N, by = .(pairID, nestID, datetime_rel_pair0)]
 
 # check max
 dpn[, N] |> max()
@@ -277,7 +276,7 @@ du = unique(dp, by = c('pairID'))
 ds = unique(dp, by = c('nestID', 'datetime_rel_pair0'))
 ds = ds[!is.na(datetime_rel_pair0)]
 
-# nests to exclude
+# nests to exclude (second clutches)
 n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
 ds = ds[!(nestID %in% n2)]
 
@@ -309,6 +308,20 @@ d0a = foreach(i = x, .combine = 'rbind') %do% {
 }
 
 d0a[, datetime_rel_pair0_type := 'null_model']
+
+
+# subset pairwise data with at least one interaction per day
+
+# pairwise positions
+dpn = dps[, .N, by = .(pairID, nestID, datetime_rel_pair0)]
+
+# Proportion of time together
+dps = d0a[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(d0a, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+
 
 
 
