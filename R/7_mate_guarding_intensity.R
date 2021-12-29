@@ -28,11 +28,8 @@ dp = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', heade
 dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-
-# check 0 interactions
-
+du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
-
 
 ### MODEL 1
 

@@ -312,16 +312,43 @@ d0a[, datetime_rel_pair0_type := 'null_model']
 
 # subset pairwise data with at least one interaction per day
 
-# pairwise positions
-dpn = dps[, .N, by = .(pairID, nestID, datetime_rel_pair0)]
+# pairwise positions non-breeder pairs
+dpn = d0a[, .N, by = .(pairID, date_, datetime_rel_pair0)]
+setnames(dpn, 'N', 'Nnb')
+
+# proportion of locations send
+dpn[, Np_nb := Nnb / 143]
+
+d0a = merge(d0a, dpn, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
 
 # Proportion of time together
-dps = d0a[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(d0a, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
+dps = d0a[interaction == TRUE, .(N_int_nb = .N), by = .(pairID, date_, datetime_rel_pair0)]
+du = unique(d0a, by = c('pairID', 'date_', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int_nb), N_int_nb := 0]
+du[, int_prop_nb := N_int_nb / Nnb]
 
+# merge back with full table
+d0a = merge(d0a, du[, .(pairID, date_, datetime_rel_pair0, N_int_nb, int_prop_nb)], 
+            by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
+
+# subset only pairs with at least one interaction
+d0a = d0a[int_prop_nb > 0]
+
+# subset pairs with at least 50% data
+d0a = d0a[Np_nb >= 0.5]
+
+# select 31 random pairs for each day 
+ds = unique(d0a, by = c('pairID', 'datetime_rel_pair0'))
+
+# shuffle data
+ds = ds[sample(dim(ds)[1])]
+
+ds[, datetime_rel_pair0_id := seq_len(.N), by = datetime_rel_pair0]
+ds = ds[datetime_rel_pair0_id < 31]
+
+
+# how to subset the 31 pairs? 
 
 
 
