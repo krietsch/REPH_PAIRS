@@ -339,36 +339,27 @@ d0a = d0a[int_prop_nb > 0]
 d0a = d0a[Np_nb >= 0.5]
 
 # select 31 random pairs for each day 
-ds = unique(d0a, by = c('pairID', 'datetime_rel_pair0'))
+ds = unique(d0a, by = c('pairID', 'date_', 'datetime_rel_pair0'))
 
 # shuffle data
 ds = ds[sample(dim(ds)[1])]
 
+# subset 31 pairs
 ds[, datetime_rel_pair0_id := seq_len(.N), by = datetime_rel_pair0]
 ds = ds[datetime_rel_pair0_id < 31]
+ds[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
+d0a[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
 
+d0as = d0a[sub %in% ds$sub]
 
-# how to subset the 31 pairs? 
+# rename order and save
+d0as = d0as[, 
+        .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, datetime_rel_season, datetime_rel_season0,
+          datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, 
+          ID1_any_ep_int, ID2_any_ep_int, breeding_pair, type = 'randomization')]
 
-
-
-# same thing, but with only 50 random pairs in comparison
-d0a = d0a[!is.na(N_pairwise_interactions_daily_per)]
-
-# shuffle data
-d0ar <- d0a[sample(dim(d0a)[1])]
-
-# name rows by datetime_rel_initiation0
-d0ar[, datetime_rel_initiation0_id := seq_len(.N), by = datetime_rel_initiation0]
-d0ar = d0ar[datetime_rel_initiation0_id < 50]
-d0ar[, datetime_rel_initiation0_id := NULL]
-
-dud0 = rbind(duds, d0ar)
+# save data
+fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 
-# merge with breeding pairs 
-duds = dud[breeding_pair == TRUE]
-duds[, datetime_rel_initiation0_type := 'breeding_pair']
-
-dud0 = rbind(duds, d0a)
