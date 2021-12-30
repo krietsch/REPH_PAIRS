@@ -259,13 +259,12 @@ dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TR
 # subset 
 dps = 
 dp[breeding_pair == TRUE & sex1 == 'M', 
-   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, datetime_rel_season, datetime_rel_season0,
-     datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, 
-     ID1_any_ep_int, ID2_any_ep_int, breeding_pair)]
-
+   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
+     datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, 
+     at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, breeding_pair, type = 'breeding pair')]
 
 # save data
-# fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Randomization for interaction base line
@@ -346,7 +345,7 @@ ds = ds[sample(dim(ds)[1])]
 
 # subset 31 pairs
 ds[, datetime_rel_pair0_id := seq_len(.N), by = datetime_rel_pair0]
-ds = ds[datetime_rel_pair0_id < 31]
+ds = ds[datetime_rel_pair0_id <= 50]
 ds[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
 d0a[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
 
@@ -354,9 +353,10 @@ d0as = d0a[sub %in% ds$sub]
 
 # rename order and save
 d0as = d0as[, 
-        .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, datetime_rel_season, datetime_rel_season0,
-          datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, at_nest1, at_nest2, any_EPY, 
-          ID1_any_ep_int, ID2_any_ep_int, breeding_pair, type = 'randomization')]
+        .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
+          datetime_rel_season, datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, 
+          split, merge, nestID, at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, breeding_pair, 
+          type = 'randomization')]
 
 # save data
 fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
