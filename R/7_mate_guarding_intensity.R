@@ -19,19 +19,31 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 
 # Data
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dr = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation to breeding state
 #--------------------------------------------------------------------------------------------------------------
 
-### Proportion of time together
+# Proportion of time together breeders
 dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
 
-### MODEL 1
+# Proportion of time together randomization
+drs = dr[interaction == TRUE, .(N_int = .N), by = .(pairID, date_, datetime_rel_pair0)]
+dur = unique(dr, by = c('pairID', 'date_', 'datetime_rel_pair0'))
+dur = merge(dur, drs, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
+dur[is.na(N_int), N_int := 0]
+dur[, int_prop := N_int / N]
+
+# rbind data
+du = rbind(du, dur)
+du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+### MODEL breeding pairs
 
 # subset data for model
 dm = dp[datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
@@ -58,61 +70,75 @@ e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-# plot
-ggplot(e, aes(y = fit, x = datetime_rel_pair)) +
-  geom_rect(aes(xmin = 0, xmax = 4, ymin = 0, ymax = 1), fill = 'grey80') +
-  geom_boxplot(data = du[Np > 0.25], 
-               aes(datetime_rel_pair0, int_prop, group = datetime_rel_pair0), 
-               lwd = 0.4, outlier.size = 0.7) +
-  geom_line(size = 0.8) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3) +
-  scale_x_continuous(limits = c(-10.5, 10.5)) +
-  scale_y_continuous(limits = c(0, 1), expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 12) +
-  ylab('Proportion / probability of interactions') +
-  xlab('Day relative to clutch initiation (= 0)')
+### MODEL randomization
 
+# subset data for model
+dr[, datetime_rel_pair := datetime_rel_pair0]
+dmr = dr[datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
 
+# relative time in seconds 
+dmr[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
 
+# sin and cos of datetime
+dmr[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+dmr[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
+fm2 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dmr,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
 
+summary(fm2)
 
+# predict data
+er <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
 
+# sample size
+dss = unique(du[Np >= 0.25 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+dss
 
+# sample size randomization (just to check)
+dssr = unique(dur[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+             by = c('pairID', 'date_', 'datetime_rel_pair0'))
+dssr = dssr[, .N, by = datetime_rel_pair0]
+dssr
 
-# breeding pairs and randomization
+### plot proportion of time together 
 ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
-  geom_boxplot(data = dud0, 
-               aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per/100, color = datetime_rel_initiation0_type, 
-                   group = interaction(datetime_rel_initiation0_type, datetime_rel_initiation0)), 
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= 0.25], 
+               aes(datetime_rel_pair0, int_prop, color = type,  
+                   group = interaction(type, datetime_rel_pair0)), 
                lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
                      labels = c('Breeding pair', 'Male-female pair')) +
-  
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24), size = 0.8, color = 'firebrick4') +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick4') +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
               fill = 'firebrick4', alpha = 0.2) +
-  # geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  geom_text(data = dss, aes(datetime_rel_initiation0, Inf, label = N), vjust = 1, size = 3) +
+  geom_line(data = er, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'dodgerblue4') +
+  geom_ribbon(data = er, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
+              fill = 'dodgerblue4', alpha = 0.2) +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
-                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank()) +
-  ylab('Proportion / probability of interactions') +
+  ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
-
-
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
-
-
-
 
 #--------------------------------------------------------------------------------------------------------------
 #' Time spent at the nest
