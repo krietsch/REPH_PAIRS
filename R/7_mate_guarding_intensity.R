@@ -111,17 +111,18 @@ dssr = dssr[, .N, by = datetime_rel_pair0]
 dssr
 
 ### plot proportion of time together 
+pa = 
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du[Np >= 0.25], 
                aes(datetime_rel_pair0, int_prop, color = type,  
                    group = interaction(type, datetime_rel_pair0)), 
                lwd = 0.4, outlier.size = 0.7) +
-  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
                      labels = c('Breeding pair', 'Male-female pair')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick4') +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick3') +
   geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
-              fill = 'firebrick4', alpha = 0.2) +
+              fill = 'firebrick3', alpha = 0.2) +
   geom_line(data = er, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'dodgerblue4') +
   geom_ribbon(data = er, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
               fill = 'dodgerblue4', alpha = 0.2) +
@@ -148,52 +149,89 @@ ggplot() +
 
 # male in total at the nest
 dps = dp[at_nest1 == TRUE, .(N_at_nest1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
-### CHECK 000000000000000
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
 # male at nest with female
 dps = dp[at_nest1 == TRUE & interaction == TRUE, .(N_at_nest1_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
 # proportion 
+du[is.na(N_at_nest1), N_at_nest1 := 0]
 du[, at_nest1_prop := N_at_nest1 / N]
+du[is.na(N_at_nest1_int), N_at_nest1_int := 0]
 du[, at_nest1_int_prop := N_at_nest1_int / N]
 
 # merge for boxplot
-dup = rbind(du[, .(type = 'at nest', N_type = at_nest1_prop, pairID, nestID, datetime_rel_pair0)],
-            du[, .(type = 'at nest with female', N_type = at_nest1_int_prop, pairID, nestID, datetime_rel_pair0 )])
+dup = rbind(du[, .(type = 'at nest', N_type = at_nest1_prop, Np, pairID, nestID, datetime_rel_pair0)],
+            du[, .(type = 'at nest with female', N_type = at_nest1_int_prop, Np, pairID, nestID, datetime_rel_pair0 )])
+dup = dup[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
-# males at nest with female
+### MODEL males at the nest in total
+fm3 <- glmmTMB(at_nest1 ~ datetime_rel_pair +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + datetime_rel_pair | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm3)
+
+# predict data
+e3 <- allEffects(fm3, xlevels = 100)$"datetime_rel_pair" |>
+  data.frame() |>
+  setDT()
+
+### MODEL males at the nest with female
+dm[, at_nest1_with_female := at_nest1 == TRUE & interaction == TRUE]
+fm4 <- glmmTMB(at_nest1_with_female ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm4)
+
+# predict data
+e4 <- allEffects(fm4, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+### plot males at nest and males at the nest with female
+pb = 
 ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey80') +
-  geom_boxplot(data = dup, 
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = dup[Np >= 0.25], 
                aes(datetime_rel_pair0, N_type, 
                    group = interaction(type, datetime_rel_pair0), color = type),
                lwd = 0.4, outlier.size = 0.7) +
-  scale_color_manual(values = c('firebrick4', 'dodgerblue4'), name = '', 
+  scale_color_manual(values = c('darkorange2', 'firebrick3'), name = '', 
                      labels = c('Total', 'With female')) +
-  
-  geom_smooth(data = dup,
-              aes(datetime_rel_pair0, N_type,
-                  group = type, color = type)) +
-  # geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair / 3600 / 24, ymin = lower, ymax = upper), 
-  #             fill = 'black', alpha = 0.2) +
-  # geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
-  # geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_line(data = e3, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'darkorange2') +
+  geom_ribbon(data = e3, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
+              fill = 'darkorange2', alpha = 0.2) +
+  geom_line(data = e4, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick3') +
+  geom_ribbon(data = e4, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper),
+              fill = 'firebrick3', alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
-                     labels = c('0', '0.2', '0.4', '0.6', '0.8', '1'),
-                     expand = expansion(add = c(0, 0.05))) +
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.1, 0.9), legend.background = element_blank()) +
-  ylab('Proportion / probability at nest') +
+  theme(legend.position = c(0.1, 0.93), legend.background = element_blank()) +
+  ylab('Proportion ot time at nest') +
   xlab('Day relative to clutch initiation (= 0)')
 
-
+# merge plots
+pa + pb + 
+  plot_layout(nrow = 2) +
+  plot_annotation(tag_levels = 'A')
 
 
