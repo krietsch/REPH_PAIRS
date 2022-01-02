@@ -88,7 +88,7 @@ dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date, any_EPY, m_sired_EPY, 
-              lat_n = lat, lon_n = lon, overlap)]
+              lat_n = lat, lon_n = lon, overlap, both_tagged_overlapping)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
@@ -113,8 +113,8 @@ di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
 di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 # data available relative to clutch initiation for each ID
-dnIDu = rbind(dnID[!is.na(male_id), .(year_, ID = male_id, sex = 'M', nestID, initiation)],
-              dnID[!is.na(female_id), .(year_, ID = female_id, sex = 'F', nestID, initiation)])
+dnIDu = rbind(dnID[!is.na(male_id), .(year_, ID = male_id, sex = 'M', nestID, initiation, both_tagged_overlapping)],
+              dnID[!is.na(female_id), .(year_, ID = female_id, sex = 'F', nestID, initiation, both_tagged_overlapping)])
 
 # merge all with nest data
 dID = merge(d, dnIDu, by = c('year_', 'ID'), all.x = TRUE, allow.cartesian = TRUE)
@@ -125,7 +125,7 @@ dID[, datetime_rel_pair := difftime(datetime_, initiation, units = 'days') %>% a
 dID[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 
 # unique by datetime_rel_pair0
-dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'datetime_rel_pair0')]
+dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'datetime_rel_pair0', 'both_tagged_overlapping')]
 
 # check max
 dID[, N] |> max()
