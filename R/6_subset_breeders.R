@@ -125,10 +125,14 @@ dID[, datetime_rel_pair := difftime(datetime_, initiation, units = 'days') %>% a
 dID[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 
 # unique by datetime_rel_pair0
-dID = unique(dID, by = c('year_', 'nestID', 'ID', 'datetime_rel_pair0'))
+dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'datetime_rel_pair0')]
 
-# subset relevant data
-dID = dID[, .(year_, ID, sex, start, end, nestID, initiation, datetime_rel_pair0)]
+# check max
+dID[, N] |> max()
+142 # max possible 
+
+# proportion of day with data
+dID[, Np := N / 142]
 
 # save data
 fwrite(dID, './DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', quote = TRUE, sep = '\t', row.names = FALSE)
@@ -269,10 +273,9 @@ dpn = dp[!is.na(datetime_rel_pair0), .N, by = .(pairID, nestID, datetime_rel_pai
 
 # check max
 dpn[, N] |> max()
-60*24/10 -1 # max possible 
 
 # proportion of locations send
-dpn[, Np := N / 143]
+dpn[, Np := N / 142]
 
 # merge with dp
 dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
@@ -337,7 +340,7 @@ dpn = d0a[, .N, by = .(pairID, date_, datetime_rel_pair0)]
 setnames(dpn, 'N', 'Nnb')
 
 # proportion of locations send
-dpn[, Np_nb := Nnb / 143]
+dpn[, Np_nb := Nnb / 142]
 
 d0a = merge(d0a, dpn, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
 
