@@ -112,6 +112,27 @@ di = dn[!is.na(year_) & plot == 'NARL']
 di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
 di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
+# data available relative to clutch initiation for each ID
+dnIDu = rbind(dnID[!is.na(male_id), .(year_, ID = male_id, sex = 'M', nestID, initiation)],
+              dnID[!is.na(female_id), .(year_, ID = female_id, sex = 'F', nestID, initiation)])
+
+# merge all with nest data
+dID = merge(d, dnIDu, by = c('year_', 'ID'), all.x = TRUE, allow.cartesian = TRUE)
+dID = dID[!is.na(nestID)]
+
+# relative timing
+dID[, datetime_rel_pair := difftime(datetime_, initiation, units = 'days') %>% as.numeric()]
+dID[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
+
+# unique by datetime_rel_pair0
+dID = unique(dID, by = c('year_', 'nestID', 'ID', 'datetime_rel_pair0'))
+
+# subset relevant data
+dID = dID[, .(year_, ID, sex, start, end, nestID, initiation, datetime_rel_pair0)]
+
+# save data
+fwrite(dID, './DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
 #--------------------------------------------------------------------------------------------------------------
 #' How many breeders with overlap? Divide first and second clutch nest data
 #--------------------------------------------------------------------------------------------------------------
