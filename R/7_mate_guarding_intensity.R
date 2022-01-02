@@ -18,8 +18,49 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Data
-dp = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-dr = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+
+# Threshold to exclude data
+# Np_min = 0
+Np_min = 0.25
+# Np_min = 0.5
+
+#--------------------------------------------------------------------------------------------------------------
+#' Data available relative to clutch initiation
+#--------------------------------------------------------------------------------------------------------------
+
+dIDs = unique(dID[Np >= Np_min & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+              by = c('sex', 'nestID', 'datetime_rel_pair0'))
+dIDs = dIDs[, .N, by = .(sex, datetime_rel_pair0, both_tagged_overlapping)]
+dIDs
+
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(du[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+dss
+
+# plot data available
+dIDs[, sex := factor(sex, levels = c('F', 'M', 'pair'))]
+
+# pa = 
+ggplot(data = dIDs[both_tagged_overlapping == TRUE]) +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_col(aes(datetime_rel_pair0, N, fill = sex), position=position_dodge(), width = 0.8) +
+  geom_col(data = dss, aes(datetime_rel_pair0, N), fill = 'grey75', width = 0.8) +
+  scale_fill_manual(values = c('firebrick3', 'dodgerblue4', 'grey75'), name = '', 
+                     labels = c('Female only', 'Male only', 'Both partners'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank()) +
+  ylab('N') +
+  xlab('Day relative to clutch initiation (= 0)')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation to breeding state
@@ -98,20 +139,8 @@ er <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-# sample size
-dss = unique(du[Np >= 0.25 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
-dss
-
-# sample size randomization (just to check)
-dssr = unique(dur[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('pairID', 'date_', 'datetime_rel_pair0'))
-dssr = dssr[, .N, by = datetime_rel_pair0]
-dssr
-
 ### plot proportion of time together 
-pa = 
+pb = 
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du[Np >= 0.25], 
@@ -126,7 +155,6 @@ ggplot() +
   geom_line(data = er, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'dodgerblue4') +
   geom_ribbon(data = er, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
               fill = 'dodgerblue4', alpha = 0.2) +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
@@ -202,7 +230,7 @@ e4 <- allEffects(fm4, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   setDT()
 
 ### plot males at nest and males at the nest with female
-pb = 
+pc = 
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = dup[Np >= 0.25], 
@@ -229,9 +257,16 @@ ggplot() +
   ylab('Proportion ot time at nest') +
   xlab('Day relative to clutch initiation (= 0)')
 
+
 # merge plots
-pa + pb + 
-  plot_layout(nrow = 2) +
+pa + pb + pc +
+  plot_layout(nrow = 3) +
+  plot_layout(heights = c(1, 3, 3)) +
   plot_annotation(tag_levels = 'A')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_MateGuarding_NestAttendence.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
+
+
 
 
