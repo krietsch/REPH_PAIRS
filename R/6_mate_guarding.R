@@ -680,8 +680,6 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
 
 
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' # Look at variation in connection to EPP
 #--------------------------------------------------------------------------------------------------------------
