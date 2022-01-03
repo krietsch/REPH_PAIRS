@@ -23,9 +23,9 @@ dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', head
 dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 # Threshold to exclude data
-Np_min = 0
+# Np_min = 0
 # Np_min = 0.25
-# Np_min = 0.5
+Np_min = 0.5
 
 # plot settings
 margin_ = unit(c(0, 4, 0, 0), 'pt')
@@ -90,65 +90,65 @@ du = rbind(du, dur)
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 ### MODEL breeding pairs
-# 
-# # subset data for model
-# dm = dp[datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
-# 
-# # relative time in seconds 
-# dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
-# 
-# # sin and cos of datetime
-# dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
-# dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
-# 
-# fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
-#                  scale(sin_time) + scale(cos_time) +
-#                  (1 + poly(datetime_rel_pair, 2) | pairID),
-#                family = binomial, data = dm,
-#                REML = FALSE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# summary(fm1)
-# 
-# # predict data
-# e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
-#   data.frame() |>
-#   setDT()
-# 
-# ### MODEL randomization
-# 
-# # subset data for model
-# dr[, datetime_rel_pair := datetime_rel_pair0]
-# dmr = dr[datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
-# 
-# # relative time in seconds 
-# dmr[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
-# 
-# # sin and cos of datetime
-# dmr[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
-# dmr[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
-# 
-# fm2 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
-#                  scale(sin_time) + scale(cos_time) +
-#                  (1 + poly(datetime_rel_pair, 2) | pairID),
-#                family = binomial, data = dmr,
-#                REML = FALSE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# summary(fm2)
-# 
-# # predict data
-# er <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
-#   data.frame() |>
-#   setDT()
+
+# subset data for model
+dm = dp[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
+
+# relative time in seconds
+dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
+
+# sin and cos of datetime
+dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+
+fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm1)
+
+# predict data
+e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+### MODEL randomization
+
+# subset data for model
+dr[, datetime_rel_pair := datetime_rel_pair0]
+dmr = dr[datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
+
+# relative time in seconds
+dmr[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
+
+# sin and cos of datetime
+dmr[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+dmr[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+
+fm2 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dmr,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm2)
+
+# predict data
+er <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
 
 ### plot proportion of time together 
 pb = 
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[Np >= 0.25], 
+  geom_boxplot(data = du[Np >= Np_min], 
                aes(datetime_rel_pair0, int_prop, color = type,  
                    group = interaction(type, datetime_rel_pair0)), 
                lwd = 0.4, outlier.size = 0.7) +
@@ -181,7 +181,7 @@ ggplot() +
 ### Proportion of time at the nest
 
 # male in total at the nest
-dps = dp[at_nest1 == TRUE, .(N_at_nest1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+dps = dp[Np >= Np_min & at_nest1 == TRUE, .(N_at_nest1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du2 = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 
 du2 = merge(du2, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
@@ -207,44 +207,44 @@ dup = rbind(du2[, .(type = 'at nest', N_type = at_nest1_prop, Np, pairID, nestID
             du2[, .(type = 'at nest with female', N_type = at_nest1_int_prop, Np, pairID, nestID, datetime_rel_pair0 )])
 dup = dup[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
-# ### MODEL males at the nest in total
-# fm3 <- glmmTMB(at_nest1 ~ datetime_rel_pair +
-#                  scale(sin_time) + scale(cos_time) +
-#                  (1 + datetime_rel_pair | pairID),
-#                family = binomial, data = dm,
-#                REML = FALSE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# summary(fm3)
-# 
-# # predict data
-# e3 <- allEffects(fm3, xlevels = 100)$"datetime_rel_pair" |>
-#   data.frame() |>
-#   setDT()
-# 
-# ### MODEL males at the nest with female
-# dm[, at_nest1_with_female := at_nest1 == TRUE & interaction == TRUE]
-# fm4 <- glmmTMB(at_nest1_with_female ~ poly(datetime_rel_pair, 2) +
-#                  scale(sin_time) + scale(cos_time) +
-#                  (1 + poly(datetime_rel_pair, 2) | pairID),
-#                family = binomial, data = dm,
-#                REML = FALSE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# summary(fm4)
-# 
-# # predict data
-# e4 <- allEffects(fm4, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
-#   data.frame() |>
-#   setDT()
+### MODEL males at the nest in total
+fm3 <- glmmTMB(at_nest1 ~ datetime_rel_pair +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + datetime_rel_pair | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm3)
+
+# predict data
+e3 <- allEffects(fm3, xlevels = 100)$"datetime_rel_pair" |>
+  data.frame() |>
+  setDT()
+
+### MODEL males at the nest with female
+dm[, at_nest1_with_female := at_nest1 == TRUE & interaction == TRUE]
+fm4 <- glmmTMB(at_nest1_with_female ~ poly(datetime_rel_pair, 2) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm4)
+
+# predict data
+e4 <- allEffects(fm4, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
 
 ### plot males at nest and males at the nest with female
 pc = 
 ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = dup[Np >= 0.25], 
+  geom_boxplot(data = dup[Np >= Np_min], 
                aes(datetime_rel_pair0, N_type, 
                    group = interaction(type, datetime_rel_pair0), color = type),
                lwd = 0.4, outlier.size = 0.7) +
@@ -276,7 +276,9 @@ pa + pb + pc +
   plot_annotation(tag_levels = 'A')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_MateGuarding_NestAttendence.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_MateGuarding_NestAttendence_Np_0.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_MateGuarding_NestAttendence_Np_0.25.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_MateGuarding_NestAttendence_Np_0.5.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Correlation time at the nest with mate guarding
@@ -411,4 +413,79 @@ ggplot(data = dx) +
   xlab('Proportion of time male alone at the nest')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor_male_alone.tiff', plot = last_plot(),  width = 190, height = 190, units = c('mm'), dpi = 'print')
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity lower in pairs with EPY sired?
+#--------------------------------------------------------------------------------------------------------------
+
+# subset data
+dx = du[!is.na(any_EPY) & type == 'breeding pair' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+
+### MODEL breeding pairs with and without EPY
+
+# subset data for model
+dm = dp[!is.na(any_EPY) & datetime_rel_pair >= -5 & datetime_rel_pair <= 2]
+
+# relative time in seconds
+dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
+
+# sin and cos of datetime
+dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+
+fm1 <- glmmTMB(interaction ~ datetime_rel_pair_sec + any_EPY +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + datetime_rel_pair | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm1)
+
+
+plot(allEffects(fm1))
+
+# predict data
+e1 <- allEffects(fm1, xlevels = 100)$"datetime_rel_pair_sec" |>
+  data.frame() |>
+  setDT()
+
+
+# pairwise sample size
+dss = merge(dx[any_EPY == FALSE, .(N_no_EPY = .N), by = datetime_rel_pair0], 
+            dx[any_EPY == TRUE, .(N_EPY = .N), by = datetime_rel_pair0])
+
+dss[, N_label := paste0(N_no_EPY, '/', N_EPY)]
+
+
+
+# EPP in clutch of female
+ggplot(data = dx) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_path(data = dx[any_EPY == TRUE], aes(datetime_rel_pair0 + 0.2, int_prop), color = 'dodgerblue3', alpha = 0.5) +
+  geom_boxplot(aes(datetime_rel_pair0, int_prop, color = any_EPY, 
+                   group = interaction(datetime_rel_pair0, any_EPY))) +
+  geom_smooth(aes(datetime_rel_pair0, int_prop, group = any_EPY, color = any_EPY, fill = any_EPY), alpha = 0.2) +
+  geom_text(data = dss, aes(datetime_rel_pair0, 1.02, label = N_label),
+            position = position_dodge(width = 0.9), vjust = 1, size = 3) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = '', labels = c('No EPY', 'EPY')) +
+  scale_fill_manual(values = c('darkorange', 'dodgerblue3'), name = '', labels = c('No EPY', 'EPY')) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  coord_cartesian(xlim = c(-5.4, 2.4), ylim = c(0, 1), expand = FALSE, clip = 'off') +
+  scale_x_continuous(breaks = seq(-5, 2, 1), 
+                     labels = c('', '-4', '', '2', '', '0', '', '2')) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.11, 0.11), legend.background = element_blank(), plot.margin = unit(c(15, 4, 2, 0), 'pt')) +
+  ylab('Proportion ot time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_female_with_EPY.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
+
+
+
+
+
 
