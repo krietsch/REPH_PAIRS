@@ -166,7 +166,7 @@ ggplot() +
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
+                     expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
@@ -294,7 +294,27 @@ dx = dx[datetime_rel_pair0 > -3 & datetime_rel_pair0 < 4]
 
 
 ### MODEL time at the nest and mate guarding
+fm <- glmmTMB(int_prop ~ at_nest1_prop * datetime_rel_pair0 +
+                 (1 | nestID),
+               family = gaussian, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
 
+summary(fm)
+
+plot(allEffects(fm))
+
+# predict data
+e <- allEffects(fm, xlevels = 100)$"at_nest1_prop" |>
+  data.frame() |>
+  setDT()
+
+
+
+
+
+### single lm's
 # relative date -2
 dx_2 = dx[datetime_rel_pair0 == -2]
 fm_2 = lm(int_prop ~ at_nest1_prop, data = dx_2)
@@ -390,6 +410,27 @@ ggplot(data = dx) +
   xlab('Proportion of time male at the nest')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor.tiff', plot = last_plot(),  width = 190, height = 190, units = c('mm'), dpi = 'print')
+
+
+
+### MODEL time at the nest and mate guarding
+fm <- glmmTMB(int_prop ~ N_at_nest1_no_int_prop * datetime_rel_pair0 +
+                (1 | nestID),
+              family = gaussian, data = dx,
+              REML = FALSE,
+              control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm)
+
+plot(allEffects(fm))
+
+# predict data
+e <- allEffects(fm, xlevels = 100)$"N_at_nest1_no_int_prop" |>
+  data.frame() |>
+  setDT()
+
+
 
 # plot for males alone at the nest
 ggplot(data = dx) +
