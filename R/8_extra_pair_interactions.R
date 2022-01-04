@@ -72,6 +72,7 @@ pa =
 ggplot(data = dm) +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
   geom_smooth(aes(datetime_rel_pair, ID1_any_ep_int_binary, group = interaction, color = interaction, fill = interaction), alpha = 0.2) +
+  geom_smooth(aes(datetime_rel_pair, ID1_any_ep_int_binary), alpha = 0.2, color = 'black', fill = 'black') +
   scale_color_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
   scale_fill_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
@@ -91,6 +92,7 @@ pb =
 ggplot(data = dm) +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
   geom_smooth(aes(datetime_rel_pair, ID2_any_ep_int_binary, group = interaction, color = interaction, fill = interaction), alpha = 0.2) +
+  geom_smooth(aes(datetime_rel_pair, ID2_any_ep_int_binary), alpha = 0.2, color = 'black', fill = 'black') +
   scale_color_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
   scale_fill_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
