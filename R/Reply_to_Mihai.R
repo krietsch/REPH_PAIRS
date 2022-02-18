@@ -129,7 +129,7 @@ p =
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
-  xlab('')
+  xlab('Day relative to clutch initiation (= 0)')
 
 p
 
@@ -192,7 +192,7 @@ p =
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
-  xlab('')
+  xlab('Day relative to clutch initiation (= 0)')
 
 p
 
@@ -204,8 +204,6 @@ p
 # M2 = male 
 # M3 = female
 
-dm[, interaction := factor(interaction)]
-
 # MODEL2 - Male interacting with other females
 fm2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
@@ -216,23 +214,11 @@ fm2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
 )
 
 summary(fm2)
-plot(allEffects(fm2))
 
 # predict data
 e2 <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
-
-
-
-
-ggplot(e2, aes(y = fit, x = datetime_rel_pair)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
-  ylab("Probability of interaction") +
-  xlab("Date [0 = nest initiation date]") +
-  ggtitle("Breeding pairs")
-
 
 # MODEL3 - Female interacting with other males
 fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
@@ -244,22 +230,201 @@ fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
 )
 
 summary(fm3)
-plot(allEffects(fm3))
 
 # predict data
 e3 <- allEffects(fm3, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
+# Plot for males and females probability to interact with other opposite sex individuals
+e2[, type := 'Male']
+e3[, type := 'Female']
+
+eb = rbind(e2, e3)
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                     labels = c('Female', 'Male')) +
+  scale_fill_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                     labels = c('Female', 'Male')) +
+  geom_line(data = eb, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
+  geom_ribbon(data = eb, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = type), 
+              alpha = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of extra-pair interactions') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p
 
 
+### MODEL2 & 3 with separation in initiated yes and no
 
-ggplot(e3, aes(y = fit, x = datetime_rel_pair)) +
+# MODEL2 - Male interacting with other females
+fm2 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm2)
+
+e = allEffects(fm2, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+  data.frame() |>
+  setDT()
+
+# predictions are made for the entire range of the data, subset to the relevant interval
+e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
+
+
+ggplot(e, aes(y = fit, x = datetime_rel_pair, color = initiated, fill = initiated)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
   ylab("Probability of interaction") +
   xlab("Date [0 = nest initiation date]") +
   ggtitle("Breeding pairs")
+
+# MODEL3 - Fale interacting with other males
+fm3 <- glmmTMB(ID2_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm3)
+
+e = allEffects(fm3, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+  data.frame() |>
+  setDT()
+
+# predictions are made for the entire range of the data, subset to the relevant interval
+e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
+
+
+ggplot(e, aes(y = fit, x = datetime_rel_pair, color = initiated, fill = initiated)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
+  ylab("Probability of interaction") +
+  xlab("Date [0 = nest initiation date]") +
+  ggtitle("Breeding pairs")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# predict data
+e2 <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+# MODEL3 - Female interacting with other males
+fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm3)
+
+# predict data
+e3 <- allEffects(fm3, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+# Plot for males and females probability to interact with other opposite sex individuals
+e2[, type := 'Male']
+e3[, type := 'Female']
+
+eb = rbind(e2, e3)
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                     labels = c('Female', 'Male')) +
+  scale_fill_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                    labels = c('Female', 'Male')) +
+  geom_line(data = eb, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
+  geom_ribbon(data = eb, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = type), 
+              alpha = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of extra-pair interactions') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dm[, interaction := factor(interaction)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
