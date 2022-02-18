@@ -10,9 +10,6 @@ sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'fo
           'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
         require, character.only = TRUE)
 
-# Functions
-source('./R/0_functions.R')
-
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
@@ -101,7 +98,7 @@ dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
 dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
-fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) +
+fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + factor(year_) +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,

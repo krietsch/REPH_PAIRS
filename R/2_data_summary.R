@@ -217,6 +217,11 @@ ds = ds[N > 1]
 setorder(ds, ID, caught_time)
 ds[, .(ID, gps_tag, caught_time)]
 
+# body mass of tagged birds
+ds[!is.na(weight), mean(weight)]
+ds[!is.na(weight), min(weight)]
+ds[!is.na(weight), max(weight)]
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Number of IDs we got data from and for how long
 #--------------------------------------------------------------------------------------------------------------
