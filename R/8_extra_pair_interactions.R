@@ -54,15 +54,6 @@ e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-
-
-
-
-
-
-
-
-
 # plot data
 dm[, ID1_any_ep_int_binary := ifelse(ID1_any_ep_int == TRUE, 1, 0)]
 dm[, ID2_any_ep_int_binary := ifelse(ID2_any_ep_int == TRUE, 1, 0)]
