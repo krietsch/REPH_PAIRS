@@ -9,7 +9,7 @@ sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'fo
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/Reply_to_Mihai.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Data
 dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
@@ -25,7 +25,7 @@ Np_min = 0
 margin_ = unit(c(4, 4, 4, 4), 'pt')
 
 #--------------------------------------------------------------------------------------------------------------
-#' M1 Paired male and female 
+#' ### M1 Paired male and female 
 #--------------------------------------------------------------------------------------------------------------
 
 ### PLOT
@@ -60,7 +60,7 @@ dm[, year_ := factor(year_)]
 dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
-fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
+m1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -68,10 +68,10 @@ fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm1)
+summary(m1)
 
 # predict data
-e <- allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+e <- allEffects(m1, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
@@ -88,7 +88,7 @@ dmr[, year_ := factor(year_)]
 dmr[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dmr[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
-fm2 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
+mr <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dmr,
@@ -96,10 +96,10 @@ fm2 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm2)
+summary(mr)
 
 # predict data
-er <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+er <- allEffects(mr, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
@@ -140,7 +140,7 @@ p
 dm[, initiated := fifelse(datetime_rel_pair < 0, "no", "yes")]
 
 
-fm1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
+m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -148,33 +148,34 @@ fm1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm1)
+summary(m1)
 
 
 
 
-e = allEffects(fm1, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+e = allEffects(m1, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
   data.frame() |>
   setDT()
 
 # predictions are made for the entire range of the data, subset to the relevant interval
 e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
 
+
+du[, initiated := fifelse(datetime_rel_pair0 < 0, "no", "yes")]
+
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[Np >= Np_min], 
-               aes(datetime_rel_pair0, int_prop, color = type,  
+  geom_boxplot(data = du[Np >= Np_min & type == 'breeding pair'], 
+               aes(datetime_rel_pair0, int_prop, color = initiated,  
                    group = interaction(type, datetime_rel_pair0)), 
                lwd = 0.4, outlier.size = 0.7) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
-                     labels = c('Breeding pair', 'Male-female pair')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick3') +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
-              fill = 'firebrick3', alpha = 0.2) +
-  geom_line(data = er, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'dodgerblue4') +
-  geom_ribbon(data = er, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
-              fill = 'dodgerblue4', alpha = 0.2) +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                     labels = c('pre initiation', 'post initiation')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                    labels = c('pre initiation', 'post initiation')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated), alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
@@ -192,14 +193,36 @@ p
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' M2 & M3 Focal bird with opposite sex
+#' ### M2 & M3 Focal bird with opposite sex
 #--------------------------------------------------------------------------------------------------------------
 
 # M2 = male 
 # M3 = female
 
-# MODEL2 - Male interacting with other females
-fm2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
+### PLOT 
+
+# proportion of extra-pair interactions
+dps = dp[ID1_any_ep_int == TRUE, .(N_int_ep_ID1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du1 = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du1 = merge(du1, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du1[is.na(N_int_ep_ID1), N_int_ep_ID1 := 0]
+du1[, int_prop_ep_ID1 := N_int_ep_ID1 / N]
+
+dps = dp[ID2_any_ep_int == TRUE, .(N_int_ep_ID2 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du2 = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du2 = merge(du2, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du2[is.na(N_int_ep_ID2), N_int_ep_ID2 := 0]
+du2[, int_prop_ep_ID2 := N_int_ep_ID2 / N]
+
+# rbind data
+du = rbind(du1[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                   N_int_ep = N_int_ep_ID1, int_prop_ep = int_prop_ep_ID1, type = 'Male')], 
+           du2[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                   N_int_ep = N_int_ep_ID2, int_prop_ep = int_prop_ep_ID2, type = 'Female')])
+du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+#' ## MODEL2 - Male interacting with other females
+m2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -207,15 +230,15 @@ fm2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm2)
+summary(m2)
 
 # predict data
-e2 <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+e2 <- allEffects(m2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-# MODEL3 - Female interacting with other males
-fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
+### MODEL3 - Female interacting with other males
+m3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -223,10 +246,10 @@ fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm3)
+summary(m3)
 
 # predict data
-e3 <- allEffects(fm3, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+e3 <- allEffects(m3, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
@@ -239,6 +262,10 @@ eb = rbind(e2, e3)
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min], 
+               aes(datetime_rel_pair0, int_prop_ep, color = type,  
+                   group = interaction(type, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
                      labels = c('Female', 'Male')) +
   scale_fill_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
@@ -262,10 +289,10 @@ p =
 p
 
 
-### MODEL2 & 3 with separation in initiated yes and no
+#' ## MODEL2 & 3 with separation in initiated yes and no
 
 # MODEL2 - Male interacting with other females
-fm2 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
+m2 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -273,18 +300,24 @@ fm2 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm2)
+summary(m2)
 
-e = allEffects(fm2, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+e = allEffects(m2, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
   data.frame() |>
   setDT()
 
 # predictions are made for the entire range of the data, subset to the relevant interval
 e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
 
+du[, initiated := fifelse(datetime_rel_pair0 < 0, "no", "yes")]
+
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
+               aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
+                   group = interaction(initiated, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
                      labels = c('pre initiation', 'post initiation')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
@@ -308,8 +341,8 @@ p =
 p
 
 
-# MODEL3 - Fale interacting with other males
-fm3 <- glmmTMB(ID2_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
+# MODEL3 - Female interacting with other males
+m3 <- glmmTMB(ID2_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -317,9 +350,9 @@ fm3 <- glmmTMB(ID2_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm3)
+summary(m3)
 
-e = allEffects(fm3, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+e = allEffects(m3, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
   data.frame() |>
   setDT()
 
@@ -329,6 +362,10 @@ e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & dateti
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min & type == 'Female'], 
+               aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
+                   group = interaction(initiated, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
                      labels = c('pre initiation', 'post initiation')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
@@ -352,28 +389,13 @@ p =
 p
 
 
+#' ## MODEL2 & 3 when with partner or not
+
+dm[, interaction := factor(interaction)]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# predict data
-e2 <- allEffects(fm2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
-  data.frame() |>
-  setDT()
-
-# MODEL3 - Female interacting with other males
-fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
+# MODEL2 - Male interacting with other females
+m2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -381,28 +403,26 @@ fm3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm3)
+summary(m2)
 
-# predict data
-e3 <- allEffects(fm3, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+e = allEffects(m2, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
   data.frame() |>
   setDT()
 
-# Plot for males and females probability to interact with other opposite sex individuals
-e2[, type := 'Male']
-e3[, type := 'Female']
-
-eb = rbind(e2, e3)
 
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
-                     labels = c('Female', 'Male')) +
-  scale_fill_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
-                    labels = c('Female', 'Male')) +
-  geom_line(data = eb, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
-  geom_ribbon(data = eb, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = type), 
+  # geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
+  #              aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
+  #                  group = interaction(initiated, datetime_rel_pair0)), 
+  #              lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '',
+                     labels = c('FALSE', 'TRUE')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '',
+                    labels = c('FALSE', 'TRUE')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = interaction), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = interaction), 
               alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
@@ -414,78 +434,14 @@ p =
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Probability of extra-pair interactions') +
-  xlab('Day relative to clutch initiation (= 0)')
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("Model 2 - Males EP interactions - when with or without partner")
 
 p
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-dm[, interaction := factor(interaction)]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-e = allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
-  data.frame() |>
-  setDT()
-
-# predictions are made for the entire range of the data, subset to the relevant interval
-e = e[(interaction == FALSE & datetime_rel_pair < 0) | (interaction == TRUE & datetime_rel_pair > 0)]
-
-
-ggplot(e, aes(y = fit, x = datetime_rel_pair, color = interaction, fill = interaction)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
-  ylab("Probability of interaction") +
-  xlab("Date [0 = nest initiation date]") +
-  ggtitle("Breeding pairs")
-
-
-fm1 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_ +
+# MODEL3 - Female interacting with other males
+m3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
@@ -493,70 +449,27 @@ fm1 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_
                control = glmmTMBControl(parallel = 15)
 )
 
-summary(fm1)
-plot(allEffects(fm1))
+summary(m3)
 
-# predict data
-e = allEffects(fm1, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
+e = allEffects(m3, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
   data.frame() |>
   setDT()
 
 
-ggplot(e, aes(y = fit, x = datetime_rel_pair, color = interaction, fill = interaction)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
-  ylab("Probability of interaction") +
-  xlab("Date [0 = nest initiation date]") +
-  ggtitle("Breeding pairs")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-ggplot() +
+p = 
+  ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
-                     labels = c('Breeding pair', 'Male-female pair')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8, color = 'firebrick3') +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), 
-              fill = 'firebrick3', alpha = 0.2) 
-
-
-# plot data
-dm[, ID1_any_ep_int_binary := ifelse(ID1_any_ep_int == TRUE, 1, 0)]
-dm[, ID2_any_ep_int_binary := ifelse(ID2_any_ep_int == TRUE, 1, 0)]
-
-# male
-pa = 
-  ggplot(data = dm) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_smooth(aes(datetime_rel_pair, ID1_any_ep_int_binary, group = interaction, color = interaction, fill = interaction), alpha = 0.2) +
-  geom_smooth(aes(datetime_rel_pair, ID1_any_ep_int_binary), alpha = 0.2, color = 'black', fill = 'black') +
-  scale_color_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
-  scale_fill_manual(values = c('dodgerblue4', 'firebrick3'), name = '', labels = c('without mate', 'with mate')) +
+  # geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
+  #              aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
+  #                  group = interaction(initiated, datetime_rel_pair0)), 
+  #              lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '',
+                     labels = c('FALSE', 'TRUE')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '',
+                    labels = c('FALSE', 'TRUE')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = interaction), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = interaction), 
+              alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
@@ -565,39 +478,19 @@ pa =
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.85, 0.9), legend.background = element_blank(), plot.margin = unit(c(15, 4, 2, 0), 'pt')) +
-  ylab('Male probability of extra-pair interaction') +
-  xlab('')
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of extra-pair interactions') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("Model 2 - Females EP interactions - when with or without partner")
+
+p
+
+#--------------------------------------------------------------------------------------------------------------
+#' ### M4 & M5 Focal bird with same sex other than partner
+#--------------------------------------------------------------------------------------------------------------
 
 
 
-# MODEL2 with separation in initiated yes and no
-fm1 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
-                 scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
-               family = binomial, data = dm,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-summary(fm1)
-plot(allEffects(fm1))
-
-
-e = allEffects(fm1, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
-  data.frame() |>
-  setDT()
-
-# predictions are made for the entire range of the data, subset to the relevant interval
-e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
-
-
-ggplot(e, aes(y = fit, x = datetime_rel_pair, color = initiated, fill = initiated)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) +
-  ylab("Probability of interaction") +
-  xlab("Date [0 = nest initiation date]") +
-  ggtitle("Breeding pairs")
 
 
 
