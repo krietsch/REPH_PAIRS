@@ -3,8 +3,8 @@
 #==============================================================================================================
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'foreach', 'knitr', 
+          'stringr', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -21,11 +21,23 @@ Np_min = 0
 # Np_min = 0.25
 # Np_min = 0.5
 
+# subset data for models
+dm = dp[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
+
+# factor year
+dm[, year_ := factor(year_)]
+
+# sin and cos of datetime
+dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+
+dm[, initiated := fifelse(datetime_rel_pair < 0, "no", "yes")]
+
 # plot settings
 margin_ = unit(c(4, 4, 4, 4), 'pt')
 
 #--------------------------------------------------------------------------------------------------------------
-#' ### M1 Paired male and female 
+#' # M1 Paired male and female 
 #--------------------------------------------------------------------------------------------------------------
 
 ### PLOT
@@ -45,20 +57,10 @@ dur[is.na(N_int), N_int := 0]
 dur[, int_prop := N_int / N]
 
 # rbind data
-du = rbind(du, dur)
+du = rbind(du, dur, fill = TRUE)
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
-### MODEL1
-
-# subset data for model
-dm = dp[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
-
-# factor year
-dm[, year_ := factor(year_)]
-
-# sin and cos of datetime
-dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
-dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+#' ### MODEL1
 
 m1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
@@ -135,10 +137,7 @@ p =
 p
 
 
-### MODEL1 with separation in initiated yes and no
-
-dm[, initiated := fifelse(datetime_rel_pair < 0, "no", "yes")]
-
+#' ###  MODEL1 with separation in initiated yes and no
 
 m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                  scale(sin_time) + scale(cos_time) +
@@ -193,7 +192,7 @@ p
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' ### M2 & M3 Focal bird with opposite sex
+#' # M2 & M3 Focal bird with opposite sex
 #--------------------------------------------------------------------------------------------------------------
 
 # M2 = male 
@@ -221,7 +220,7 @@ du = rbind(du1[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, se
                    N_int_ep = N_int_ep_ID2, int_prop_ep = int_prop_ep_ID2, type = 'Female')])
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
-#' ## MODEL2 - Male interacting with other females
+#' ### MODEL2 - Male interacting with other females
 m2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -237,7 +236,7 @@ e2 <- allEffects(m2, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-### MODEL3 - Female interacting with other males
+#' ###  MODEL3 - Female interacting with other males
 m3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -291,7 +290,7 @@ p
 
 #' ## MODEL2 & 3 with separation in initiated yes and no
 
-# MODEL2 - Male interacting with other females
+#' ###  MODEL2 - Male interacting with other females
 m2 <- glmmTMB(ID1_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -341,7 +340,7 @@ p =
 p
 
 
-# MODEL3 - Female interacting with other males
+#' ###  MODEL3 - Female interacting with other males
 m3 <- glmmTMB(ID2_any_ep_int ~ scale(datetime_rel_pair) * initiated + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -437,7 +436,7 @@ du2 = du2[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 dm[, interaction := factor(interaction)]
 
 
-# MODEL2 - Male interacting with other females
+#' ###  MODEL2 - Male interacting with other females
 m2 <- glmmTMB(ID1_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -483,7 +482,7 @@ p =
 p
 
 
-# MODEL3 - Female interacting with other males
+#' ###  MODEL3 - Female interacting with other males
 m3 <- glmmTMB(ID2_any_ep_int ~ poly(datetime_rel_pair, 2) * interaction + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
@@ -529,12 +528,199 @@ p =
 p
 
 #--------------------------------------------------------------------------------------------------------------
-#' ### M4 & M5 Focal bird with same sex other than partner
+#' # M4 & M5 Focal bird with same sex other than partner
 #--------------------------------------------------------------------------------------------------------------
 
+# M4 = male 
+# M5 = female
+
+### PLOT 
+
+# proportion of extra-pair interactions
+dps = dp[ID1_any_same_int == TRUE, .(N_int_same_ID1 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du1 = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du1 = merge(du1, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du1[is.na(N_int_same_ID1), N_int_same_ID1 := 0]
+du1[, int_prop_same_ID1 := N_int_same_ID1 / N]
+
+dps = dp[ID2_any_same_int == TRUE, .(N_int_same_ID2 = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du2 = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du2 = merge(du2, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du2[is.na(N_int_same_ID2), N_int_same_ID2 := 0]
+du2[, int_prop_same_ID2 := N_int_same_ID2 / N]
+
+# rbind data
+du = rbind(du1[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                   N_int_same = N_int_same_ID1, int_prop_same = int_prop_same_ID1, type = 'Male')], 
+           du2[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                   N_int_same = N_int_same_ID2, int_prop_same = int_prop_same_ID2, type = 'Female')])
+du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+#' ###  MODEL4 - Male interacting with other males
+m4 <- glmmTMB(ID1_any_same_int ~ poly(datetime_rel_pair, 2) + year_ +
+                scale(sin_time) + scale(cos_time) +
+                (1 + poly(datetime_rel_pair, 2) | pairID),
+              family = binomial, data = dm,
+              REML = FALSE,
+              control = glmmTMBControl(parallel = 15)
+)
+
+summary(m4)
+
+# predict data
+e4 <- allEffects(m4, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+### MODEL5 - Female interacting with other females
+m5 <- glmmTMB(ID2_any_same_int ~ poly(datetime_rel_pair, 2) + year_ +
+                scale(sin_time) + scale(cos_time) +
+                (1 + poly(datetime_rel_pair, 2) | pairID),
+              family = binomial, data = dm,
+              REML = FALSE,
+              control = glmmTMBControl(parallel = 15)
+)
+
+summary(m5)
+
+# predict data
+e5 <- allEffects(m5, xlevels = 100)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+# Plot for males and females probability to interact with other opposite sex individuals
+e4[, type := 'Male']
+e5[, type := 'Female']
+
+eb = rbind(e4, e5)
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min], 
+               aes(datetime_rel_pair0, int_prop_same, color = type,  
+                   group = interaction(type, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                     labels = c('Female', 'Male')) +
+  scale_fill_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                    labels = c('Female', 'Male')) +
+  geom_line(data = eb, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
+  geom_ribbon(data = eb, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = type), 
+              alpha = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of same sex interactions') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("Model 4 & 5 same sex interactions")
+
+p
+
+#' ## MODEL4 & 5 with separation in initiated yes and no
+
+#' ###  MODEL4 - Male interacting with other males
+m4 <- glmmTMB(ID1_any_same_int ~ scale(datetime_rel_pair) * initiated + year_ +
+                scale(sin_time) + scale(cos_time) +
+                (1 + poly(datetime_rel_pair, 2) | pairID),
+              family = binomial, data = dm,
+              REML = FALSE,
+              control = glmmTMBControl(parallel = 15)
+)
+
+summary(m4)
+
+e = allEffects(m4, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+  data.frame() |>
+  setDT()
+
+# predictions are made for the entire range of the data, subset to the relevant interval
+e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
+
+du[, initiated := fifelse(datetime_rel_pair0 < 0, "no", "yes")]
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
+               aes(datetime_rel_pair0, int_prop_same, color = initiated,  
+                   group = interaction(initiated, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                     labels = c('pre initiation', 'post initiation')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                    labels = c('pre initiation', 'post initiation')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated), 
+              alpha = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of extra-pair interactions') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("Model 4 - Males same sex interactions - split in initiated (yes/no)")
+
+p
 
 
+#' ###  MODEL5 - Female interacting with other females
+m5 <- glmmTMB(ID2_any_same_int ~ scale(datetime_rel_pair) * initiated + year_ +
+                scale(sin_time) + scale(cos_time) +
+                (1 + poly(datetime_rel_pair, 2) | pairID),
+              family = binomial, data = dm,
+              REML = FALSE,
+              control = glmmTMBControl(parallel = 15)
+)
 
+summary(m5)
+
+e = allEffects(m5, xlevels = 100)$"scale(datetime_rel_pair):initiated" |>
+  data.frame() |>
+  setDT()
+
+# predictions are made for the entire range of the data, subset to the relevant interval
+e = e[(initiated == "no" & datetime_rel_pair < 0) | (initiated == "yes" & datetime_rel_pair > 0)]
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min & type == 'Female'], 
+               aes(datetime_rel_pair0, int_prop_same, color = initiated,  
+                   group = interaction(initiated, datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                     labels = c('pre initiation', 'post initiation')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                    labels = c('pre initiation', 'post initiation')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated), 
+              alpha = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of extra-pair interactions') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("Model 5- Females same sex interactions - split in initiated (yes/no)")
+
+p
 
 
 
