@@ -259,6 +259,26 @@ dp = merge(dp, dps1[, .(year_, ID1, datetime_1, ID1_any_ep_int)],
 dp = merge(dp, dps2[, .(year_, ID2, datetime_2, ID2_any_ep_int)], 
            by = c('year_', 'ID2', 'datetime_2'), all.x = TRUE)
 
+#--------------------------------------------------------------------------------------------------------------
+#' Same sex interactions
+#--------------------------------------------------------------------------------------------------------------
+
+# summary by unique pair excluding pair wise duplicates
+dps = dp[same_sex == TRUE & sex1 == 'M'] # because nests are merged with ID1 = male
+
+# any interaction with other than breeding partner?
+dps[, ID1_any_same_int := any(interaction == TRUE & breeding_pair == FALSE), by = .(year_, ID1, datetime_1)]
+dps1 = unique(dps, by = c('year_', 'ID1', 'datetime_1'))
+
+dps[, ID2_any_same_int := any(interaction == TRUE & breeding_pair == FALSE), by = .(year_, ID2, datetime_2)]
+dps2 = unique(dps, by = c('year_', 'ID2', 'datetime_2'))
+
+# merge with dp
+dp = merge(dp, dps1[, .(year_, ID1, datetime_1, ID1_any_same_int)], 
+           by = c('year_', 'ID1', 'datetime_1'), all.x = TRUE)
+
+dp = merge(dp, dps2[, .(year_, ID2, datetime_2, ID2_any_same_int)], 
+           by = c('year_', 'ID2', 'datetime_2'), all.x = TRUE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' Subset relevant data
