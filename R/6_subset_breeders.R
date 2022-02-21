@@ -264,7 +264,7 @@ dp = merge(dp, dps2[, .(year_, ID2, datetime_2, ID2_any_ep_int)],
 #--------------------------------------------------------------------------------------------------------------
 
 # summary by unique pair excluding pair wise duplicates
-dps = dp[same_sex == TRUE & sex1 == 'M'] # because nests are merged with ID1 = male
+dps = dp[same_sex == TRUE] # because nests are merged with ID1 = male
 
 # any interaction with other than breeding partner?
 dps[, ID1_any_same_int := any(interaction == TRUE & breeding_pair == FALSE), by = .(year_, ID1, datetime_1)]
@@ -305,7 +305,8 @@ dps =
 dp[breeding_pair == TRUE & sex1 == 'M', 
    .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
      datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, 
-     at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, breeding_pair, type = 'breeding pair')]
+     at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, 
+     breeding_pair, type = 'breeding pair')]
 
 # save data
 fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
