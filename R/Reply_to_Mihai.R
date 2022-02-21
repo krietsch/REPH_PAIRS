@@ -391,6 +391,49 @@ p
 
 #' ## MODEL2 & 3 when with partner or not
 
+### PLOT split in with partner or without 
+
+# proportion of extra-pair interactions
+
+# male with 
+dps = dp[ID1_any_ep_int == TRUE & interaction == TRUE, .(N_int_ep_ID1_with = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du1 = merge(du1, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du1[is.na(N_int_ep_ID1_with), N_int_ep_ID1_with := 0]
+du1[, int_prop_ep_ID1_with := N_int_ep_ID1_with / N_int_ep_ID1]
+
+# male without
+dps = dp[ID1_any_ep_int == TRUE & interaction == FALSE, .(N_int_ep_ID1_without = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du1 = merge(du1, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du1[is.na(N_int_ep_ID1_without), N_int_ep_ID1_without := 0]
+du1[, int_prop_ep_ID1_without := N_int_ep_ID1_without / N_int_ep_ID1]
+
+# female with
+dps = dp[ID2_any_ep_int == TRUE & interaction == TRUE, .(N_int_ep_ID2_with = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du2 = merge(du2, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du2[is.na(N_int_ep_ID2_with), N_int_ep_ID2_with := 0]
+du2[, int_prop_ep_ID2_with := N_int_ep_ID2_with / N_int_ep_ID2]
+
+# female without
+dps = dp[ID2_any_ep_int == TRUE & interaction == FALSE, .(N_int_ep_ID2_without = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du2 = merge(du2, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du2[is.na(N_int_ep_ID2_without), N_int_ep_ID2_without := 0]
+du2[, int_prop_ep_ID2_without := N_int_ep_ID2_without / N_int_ep_ID2]
+
+# rbind data
+du1 = rbind(du1[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                    N_int_ep_type = N_int_ep_ID1_with, int_prop_ep_type = int_prop_ep_ID1_with, interaction = 'TRUE')], 
+            du1[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                    N_int_ep_type = N_int_ep_ID1_without, int_prop_ep_type = int_prop_ep_ID1_without, interaction = 'FALSE')])
+
+du2 = rbind(du2[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                    N_int_ep_type = N_int_ep_ID2_with, int_prop_ep_type = int_prop_ep_ID2_with, interaction = 'TRUE')], 
+            du2[, .(pairID, nestID, datetime_rel_pair0, year_, ID1, ID2, sex1, sex2, N, Np, 
+                    N_int_ep_type = N_int_ep_ID2_without, int_prop_ep_type = int_prop_ep_ID2_without, interaction = 'FALSE')])
+
+du1 = du1[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+du2 = du2[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+
 dm[, interaction := factor(interaction)]
 
 
@@ -413,10 +456,10 @@ e = allEffects(m2, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
-  #              aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
-  #                  group = interaction(initiated, datetime_rel_pair0)), 
-  #              lwd = 0.4, outlier.size = 0.7) +
+  geom_boxplot(data = du1[Np >= Np_min],
+               aes(datetime_rel_pair0, int_prop_ep_type, color = interaction,
+                   group = interaction(interaction, datetime_rel_pair0)),
+               lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '',
                      labels = c('FALSE', 'TRUE')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '',
@@ -459,10 +502,10 @@ e = allEffects(m3, xlevels = 100)$"poly(datetime_rel_pair,2):interaction" |>
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # geom_boxplot(data = du[Np >= Np_min & type == 'Male'], 
-  #              aes(datetime_rel_pair0, int_prop_ep, color = initiated,  
-  #                  group = interaction(initiated, datetime_rel_pair0)), 
-  #              lwd = 0.4, outlier.size = 0.7) +
+  geom_boxplot(data = du2[Np >= Np_min],
+               aes(datetime_rel_pair0, int_prop_ep_type, color = interaction,
+                   group = interaction(interaction, datetime_rel_pair0)),
+               lwd = 0.4, outlier.size = 0.7) +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '',
                      labels = c('FALSE', 'TRUE')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '',
