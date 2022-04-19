@@ -455,6 +455,9 @@ ds[, mf_initiation5 := ifelse(m_initiation5 == TRUE & f_initiation == TRUE, TRUE
 ds[, .N, by = mf_initiation]
 ds[, .N, by = mf_initiation5]
 
+ds[, .N, by = m_before_initiation]
+ds[, .N, by = f_before_initiation]
+
 ds[male_N_clutch == 2]
 ds[female_N_clutch == 2, .(nestID, femaleID_year, maleID_year, f_initiation5, m_initiation5, initiation)]
 
