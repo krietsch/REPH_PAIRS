@@ -104,6 +104,9 @@ d = d[!is.na(ID)]
 
 # ID's per obs_id
 d[, N := .N, by = obs_id]
+
+# split data in obs_id with only one individual
+d1 = d[N == 1, .(obs_id, ID1 = ID_year, ID2 = NA)]
 d2 = d[N > 1]
 
 # reshape data in long format
@@ -114,12 +117,12 @@ setnames(d2, c('obs_id', 'ID1', 'ID2'))
 dup = d2[, .(obs_id, ID1 = ID2, ID2 = ID1)]
 d2 = rbind(d2, dup)
 
-di = copy(d2)
+di = rbind(d1, d2)
 
-di = merge(di, d[, .(obs_id, ID_year, ID2sex = sex)], 
+di = merge(di, d[, .(obs_id, ID_year, ID2sex = sex, ID2flight = flight, ID2aggres = aggres, ID2min_dist = min_dist)], 
            by.x = c('obs_id', 'ID2'), by.y = c('obs_id', 'ID_year'), all.x = TRUE)
 
-di = merge(di, d[, .(obs_id, ID_year, ID1sex = sex, author, year_, datetime_, 
+di = merge(di, d[, .(obs_id, ID_year, ID1sex = sex, ID1flight = flight, ID1aggres = aggres, ID1min_dist = min_dist, author, year_, datetime_, 
                      datetime_y, date_)], 
            by.x = c('obs_id', 'ID1'), by.y = c('obs_id', 'ID_year'), all.x = TRUE)
 
@@ -136,9 +139,68 @@ di[is.na(nest_together), nest_together := 0]
 # merge partner to all
 di = merge(di, dnp[, .(ID1, ID1_1st_partner, ID1_2nd_partner)], by = 'ID1', all.x = TRUE)
 
+# type of interactions
+di[, interaction_ := ifelse(!is.na(ID2), 1, 0), by = 1:nrow(di)]
+di[, any_interaction := any(interaction_ == 1), by = ID1]
+di[, same_sex := ifelse(ID1sex == ID2sex, 1, 0), by = 1:nrow(di)]
+di[, any_same_sex := any(same_sex == 1), by = ID1]
+di[, any_opp_sex := any(same_sex == 0), by = ID1]
+di[, copAS := ifelse(ID1copAS == 1 & ID2copAS == 1, 1, 0), by = 1:nrow(di)]
+di[, N_cop_ID := sum(copAS, na.rm = TRUE), by = ID1]
 
+
+di[, diff_obs_1st_initiation := difftime(datetime_, first_initiation, units = 'days') %>% as.numeric %>% round(., 0)]
+di[, diff_obs_2nd_initiation := difftime(datetime_, second_initiation, units = 'days') %>% as.numeric %>% round(., 0)]
+
+
+
+
+
+
+ggplot(data = di[!is.na(ID1min_dist) & same_sex == 0]) +
+  geom_point(aes(datetime_y, ID1min_dist, color = any_nest))
+
+ggplot(data = di[!is.na(ID1min_dist) & same_sex == 0 & diff_obs_1st_initiation > -100]) +
+  geom_boxplot(aes(diff_obs_1st_initiation, ID1min_dist, group = diff_obs_1st_initiation)) 
+
+ggplot(data = di[!is.na(ID1min_dist) & same_sex == 0 & diff_obs_1st_initiation > -100]) +
+  geom_point(aes(diff_obs_1st_initiation, ID1min_dist, color = any_nest)) +
+  geom_smooth(aes(diff_obs_1st_initiation, ID1min_dist), method = 'loess')
+
+ggplot(data = di[!is.na(ID1aggres) & same_sex == 0 & diff_obs_1st_initiation > -100]) +
+  geom_point(aes(diff_obs_1st_initiation, ID1aggres, color = any_nest)) 
+
+
+ggplot(data = di[!is.na(ID1flight) & same_sex == 0 & diff_obs_1st_initiation > -100]) +
+  geom_point(aes(diff_obs_1st_initiation, ID1flight, color = any_nest)) 
+
+
+
+di[ID1flight %like%('F1'), .N, by = ID1sex]
+
+
+di[ID1flight %like%('F1') & any_nest == TRUE, .N, by = ID1sex]
+
+di[ID1flight %like%('F1') & any_nest == TRUE]
+
+
+di[ID1aggres %like%('F'), .N, by = ID1sex]
+
+
+di[ID1aggres %like%('F'), .N, by = author]
+
+
+
+ds = di[ID1aggres %like%('F'), .(obs_id, ID1sex, ID2sex, ID1aggres, ID2aggres)]
+
+setorder(ds, ID1sex, ID2sex)
+ds
+
+dss = unique(ds, by = 'obs_id')
+
+dss
 
 d[flight %like%('F'), .N, by = sex]
-
+d[aggres %like%('F'), .N, by = sex]
 
 d[is.na(min_dist)]
