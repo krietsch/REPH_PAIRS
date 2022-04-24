@@ -1,5 +1,5 @@
 #' ---
-#' title: Calculate pair-wise interactions
+#' title: Look at observation data
 #' subtitle: 
 #' author: Johannes Krietsch
 #' output:
@@ -37,6 +37,100 @@ dn = dn[year_ > 2017]
 dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Basic overview flights
+#--------------------------------------------------------------------------------------------------------------
+
+# Total observations
+d |> nrow()
+
+# How many ID at observations?
+d[, N_ind_int := .N, by = obs_id]
+
+# How many observations with at least two IDs and a flight?
+d[, any_flights := any(flight %like% 'F'), by = obs_id]
+
+# Total with at least 2 IDs
+unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
+
+# Total with a flight
+unique(d[N_ind_int > 1 & any_flights == TRUE], by = 'obs_id') |> nrow()
+
+# Total with a flight initiator scored
+d[, any_F1 := any(flight == 'F1'), by = obs_id]
+d[, any_F0 := any(flight == 'F0'), by = obs_id]
+
+unique(d[N_ind_int > 1 & any_F1 == TRUE], by = 'obs_id') |> nrow()
+
+# Male initiating
+unique(d[N_ind_int > 1 & sex == 'M' & flight == 'F1'], by = 'obs_id') |> nrow()
+
+# Any female following?
+d[, any_female_F0 := any(flight == 'F0' & sex == 'F'), by = obs_id]
+unique(d[N_ind_int > 1 & sex == 'M' & flight == 'F1' & any_female_F0 == TRUE], by = 'obs_id') |> nrow()
+
+# Female initiating
+unique(d[N_ind_int > 1 & sex == 'F' & flight == 'F1'], by = 'obs_id') |> nrow()
+
+# Any male following?
+d[, any_male_F0 := any(flight == 'F0' & sex == 'M'), by = obs_id]
+unique(d[N_ind_int > 1 & sex == 'F' & flight == 'F1' & any_male_F0 == TRUE], by = 'obs_id') |> nrow()
+
+# Summary 
+64/146 * 100 # percent of males initiating when scored
+87/146 * 100 # percent of females initiating when scored
+
+49/64 * 100 # percent female following 
+72/87 * 100 # percent male following 
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Basic overview fights
+#--------------------------------------------------------------------------------------------------------------
+
+
+d[aggres == 'F' & year_ == 2019]
+
+
+d[!is.na(aggres), .N, by = year_]
+
+d[!is.na(flight), .N, by = year_]
+d[flight %like%('F1'), .N, by = sex]
+d[flight %like%('F0'), .N, by = sex]
+
+d[flight == 'F1' | flight == 'F0']
+
+d[obs_id == '17_9_1']
+
+
+d[, any_F1 := any(flight == 'F1'), by = obs_id]
+d[, any_F0 := any(flight == 'F0'), by = obs_id]
+
+
+
+d[any_F1 == TRUE & any_F0 == TRUE, .N, by = .(flight, sex)]
+d[any_F1 == TRUE & N_ind_int > 1, .N, by = .(flight, sex)]
+
+
+
+d[sex == 'M' & flight == 'F1' & any_F0 == TRUE, .N, by = sex]
+
+
+
+
+
+
+
+
+d[aggres %like%('1'), .N, by = sex]
+ds = d[!is.na(aggres), .N, by = .(sex, aggres)]
+setorder(ds, aggres, sex)
+ds
+
+d[, .N, ]
+
+d[, .N, by= aggres]
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Following behaviour
