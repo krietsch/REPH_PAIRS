@@ -43,7 +43,7 @@ dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
 #--------------------------------------------------------------------------------------------------------------
 
 # Total observations
-d |> nrow()
+unique(d, by = 'obs_id') |> nrow()
 
 # How many ID at observations?
 d[, N_ind_int := .N, by = obs_id]
@@ -88,49 +88,70 @@ unique(d[N_ind_int > 1 & sex == 'F' & flight == 'F1' & any_male_F0 == TRUE], by 
 #' # Basic overview fights
 #--------------------------------------------------------------------------------------------------------------
 
+# Total observations
+unique(d, by = 'obs_id') |> nrow()
 
-d[aggres == 'F' & year_ == 2019]
+# How many ID at observations?
+d[, N_ind_int := .N, by = obs_id]
 
+# How many observations with at least two IDs and a aggression?
+d[, any_aggres := any(!is.na(aggres)), by = obs_id]
 
-d[!is.na(aggres), .N, by = year_]
+# Total with at least 2 IDs
+unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
 
-d[!is.na(flight), .N, by = year_]
-d[flight %like%('F1'), .N, by = sex]
-d[flight %like%('F0'), .N, by = sex]
+# Total with a aggression
+unique(d[N_ind_int > 1 & any_aggres == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & any_aggres == TRUE], by = 'obs_id') |> nrow()
 
-d[flight == 'F1' | flight == 'F0']
+# Total with a aggression initiator scored
+d[, any_1 := any(aggres %like% '1'), by = obs_id]
+d[, any_0 := any(aggres %like% '0'), by = obs_id]
 
-d[obs_id == '17_9_1']
+unique(d[N_ind_int > 1 & any_1 == TRUE], by = 'obs_id') |> nrow()
 
+# Male aggression
+unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
 
-d[, any_F1 := any(flight == 'F1'), by = obs_id]
-d[, any_F0 := any(flight == 'F0'), by = obs_id]
+# Female aggression
+unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1'], by = 'obs_id') |> nrow()
 
+# Which sex was target?
+d[, any_female_0 := any(aggres %like% '0' & sex == 'F'), by = obs_id]
+d[, any_male_0 := any(aggres %like% '0' & sex == 'M'), by = obs_id]
 
+# When male initiated
+unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
-d[any_F1 == TRUE & any_F0 == TRUE, .N, by = .(flight, sex)]
-d[any_F1 == TRUE & N_ind_int > 1, .N, by = .(flight, sex)]
+# when female initiated
+unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1'], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
 
+# Summary more than one ID
+39/61 * 100 # percent of male aggression against females
+24/61 * 100 # percent of male aggression against males
 
+34/80 * 100 # percent of female aggression against females
+45/80 * 100 # percent of female aggression against males
 
-d[sex == 'M' & flight == 'F1' & any_F0 == TRUE, .N, by = sex]
+# When male initiated
+unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
+unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1'], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
 
+# Summary more than two ID
+24/36 * 100 # percent of male aggression against females
+16/36 * 100 # percent of male aggression against males
 
-
-
-
-
-
-d[aggres %like%('1'), .N, by = sex]
-ds = d[!is.na(aggres), .N, by = .(sex, aggres)]
-setorder(ds, aggres, sex)
-ds
-
-d[, .N, ]
-
-d[, .N, by= aggres]
-
+10/35 * 100 # percent of female aggression against females
+25/35 * 100 # percent of female aggression against males
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Following behaviour
