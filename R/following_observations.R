@@ -56,12 +56,14 @@ unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
 
 # Total with a flight
 unique(d[N_ind_int > 1 & any_flights == TRUE], by = 'obs_id') |> nrow()
+364/2876 * 100
 
 # Total with a flight initiator scored
 d[, any_F1 := any(flight == 'F1'), by = obs_id]
 d[, any_F0 := any(flight == 'F0'), by = obs_id]
 
 unique(d[N_ind_int > 1 & any_F1 == TRUE], by = 'obs_id') |> nrow()
+146/2876 * 100
 
 # Male initiating
 unique(d[N_ind_int > 1 & sex == 'M' & flight == 'F1'], by = 'obs_id') |> nrow()
@@ -102,13 +104,19 @@ unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
 
 # Total with a aggression
 unique(d[N_ind_int > 1 & any_aggres == TRUE], by = 'obs_id') |> nrow()
+148/2876 * 100
 unique(d[N_ind_int > 2 & any_aggres == TRUE], by = 'obs_id') |> nrow()
+72/2876 * 100
 
 # Total with a aggression initiator scored
 d[, any_1 := any(aggres %like% '1'), by = obs_id]
 d[, any_0 := any(aggres %like% '0'), by = obs_id]
 
 unique(d[N_ind_int > 1 & any_1 == TRUE], by = 'obs_id') |> nrow()
+137/2876 * 100
+
+unique(d[N_ind_int > 2 & any_1 == TRUE], by = 'obs_id') |> nrow()
+67/2876 * 100
 
 # Male aggression
 unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
@@ -121,21 +129,21 @@ d[, any_female_0 := any(aggres %like% '0' & sex == 'F'), by = obs_id]
 d[, any_male_0 := any(aggres %like% '0' & sex == 'M'), by = obs_id]
 
 # When male initiated
-unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
 unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
 unique(d[N_ind_int > 1 & sex == 'M' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
 # when female initiated
-unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1'], by = 'obs_id') |> nrow()
-unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 1 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
 # Summary more than one ID
+61/137 * 100 # male initiated
 39/61 * 100 # percent of male aggression against females
 24/61 * 100 # percent of male aggression against males
 
-34/80 * 100 # percent of female aggression against females
-45/80 * 100 # percent of female aggression against males
+80/137 * 100 # female initiated
+45/80 * 100 # percent of female aggression against females
+34/80 * 100 # percent of female aggression against males
 
 # When male initiated
 unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1'], by = 'obs_id') |> nrow()
@@ -143,15 +151,17 @@ unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1' & any_female_0 == TRUE],
 unique(d[N_ind_int > 2 & sex == 'M' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
 unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1'], by = 'obs_id') |> nrow()
-unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_female_0 == TRUE], by = 'obs_id') |> nrow()
+unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], by = 'obs_id') |> nrow()
 
 # Summary more than two ID
+36/67 * 100 # male initiated
 24/36 * 100 # percent of male aggression against females
 16/36 * 100 # percent of male aggression against males
 
-10/35 * 100 # percent of female aggression against females
-25/35 * 100 # percent of female aggression against males
+35/67 * 100 # female initiated
+25/35 * 100 # percent of female aggression against females
+10/35 * 100 # percent of female aggression against males
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Following behaviour
