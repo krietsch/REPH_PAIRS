@@ -4,7 +4,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'foreach', 'knitr', 
-          'stringr', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
+          'stringr', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects', 'performance'), 
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -55,6 +55,10 @@ m_3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus3 +
 
 summary(m_3)
 
+x = r2(m_3) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x_3 = x[, model := 'm_3']
+
 # two days before clutch initiation
 m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
                  scale(sin_time) + scale(cos_time) +
@@ -63,6 +67,12 @@ m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
                REML = FALSE,
                control = glmmTMBControl(parallel = 15)
 )
+
+summary(m_2)
+
+x = r2(m_2) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x_2 = x[, model := 'm_2']
 
 # one day before clutch initiation
 m_1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
@@ -75,6 +85,10 @@ m_1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
 
 summary(m_1)
 
+x = r2(m_1) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x_1 = x[, model := 'm_1']
+
 # day with clutch initiation
 m0 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                 scale(sin_time) + scale(cos_time) +
@@ -85,6 +99,10 @@ m0 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
 )
 
 summary(m0)
+
+x = r2(m0) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x0 = x[, model := 'm0']
 
 # one day after clutch initiation
 m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
@@ -97,6 +115,10 @@ m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
 
 summary(m1)
 
+x = r2(m1) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x1 = x[, model := 'm1']
+
 # two days after clutch initiation
 m2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
                 scale(sin_time) + scale(cos_time) +
@@ -107,6 +129,10 @@ m2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
 )
 
 summary(m2)
+
+x = r2(m2) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x2 = x[, model := 'm2']
 
 # three days after clutch initiation
 m3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
@@ -119,9 +145,16 @@ m3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
 
 summary(m3)
 
+x = r2(m3) |> data.table() |> t() |> data.table()
+setnames(x, c('R2cond', 'R2marg'))
+x3 = x[, model := 'm3']
 
 # compare models
 MuMIn::model.sel(m_3, m_2, m_1, m0, m1, m2, m3)
+
+dr2 = data.table(rbindlist(x_3, x_2, x_1, x0, x1, x2, x3))
+
+
 
 
 #' ### refit best fitting model with REML = TRUE
@@ -158,14 +191,14 @@ require(ggnewscale)
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID, color = Np), alpha = 0.5) +
-  viridis::scale_color_viridis(direction = -1, name = 'N positions') +
+  geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
+  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
   
-  new_scale('color') +
+  # new_scale('color') +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre initiation', 'post initiation')) +
+                     labels = c('pre peak', 'post peak')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre initiation', 'post initiation')) +
+                    labels = c('pre peak', 'post peak')) +
   geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
