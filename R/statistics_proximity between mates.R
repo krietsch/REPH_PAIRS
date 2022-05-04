@@ -39,6 +39,9 @@ dm[, initiated_plus3  := fifelse(datetime_rel_pair < 3, "no", "yes")]
 # plot settings
 margin_ = unit(c(4, 4, 4, 4), 'pt')
 
+# start word file
+ESM = read_docx()
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Model probability of close proximity for breeding pairs 
 #--------------------------------------------------------------------------------------------------------------
@@ -59,7 +62,7 @@ pn = fread("parname;                                                          pa
             scale(datetime_rel_pair):initiated_minus3yes;                     relative day x split (after)                       
             scale(datetime_rel_pair):initiated_minus2yes;                     relative day x split (after)                            
             scale(datetime_rel_pair):initiated_minus1yes;                     relative day x split (after)                            
-            scale(datetime_rel_pair):initiated_yes;                           relative day x split (after)                      
+            scale(datetime_rel_pair):initiatedyes;                            relative day x split (after)                      
             scale(datetime_rel_pair):initiated_plus1yes;                      relative day x split (after)                           
             scale(datetime_rel_pair):initiated_plus2yes;                      relative day x split (after)                           
             scale(datetime_rel_pair):initiated_plus3yes;                      relative day x split (after)                           
@@ -70,6 +73,12 @@ pn = fread("parname;                                                          pa
             r2cond;                                                           R² conditional
             
 ", sep = ';')
+
+# table caption
+tc1 = 'Linear mixed-effect model on the proximity between breeding pairs in relation to the clutch initiation date (= 0) interacting with the split day '
+tc2 = '. We included the sin and cos of time to account for variation explained by daily pattern and the pair ID nested within the relative clutch initiation date as random effects.
+       All numeric parameters are scaled.'
+
 
 
 
@@ -111,13 +120,11 @@ y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subs
 y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-yt = flextable(y) |> autofit()
-
-ESM = read_docx()
-ESM = ESM |> body_add_par('Table 1 blaCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC bla') |>  body_add_par('') |> body_add_flextable(yt)
-
-print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
-
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S1. ', tc1, '(three days before clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 # two days before clutch initiation
@@ -140,9 +147,27 @@ m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
 
 summary(m_2)
 
-x = r2(m_2) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x_2 = x[, model := 'm_2']
+
+# create clean summary table 
+y = tidy(m_2) |> data.table()
+x = r2(m_2) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S2. ', tc1, '(two days before clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # one day before clutch initiation
 m_1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
@@ -163,9 +188,26 @@ m_1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
 
 summary(m_1)
 
-x = r2(m_1) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x_1 = x[, model := 'm_1']
+# create clean summary table 
+y = tidy(m_1) |> data.table()
+x = r2(m_1) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S3. ', tc1, '(one day before clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # day with clutch initiation
 m0ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
@@ -186,9 +228,26 @@ m0 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
 
 summary(m0)
 
-x = r2(m0) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x0 = x[, model := 'm0']
+# create clean summary table 
+y = tidy(m0) |> data.table()
+x = r2(m0) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S4. ', tc1, '(at clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # one day after clutch initiation
 m1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
@@ -209,9 +268,26 @@ m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
 
 summary(m1)
 
-x = r2(m1) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x1 = x[, model := 'm1']
+# create clean summary table 
+y = tidy(m1) |> data.table()
+x = r2(m1) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S5. ', tc1, '(one day after clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # two days after clutch initiation
 m2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
@@ -232,9 +308,26 @@ m2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
 
 summary(m2)
 
-x = r2(m2) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x2 = x[, model := 'm2']
+# create clean summary table 
+y = tidy(m2) |> data.table()
+x = r2(m2) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S6. ', tc1, '(two days after clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # three days after clutch initiation
 m3ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
@@ -255,9 +348,26 @@ m3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
 
 summary(m3)
 
-x = r2(m3) |> data.table() |> t() |> data.table()
-setnames(x, c('r2cond', 'r2marg'))
-x3 = x[, model := 'm3']
+# create clean summary table 
+y = tidy(m3) |> data.table()
+x = r2(m3) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S7. ', tc1, '(three days after clutch initiation)', tc2)) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 # compare models
 x = MuMIn::model.sel(m_3ml, m_2ml, m_1ml, m0ml, m1ml, m2ml, m3ml)
@@ -265,12 +375,16 @@ rn = rownames(x)
 x = x |> data.table()
 x[, model := rn]
 
-dr2 = data.table(rbindlist(list(x_3, x_2, x_1, x0, x1, x2, x3)))
-
-dx = merge(x, dr2, by = 'model')
-
-dx = dx[, .(model, df, AICc, delta, r2marg, r2cond)]
+dx = x[, .(model, df, AICc, delta, weights)]
 dx
+
+
+
+
+# save word file
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
+
+
 
 
 #' ### refit best fitting model with REML = TRUE
