@@ -108,7 +108,17 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+yt = flextable(y) |> autofit()
+
+ESM = read_docx()
+ESM = ESM |> body_add_par('Table 1 blaCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC bla') |>  body_add_par('') |> body_add_flextable(yt)
+
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
+
+
 
 # two days before clutch initiation
 m_2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
