@@ -76,10 +76,7 @@ pn = fread("parname;                                                          pa
 
 # table caption
 tc1 = 'Linear mixed-effect model on the proximity between breeding pairs in relation to the clutch initiation date (= 0) interacting with the split day '
-tc2 = '. We included the sin and cos of time to account for variation explained by daily pattern and the pair ID nested within the relative clutch initiation date as random effects.
-       All numeric parameters are scaled.'
-
-
+tc2 = '. We included the sin and cos of time to account for variation explained by daily pattern and the pair ID nested within the relative clutch initiation date as random effects. All numeric parameters are scaled.'
 
 
 
@@ -375,10 +372,26 @@ rn = rownames(x)
 x = x |> data.table()
 x[, model := rn]
 
-dx = x[, .(model, df, AICc, delta, weights)]
+dx = x[, .(model, df, AICc, delta, weight)]
 dx
 
+# change names
+dx[model == 'm_3ml', model := '-3 days']
+dx[model == 'm_2ml', model := '-2 days']
+dx[model == 'm_1ml', model := '-1 day']
+dx[model == 'm0ml',  model := 'at initiation day']
+dx[model == 'm1ml',  model := '+1 day']
+dx[model == 'm2ml',  model := '+2 days']
+dx[model == 'm3ml',  model := '+3 days']
 
+setnames(dx, c('split day', 'df', 'AICc', 'delta AIC', 'weight'))
+
+# save table in word
+dx = dx %>% mutate_if(is.numeric, ~round(., 1)) # round all numeric columns 
+ft = flextable(dx) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par('Table S8. Model selection of linear mixed-effect models on the proximity between breeding pairs in relation to the clutch initiation date (= 0) interacting with different split days (in relation to clutch initiation). Models were fitted with maximum likelihood and ranked based on the AIC criterion. For the summary statistics of all models fitted with restricted maximum likelihood see Table S1-S7') |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 # save word file
