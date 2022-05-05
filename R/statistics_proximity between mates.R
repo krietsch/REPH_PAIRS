@@ -20,6 +20,26 @@ dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t
 # subset data for models
 dm = dp[datetime_rel_pair >= -5 & datetime_rel_pair <= 5]
 
+# how many pairs?
+
+# all data
+ds = dp |> unique(by = 'pairID') 
+ds |> nrow()
+ds[, .N, by = 'year_'] 
+
+ds = dp |> unique(by = 'nestID') 
+ds |> nrow()
+ds[, .N, by = 'year_'] 
+
+# subset
+ds = dm |> unique(by = 'pairID') 
+ds |> nrow()
+ds[, .N, by = 'year_'] 
+
+ds = dm |> unique(by = 'nestID') 
+ds |> nrow()
+ds[, .N, by = 'year_'] 
+
 # factor year
 dm[, year_ := factor(year_)]
 
@@ -75,26 +95,26 @@ pn = fread("parname;                                                          pa
 ", sep = ';')
 
 # table caption
-tc1 = 'Linear mixed-effect model on the proximity between breeding pairs in relation to the clutch initiation date (= 0) interacting with the split day '
-tc2 = '. We included the sin and cos of time to account for variation explained by daily pattern and the pair ID nested within the relative clutch initiation date as random effects. All numeric parameters are scaled.'
+tc1 = 'Generalized linear mixed-effect model on the interaction between breeding pairs in relation to the clutch initiation date (= 0) interacting with the split day '
+tc2 = '. We included the sin and cos of time to account for variation explained by daily pattern and the nest ID nested within the relative clutch initiation date as random effects. All numeric parameters are scaled.'
 
 
 
 #' ### model selection ML for AIC comparison and REML for final table
 
 # three days before clutch initiation
-m_3ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus3 +
+m_3ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus3 + 
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = FALSE,
                control = glmmTMBControl(parallel = 15)
 )
 
 
-m_3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus3 +
+m_3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus3 + 
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = TRUE,
                control = glmmTMBControl(parallel = 15)
@@ -127,7 +147,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # two days before clutch initiation
 m_2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = FALSE,
                control = glmmTMBControl(parallel = 15)
@@ -136,7 +156,7 @@ m_2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
 
 m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = TRUE,
                control = glmmTMBControl(parallel = 15)
@@ -169,7 +189,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # one day before clutch initiation
 m_1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = FALSE,
                control = glmmTMBControl(parallel = 15)
@@ -177,7 +197,7 @@ m_1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
 
 m_1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus1 +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = TRUE,
                control = glmmTMBControl(parallel = 15)
@@ -209,7 +229,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # day with clutch initiation
 m0ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = FALSE,
               control = glmmTMBControl(parallel = 15)
@@ -217,7 +237,7 @@ m0ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
 
 m0 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = TRUE,
               control = glmmTMBControl(parallel = 15)
@@ -249,7 +269,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # one day after clutch initiation
 m1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = FALSE,
               control = glmmTMBControl(parallel = 15)
@@ -257,7 +277,7 @@ m1ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
 
 m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
                family = binomial, data = dm,
                REML = TRUE,
                control = glmmTMBControl(parallel = 15)
@@ -289,7 +309,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # two days after clutch initiation
 m2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = FALSE,
               control = glmmTMBControl(parallel = 15)
@@ -297,7 +317,7 @@ m2ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
 
 m2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus2 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = TRUE,
               control = glmmTMBControl(parallel = 15)
@@ -329,7 +349,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # three days after clutch initiation
 m3ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = FALSE,
               control = glmmTMBControl(parallel = 15)
@@ -337,7 +357,7 @@ m3ml <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
 
 m3 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus3 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = TRUE,
               control = glmmTMBControl(parallel = 15)
@@ -390,27 +410,12 @@ setnames(dx, c('split day', 'df', 'AICc', 'delta AIC', 'weight'))
 dx = dx %>% mutate_if(is.numeric, ~round(., 1)) # round all numeric columns 
 ft = flextable(dx) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par('Table S8. Model selection of linear mixed-effect models on the proximity between breeding pairs in relation to the clutch initiation date (= 0) interacting with different split days (in relation to clutch initiation). Models were fitted with maximum likelihood and ranked based on the AIC criterion. For the summary statistics of all models fitted with restricted maximum likelihood see Table S1-S7') |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par('Table S8. Model selection of generalized linear mixed-effect models on the interactions between breeding pairs in relation to the clutch initiation date (= 0) interacting with different split days (in relation to clutch initiation). Models were fitted with maximum likelihood and ranked based on the AIC criterion. For the summary statistics of all models fitted with restricted maximum likelihood see Table S1-S7') |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
 # save word file
 print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
-
-
-
-
-#' ### refit best fitting model with REML = TRUE
-m_2r <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
-                 scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | pairID),
-               family = binomial, data = dm,
-               REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-summary(m_2r)
-
 
 #' ### plot model with raw data
 
@@ -422,7 +427,7 @@ du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
 
 # extract model predictions
-e = allEffects(m_2r, xlevels = 1000)$"scale(datetime_rel_pair):initiated_minus2" |>
+e = allEffects(m_2, xlevels = 1000)$"scale(datetime_rel_pair):initiated_minus2" |>
   data.frame() |>
   setDT()
 
@@ -435,14 +440,104 @@ require(ggnewscale)
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
+  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
   # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
   
   # new_scale('color') +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre peak', 'post peak')) +
+                     labels = c('pre split', 'post split')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre peak', 'post peak')) +
+                    labels = c('pre split', 'post split')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of mates interacting') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+
+# exclude all when male alone at the nest
+dms = dm[!(at_nest1 == TRUE & interaction == FALSE)]
+
+m_2s <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
+               family = binomial, data = dms,
+               REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(m_2s)
+
+
+# extract model predictions
+e = allEffects(m_2s, xlevels = 1000)$"scale(datetime_rel_pair):initiated_minus2" |>
+  data.frame() |>
+  setDT()
+
+# predictions are made for the entire range of the data, subset to the relevant interval
+e = e[(initiated_minus2 == "no" & datetime_rel_pair < -2) | (initiated_minus2 == "yes" & datetime_rel_pair > -2)]
+
+require(ggnewscale)
+
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
+  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
+  
+  # new_scale('color') +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                     labels = c('pre split', 'post split')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                    labels = c('pre split', 'post split')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of mates interacting') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+
+
+
+
+
+
+
+
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
+  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
+  
+  # new_scale('color') +
+  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                     labels = c('pre split', 'post split')) +
+  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
+                    labels = c('pre split', 'post split')) +
   geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
@@ -468,7 +563,7 @@ p
 
 m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
                 scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | pairID),
+                (1 + poly(datetime_rel_pair, 2) | nestID),
               family = binomial, data = dm,
               REML = FALSE,
               control = glmmTMBControl(parallel = 15)
