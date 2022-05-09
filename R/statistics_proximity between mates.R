@@ -498,13 +498,12 @@ pa + pb +
   plot_layout(heights = c(1, 4)) +
   plot_annotation(tag_levels = 'A')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_Data_available.tiff', plot = last_plot(),  width = 180, height = 240, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_Data_available.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Plot model selected model
 #--------------------------------------------------------------------------------------------------------------
-
 
 # selected model
 m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
@@ -534,10 +533,6 @@ require(ggnewscale)
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
-  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
-  
-  # new_scale('color') +
   scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
                      labels = c('pre split', 'post split')) +
   scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
@@ -559,158 +554,4 @@ p =
 
 p
 
-
-# exclude all when male alone at the nest
-dms = dm[!(at_nest1 == TRUE & interaction == FALSE)]
-
-m_2s <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_minus2 +
-                 scale(sin_time) + scale(cos_time) +
-                 (1 + poly(datetime_rel_pair, 2) | nestID),
-               family = binomial, data = dms,
-               REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-summary(m_2s)
-
-
-# extract model predictions
-e = allEffects(m_2s, xlevels = 1000)$"scale(datetime_rel_pair):initiated_minus2" |>
-  data.frame() |>
-  setDT()
-
-# predictions are made for the entire range of the data, subset to the relevant interval
-e = e[(initiated_minus2 == "no" & datetime_rel_pair < -2) | (initiated_minus2 == "yes" & datetime_rel_pair > -2)]
-
-require(ggnewscale)
-
-# plot 
-p = 
-  ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
-  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
-  
-  # new_scale('color') +
-  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre split', 'post split')) +
-  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre split', 'post split')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
-  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
-                     labels = c('', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', ''),
-                     expand = expansion(add = c(0, 0))) +
-  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of mates interacting') +
-  xlab('Day relative to clutch initiation (= 0)') +
-  ggtitle("")
-
-p
-
-
-
-
-
-
-
-
-
-p = 
-  ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
-  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
-  
-  # new_scale('color') +
-  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre split', 'post split')) +
-  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre split', 'post split')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_minus2), size = 0.8) +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_minus2), alpha = 0.2) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)') +
-  ggtitle("")
-
-p
-
-
-
-
-
-
-
-m1 <- glmmTMB(interaction ~ scale(datetime_rel_pair) * initiated_plus1 +
-                scale(sin_time) + scale(cos_time) +
-                (1 + poly(datetime_rel_pair, 2) | nestID),
-              family = binomial, data = dm,
-              REML = FALSE,
-              control = glmmTMBControl(parallel = 15)
-)
-
-summary(m1)
-
-# extract model predictions
-e = allEffects(m1, xlevels = 1000)$"scale(datetime_rel_pair):initiated_plus1" |>
-  data.frame() |>
-  setDT()
-
-# predictions are made for the entire range of the data, subset to the relevant interval
-e = e[(initiated_plus1 == "no" & datetime_rel_pair < 1) | (initiated_plus1 == "yes" & datetime_rel_pair > 1)]
-
-require(ggnewscale)
-
-# plot 
-p = 
-  ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_path(data = du, aes(y = int_prop, x = datetime_rel_pair0, group = nestID), alpha = 0.15) +
-  # viridis::scale_color_viridis(direction = -1, name = 'N positions') +
-  
-  # new_scale('color') +
-  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre peak', 'post peak')) +
-  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre peak', 'post peak')) +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = initiated_plus1), size = 0.8) +
-  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper, fill = initiated_plus1), alpha = 0.2) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)') +
-  ggtitle("")
-
-p
-
-
-
-
-
-
-
-
-
-
-du[int_prop > 0.6 & datetime_rel_pair0 == 5]
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_Probability_interacting.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
