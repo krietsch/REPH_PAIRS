@@ -182,7 +182,7 @@ p =
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of mates interacting') +
+  ylab('Probability of male at nest') +
   xlab('Day relative to clutch initiation (= 0)') +
   ggtitle("")
 
@@ -270,27 +270,16 @@ p =
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of mates interacting') +
+  ylab('Probability of female at nest') +
   xlab('Day relative to clutch initiation (= 0)') +
   ggtitle("")
 
 p
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#--------------------------------------------------------------------------------------------------------------
+#' # Model probability of both being at the nest
+#--------------------------------------------------------------------------------------------------------------
 
 # both at the nest
 m_bn <- glmmTMB(both_at_nest ~ poly(datetime_rel_pair, 2) + 
@@ -304,45 +293,26 @@ m_bn <- glmmTMB(both_at_nest ~ poly(datetime_rel_pair, 2) +
 summary(m_bn)
 
 
-MuMIn::model.sel(m_mn, m_mn2)
-
-
-AIC(m_mn2)
-
-
-
-
-plot(allEffects(m_mn3))
-
-
-
-
-
 # extract model predictions
-e = allEffects(m_mn, xlevels = 1000)$"scale(datetime_rel_pair)" |>
+e = allEffects(m_bn, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
   setDT()
 
-
-e = allEffects(m_bn, xlevels = 1000)$"scale(datetime_rel_pair)" |>
-  data.frame() |>
-  setDT()
-
-e = allEffects(m_mn2, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
-  data.frame() |>
-  setDT()
 
 # plot 
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  scale_color_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                     labels = c('pre split', 'post split')) +
-  scale_fill_manual(values = c('darkorange', 'darkgreen'), name = '', 
-                    labels = c('pre split', 'post split')) +
+  geom_boxplot(data = du[type == 'both_at_nest_prop'], 
+               aes(datetime_rel_pair0, prop, group = datetime_rel_pair0),
+               lwd = 0.4, outlier.size = 0.7) +
+  # scale_color_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                    labels = c('poly', 'poly_nr', 'scaled')) +
+  # scale_fill_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                   labels = c('poly', 'poly_nr', 'scaled')) +
   geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0, 0))) +
@@ -350,20 +320,117 @@ p =
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of mates interacting') +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of both together at nest') +
   xlab('Day relative to clutch initiation (= 0)') +
   ggtitle("")
 
 p
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_Probability_interacting.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
+#--------------------------------------------------------------------------------------------------------------
+#' # Model probability of male being alone at the nest
+#--------------------------------------------------------------------------------------------------------------
+
+# both at the nest
+m_ma <- glmmTMB(m_alone_at_nest ~ poly(datetime_rel_pair, 2) + 
+                  scale(sin_time) + scale(cos_time) +
+                  (1 + poly(datetime_rel_pair, 2) | nestID),
+                family = binomial, data = dm,
+                REML = FALSE,
+                control = glmmTMBControl(parallel = 15)
+)
+
+summary(m_ma)
 
 
+# extract model predictions
+e = allEffects(m_ma, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
 
 
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'm_alone_at_nest_prop'], 
+               aes(datetime_rel_pair0, prop, group = datetime_rel_pair0),
+               lwd = 0.4, outlier.size = 0.7) +
+  # scale_color_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                    labels = c('poly', 'poly_nr', 'scaled')) +
+  # scale_fill_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                   labels = c('poly', 'poly_nr', 'scaled')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of male alone at nest') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' # Model probability of female being alone at the nest
+#--------------------------------------------------------------------------------------------------------------
+
+# both at the nest
+m_fa <- glmmTMB(f_alone_at_nest ~ poly(datetime_rel_pair, 2) + 
+                  scale(sin_time) + scale(cos_time) +
+                  (1 + poly(datetime_rel_pair, 2) | nestID),
+                family = binomial, data = dm,
+                REML = FALSE,
+                control = glmmTMBControl(parallel = 15)
+)
+
+summary(m_fa)
+
+
+# extract model predictions
+e = allEffects(m_fa, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'f_alone_at_nest_prop'], 
+               aes(datetime_rel_pair0, prop, group = datetime_rel_pair0),
+               lwd = 0.4, outlier.size = 0.7) +
+  # scale_color_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                    labels = c('poly', 'poly_nr', 'scaled')) +
+  # scale_fill_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                   labels = c('poly', 'poly_nr', 'scaled')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of female alone at nest') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Plot combinded 
+#--------------------------------------------------------------------------------------------------------------
 
 
 
