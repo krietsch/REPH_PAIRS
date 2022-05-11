@@ -18,7 +18,7 @@ dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', head
 dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 # subset data for models
-dm = dp[datetime_rel_pair >= -5 & datetime_rel_pair <= 5]
+dm = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 5]
 
 # how many pairs?
 
@@ -48,13 +48,13 @@ dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
 # assign categories relative to clutch initiation
-dm[, initiated_minus3 := fifelse(datetime_rel_pair < -3, "no", "yes")]
-dm[, initiated_minus2 := fifelse(datetime_rel_pair < -2, "no", "yes")]
-dm[, initiated_minus1 := fifelse(datetime_rel_pair < -1, "no", "yes")]
-dm[, initiated        := fifelse(datetime_rel_pair < 0, "no", "yes")]
-dm[, initiated_plus1  := fifelse(datetime_rel_pair < 1, "no", "yes")]
-dm[, initiated_plus2  := fifelse(datetime_rel_pair < 2, "no", "yes")]
-dm[, initiated_plus3  := fifelse(datetime_rel_pair < 3, "no", "yes")]
+dm[, initiated_minus3 := fifelse(datetime_rel_pair0 < -3, "no", "yes")]
+dm[, initiated_minus2 := fifelse(datetime_rel_pair0 < -2, "no", "yes")]
+dm[, initiated_minus1 := fifelse(datetime_rel_pair0 < -1, "no", "yes")]
+dm[, initiated        := fifelse(datetime_rel_pair0 < 0, "no", "yes")]
+dm[, initiated_plus1  := fifelse(datetime_rel_pair0 < 1, "no", "yes")]
+dm[, initiated_plus2  := fifelse(datetime_rel_pair0 < 2, "no", "yes")]
+dm[, initiated_plus3  := fifelse(datetime_rel_pair0 < 3, "no", "yes")]
 
 # plot settings
 margin_ = unit(c(4, 4, 4, 4), 'pt')
