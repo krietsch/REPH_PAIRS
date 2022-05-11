@@ -41,12 +41,14 @@ margin_ = unit(c(4, 4, 4, 4), 'pt')
 #--------------------------------------------------------------------------------------------------------------
 
 # assign parameters
-dm[, both_at_nest := at_nest1 == TRUE & at_nest2 == TRUE]
+dm[, m_at_nest := at_nest1 == TRUE | at_nest2 == TRUE & interaction == TRUE]
+dm[, f_at_nest := at_nest2 == TRUE | at_nest1 == TRUE & interaction == TRUE]
+dm[, both_at_nest := at_nest1 == TRUE & interaction == TRUE | at_nest2 == TRUE & interaction == TRUE]
 dm[, m_alone_at_nest := at_nest1 == TRUE & interaction == FALSE]
 dm[, f_alone_at_nest := at_nest2 == TRUE & interaction == FALSE]
 
 # Proportion of time males at nest
-dms = dm[at_nest1 == TRUE, .(N_m_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+dms = dm[m_at_nest == TRUE, .(N_m_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 du[is.na(N_m_at_nest), N_m_at_nest := 0]
@@ -54,7 +56,7 @@ du[, m_at_nest_prop := N_m_at_nest / N]
 d1 = copy(du)
 
 # Proportion of time females at nest
-dms = dm[at_nest2 == TRUE, .(N_f_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+dms = dm[f_at_nest == TRUE, .(N_f_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 du[is.na(N_f_at_nest), N_f_at_nest := 0]
@@ -108,7 +110,7 @@ ggplot() +
 #--------------------------------------------------------------------------------------------------------------
 
 # male at the nest
-m_mn <- glmmTMB(at_nest1 ~ scale(datetime_rel_pair) + 
+m_mn <- glmmTMB(m_at_nest ~ scale(datetime_rel_pair) + 
                    scale(sin_time) + scale(cos_time) +
                    (1 + poly(datetime_rel_pair, 2) | nestID),
                  family = binomial, data = dm,
@@ -118,7 +120,7 @@ m_mn <- glmmTMB(at_nest1 ~ scale(datetime_rel_pair) +
 
 summary(m_mn)
 
-m_mn2 <- glmmTMB(at_nest1 ~ poly(datetime_rel_pair, 2) + 
+m_mn2 <- glmmTMB(m_at_nest ~ poly(datetime_rel_pair, 2) + 
                   scale(sin_time) + scale(cos_time) +
                   (1 + poly(datetime_rel_pair, 2) | nestID),
                 family = binomial, data = dm,
@@ -128,7 +130,7 @@ m_mn2 <- glmmTMB(at_nest1 ~ poly(datetime_rel_pair, 2) +
 
 summary(m_mn2)
 
-m_mn3 <- glmmTMB(at_nest1 ~ poly(datetime_rel_pair, 2) + 
+m_mn3 <- glmmTMB(m_at_nest ~ poly(datetime_rel_pair, 2) + 
                    scale(sin_time) + scale(cos_time) +
                    (1 | nestID),
                  family = binomial, data = dm,
@@ -194,7 +196,7 @@ p
 #--------------------------------------------------------------------------------------------------------------
 
 # female at the nest
-m_fn <- glmmTMB(at_nest2 ~ scale(datetime_rel_pair) + 
+m_fn <- glmmTMB(f_at_nest ~ scale(datetime_rel_pair) + 
                   scale(sin_time) + scale(cos_time) +
                   (1 + poly(datetime_rel_pair, 2) | nestID),
                 family = binomial, data = dm,
@@ -205,7 +207,7 @@ m_fn <- glmmTMB(at_nest2 ~ scale(datetime_rel_pair) +
 summary(m_fn)
 
 
-m_fn2 <- glmmTMB(at_nest2 ~ poly(datetime_rel_pair, 2) + 
+m_fn2 <- glmmTMB(f_at_nest ~ poly(datetime_rel_pair, 2) + 
                   scale(sin_time) + scale(cos_time) +
                   (1 + poly(datetime_rel_pair, 2) | nestID),
                 family = binomial, data = dm,
@@ -215,7 +217,7 @@ m_fn2 <- glmmTMB(at_nest2 ~ poly(datetime_rel_pair, 2) +
 
 summary(m_fn2)
 
-m_fn3 <- glmmTMB(at_nest2 ~ poly(datetime_rel_pair, 2) + 
+m_fn3 <- glmmTMB(f_at_nest ~ poly(datetime_rel_pair, 2) + 
                    scale(sin_time) + scale(cos_time) +
                    (1 | nestID),
                  family = binomial, data = dm,
@@ -429,13 +431,67 @@ p =
 p
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Plot combinded 
+#' # Plot combined 
 #--------------------------------------------------------------------------------------------------------------
 
 
+# look at plot
+e1 = allEffects(m_mn2, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+e2 = allEffects(m_fn2, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+e3 = allEffects(m_bn, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+e4 = allEffects(m_ma, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
+
+e5 = allEffects(m_fa, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
+  data.frame() |>
+  setDT()
 
 
+e1[, type := 'male']
+e2[, type := 'female']
+e3[, type := 'both']
+e4[, type := 'male alone']
+e5[, type := 'female alone']
+
+e = rbindlist(list(e1, e2, e3, e4, e5))
 
 
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  # scale_color_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                    labels = c('poly', 'poly_nr', 'scaled')) +
+  # scale_fill_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
+  #                   labels = c('poly', 'poly_nr', 'scaled')) +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, fill = type, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of female at nest') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_at_nest.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
 
 
