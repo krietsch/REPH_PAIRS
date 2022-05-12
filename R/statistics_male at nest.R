@@ -434,7 +434,6 @@ p
 #' # Plot combined 
 #--------------------------------------------------------------------------------------------------------------
 
-
 # look at plot
 e1 = allEffects(m_mn2, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
   data.frame() |>
@@ -464,11 +463,7 @@ e4[, type := 'male alone']
 e5[, type := 'female alone']
 
 e = rbindlist(list(e1, e2, e3, e4, e5))
-
-col <- "country"
 e[, ('type') := factor(get('type'), levels = c('both together', 'male', 'male alone', 'female', 'female alone'))]
-
-
 
 # plot 
 p = 
@@ -496,4 +491,117 @@ p
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_at_nest.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
 
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Interactions excluding time male alone at nest
+#--------------------------------------------------------------------------------------------------------------
+
+# interactions between mates after peak 
+dms = dm[datetime_rel_pair0 >= -2 & datetime_rel_pair0 <= 5]
+
+# model 
+m_2 <- glmmTMB(interaction ~ scale(datetime_rel_pair) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
+               family = binomial, data = dms,
+               REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(m_2)
+
+
+# extract model predictions
+es = allEffects(m_2, xlevels = 1000)$"scale(datetime_rel_pair)" |>
+  data.frame() |>
+  setDT()
+
+
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of female alone at nest') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+
+# subset data excluding when males are alone at the nest
+dma = dms[!(m_alone_at_nest == TRUE)]
+
+# selected model
+m_2a <- glmmTMB(interaction ~ scale(datetime_rel_pair) +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 + poly(datetime_rel_pair, 2) | nestID),
+               family = binomial, data = dma,
+               REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(m_2a)
+
+# extract model predictions
+ea = allEffects(m_2a, xlevels = 1000)$"scale(datetime_rel_pair)" |>
+  data.frame() |>
+  setDT()
+
+
+# merge
+es[, type := 'all interactions']
+ea[, type := 'excluding male alone at nest']
+
+e = rbindlist(list(es, ea))
+
+e[, ('type') := factor(get('type'), levels = c('all interactions', 'excluding male alone at nest'))]
+
+# plot 
+p = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  scale_color_manual(values = c('darkgreen', 'darkgreen'), name = '') +
+  scale_fill_manual(values = c('darkgreen', 'darkgreen'), name = '') +
+  scale_linetype_manual(values = c('solid', 'dotted'), name = '') +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = type, linetype = type), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, fill = type, linetype = type, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of being at the nest') +
+  xlab('Day relative to clutch initiation (= 0)') +
+  ggtitle("")
+
+p
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/Figure_interactions_without_male_alone_at_nest.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Correlation of time with partner and time at the nest alone
+#--------------------------------------------------------------------------------------------------------------
+
+# Proportion of time together breeders
+dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
 
