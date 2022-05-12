@@ -459,24 +459,26 @@ e5 = allEffects(m_fa, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
 
 e1[, type := 'male']
 e2[, type := 'female']
-e3[, type := 'both']
+e3[, type := 'both together']
 e4[, type := 'male alone']
 e5[, type := 'female alone']
 
 e = rbindlist(list(e1, e2, e3, e4, e5))
+
+col <- "country"
+e[, ('type') := factor(get('type'), levels = c('both together', 'male', 'male alone', 'female', 'female alone'))]
+
 
 
 # plot 
 p = 
   ggplot() +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  # scale_color_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
-  #                    labels = c('poly', 'poly_nr', 'scaled')) +
-  # scale_fill_manual(values = c('darkorange', 'darkgreen', 'darkred'), name = '', 
-  #                   labels = c('poly', 'poly_nr', 'scaled')) +
+  scale_color_manual(values = c('darkorange', 'dodgerblue4', 'lightskyblue', 'darkred','tomato'), name = '') +
+  scale_fill_manual(values = c('darkorange', 'dodgerblue4', 'lightskyblue', 'darkred','tomato'), name = '') +
   geom_line(data = e, aes(y = fit, x = datetime_rel_pair, color = type), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = datetime_rel_pair, fill = type, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(limits = c(-5.5, 5.5), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5, 5), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0, 0))) +
@@ -485,7 +487,7 @@ p =
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of female at nest') +
+  ylab('Probability of being at the nest') +
   xlab('Day relative to clutch initiation (= 0)') +
   ggtitle("")
 
