@@ -88,11 +88,6 @@ du[, f_alone_at_nest_prop := N_f_alone_at_nest / N]
 d5 = copy(du)
 
 # merge data
-du = merge(d1, d2[, .(pairID, nestID, datetime_rel_pair0, f_at_nest_prop)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du = merge(du, d3[, .(pairID, nestID, datetime_rel_pair0, both_at_nest_prop)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du = merge(du, d4[, .(pairID, nestID, datetime_rel_pair0, m_alone_at_nest_prop)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du = merge(du, d5[, .(pairID, nestID, datetime_rel_pair0, f_alone_at_nest_prop)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-
 du = rbindlist(list(d1[, .(pairID, nestID, datetime_rel_pair0, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
                     d2[, .(pairID, nestID, datetime_rel_pair0, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
                     d3[, .(pairID, nestID, datetime_rel_pair0, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
@@ -456,14 +451,14 @@ e5 = allEffects(m_fa, xlevels = 1000)$"poly(datetime_rel_pair,2)" |>
   setDT()
 
 
-e1[, type := 'male']
-e2[, type := 'female']
+e1[, type := 'male total']
+e2[, type := 'female total']
 e3[, type := 'both together']
 e4[, type := 'male alone']
 e5[, type := 'female alone']
 
 e = rbindlist(list(e1, e2, e3, e4, e5))
-e[, ('type') := factor(get('type'), levels = c('both together', 'male', 'male alone', 'female', 'female alone'))]
+e[, ('type') := factor(get('type'), levels = c('both together', 'male total', 'male alone', 'female total', 'female alone'))]
 
 # plot 
 p = 
@@ -584,8 +579,8 @@ p =
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Probability of being at the nest') +
+  theme(legend.position = c(0.2, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Probability of mates interacting') +
   xlab('Day relative to clutch initiation (= 0)') +
   ggtitle("")
 
@@ -610,6 +605,21 @@ du = merge(du, dui[, .(pairID, nestID, datetime_rel_pair0, int_prop)], by = c('p
 # subset key fertile period
 dus = du[datetime_rel_pair0 >= -2 & datetime_rel_pair0 <= 3]
 
+# subset male alone at nest data
+dss = dus[type == 'm_alone_at_nest_prop']
+
+m <- glmmTMB(int_prop ~ prop * datetime_rel_pair0 + 
+               (1 + datetime_rel_pair0 | nestID),
+             family = binomial, data = dss,
+             REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+summary(m)
+
+plot(allEffects(m))
+
+
 # plot for males alone at the nest
 ggplot(data = dus[type == 'm_alone_at_nest_prop']) +
   geom_point(aes(prop, int_prop, 
@@ -632,9 +642,7 @@ ggplot(data = dus[type == 'm_alone_at_nest_prop']) +
   xlab('Proportion of the day male alone at the nest')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor_male_alone.tiff', plot = last_plot(),  width = 190, height = 190, units = c('mm'), dpi = 'print')
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor_male_alone.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
 
 
 
@@ -658,9 +666,30 @@ m <- glmmTMB(m_alone_at_nest_prop ~ both_at_nest_prop + m_at_nest_prop +
 
 summary(m)
 
+# male in total
+e = allEffects(m, xlevels = 1000)$"m_at_nest_prop" |>
+  data.frame() |>
+  setDT()
 
-plot(allEffects(m))
+pa = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  scale_linetype_manual(values = c('solid', 'dotted'), name = '') +
+  geom_line(data = e, aes(y = fit, x = m_at_nest_prop), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = m_at_nest_prop, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of the day males alone at nest') +
+  xlab('Proportion of the day males in toal at nest') +
+  ggtitle("")
 
+pa
 
 
 # extract model predictions
@@ -668,37 +697,36 @@ e = allEffects(m, xlevels = 1000)$"both_at_nest_prop" |>
   data.frame() |>
   setDT()
 
-
-
-# plot for males alone at the nest
-ggplot(data = dss[type == 'm_alone_at_nest_prop']) +
-  geom_point(aes(prop, int_prop, 
-                 color = as.factor(datetime_rel_pair0))) +
-  geom_smooth(aes(prop,int_prop, 
-                  color = as.factor(datetime_rel_pair0), fill = as.factor(datetime_rel_pair0)), method = 'lm', alpha = 0.2) +
-  scale_colour_manual(name = 'Egg date',
-                      values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
-  scale_fill_manual(name = 'Egg date',
-                    values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
-  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
-  scale_x_continuous(breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0')) +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0')) +
-  # guides(color = guide_legend('Egg date ')) +
+# male with female
+pb = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  scale_linetype_manual(values = c('solid', 'dotted'), name = '') +
+  geom_line(data = e, aes(y = fit, x = both_at_nest_prop), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = both_at_nest_prop, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.93, 0.85), legend.background = element_blank()) +
-  ylab('Proportion of the day together') +
-  xlab('Proportion of the day male alone at the nest')
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of the day males alone at nest') +
+  xlab('Proportion of the day both mates at the nest') +
+  ggtitle("")
+
+pb
 
 
+# merge plots
+pa + pb + 
+  plot_layout(ncol = 2) +
+  plot_layout(heights = c(1, 1)) +
+  plot_annotation(tag_levels = 'A')
 
 
-
-
-
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_alone_total_or_female_presence.tiff', plot = last_plot(),  width = 180, height = 180, units = c('mm'), dpi = 'print')
 
 
 
