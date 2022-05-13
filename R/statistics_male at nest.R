@@ -633,3 +633,81 @@ ggplot(data = dus[type == 'm_alone_at_nest_prop']) +
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_male_at_nest_cor_male_alone.tiff', plot = last_plot(),  width = 190, height = 190, units = c('mm'), dpi = 'print')
+
+
+
+
+
+# are these males more at the nest or is the female less at the nest?
+dss = merge(dus[type == 'm_alone_at_nest_prop', .(pairID, nestID, datetime_rel_pair0, int_prop, m_alone_at_nest_prop = prop)], 
+            dus[type == 'both_at_nest_prop', .(pairID, nestID, datetime_rel_pair0, both_at_nest_prop = prop)], 
+            by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+
+dss = merge(dss, 
+            dus[type == 'm_at_nest_prop', .(pairID, nestID, datetime_rel_pair0, m_at_nest_prop = prop)], 
+            by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+
+
+
+m <- glmmTMB(m_alone_at_nest_prop ~ both_at_nest_prop + m_at_nest_prop +
+               (1 + datetime_rel_pair0 | nestID),
+             family = binomial, data = dss,
+             REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+summary(m)
+
+
+plot(allEffects(m))
+
+
+
+# extract model predictions
+e = allEffects(m, xlevels = 1000)$"both_at_nest_prop" |>
+  data.frame() |>
+  setDT()
+
+
+
+# plot for males alone at the nest
+ggplot(data = dss[type == 'm_alone_at_nest_prop']) +
+  geom_point(aes(prop, int_prop, 
+                 color = as.factor(datetime_rel_pair0))) +
+  geom_smooth(aes(prop,int_prop, 
+                  color = as.factor(datetime_rel_pair0), fill = as.factor(datetime_rel_pair0)), method = 'lm', alpha = 0.2) +
+  scale_colour_manual(name = 'Egg date',
+                      values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
+  scale_fill_manual(name = 'Egg date',
+                    values=c('firebrick4', 'firebrick2', 'tomato', 'steelblue1', 'steelblue3', 'dodgerblue4')) +
+  coord_cartesian(xlim = c(0, 1), ylim = c(0, 1), expand = FALSE) +
+  scale_x_continuous(breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0')) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0')) +
+  # guides(color = guide_legend('Egg date ')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.93, 0.85), legend.background = element_blank()) +
+  ylab('Proportion of the day together') +
+  xlab('Proportion of the day male alone at the nest')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
