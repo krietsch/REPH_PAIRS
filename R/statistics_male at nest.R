@@ -101,6 +101,26 @@ ggplot() +
                lwd = 0.4, outlier.size = 0.7)
 
 #--------------------------------------------------------------------------------------------------------------
+#' # First nest location visit
+#--------------------------------------------------------------------------------------------------------------
+
+ds1 = dm[, .(first_pairwise_location = min(datetime_rel_pair)), by = nestID]
+ds2 = dm[m_at_nest == TRUE | f_at_nest == TRUE, .(first_nest_visit = min(datetime_rel_pair)), by = nestID]
+ds = merge(ds1, ds2, by = 'nestID')
+
+# how many days with data before?
+ds[, days_data_before_nest_visit := first_pairwise_location - first_nest_visit]
+
+# subset pairs with at least one day of data before
+dss = ds[days_data_before_nest_visit < -1]
+
+# summary (relative to clutch initiation)
+dss |> nrow()
+dss[, .(mean = mean(first_nest_visit), 
+        min = min(first_nest_visit), 
+        max = max(first_nest_visit))]
+
+#--------------------------------------------------------------------------------------------------------------
 #' # Model probability of male being at the nest
 #--------------------------------------------------------------------------------------------------------------
 
