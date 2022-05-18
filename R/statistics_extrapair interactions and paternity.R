@@ -23,32 +23,14 @@ dm = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 5]
 dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
 
-# assign categories relative to clutch initiation
-dm[, initiated_minus3 := fifelse(datetime_rel_pair0 < -3, "no", "yes")]
-dm[, initiated_minus2 := fifelse(datetime_rel_pair0 < -2, "no", "yes")]
-dm[, initiated_minus1 := fifelse(datetime_rel_pair0 < -1, "no", "yes")]
-dm[, initiated        := fifelse(datetime_rel_pair0 < 0, "no", "yes")]
-dm[, initiated_plus1  := fifelse(datetime_rel_pair0 < 1, "no", "yes")]
-dm[, initiated_plus2  := fifelse(datetime_rel_pair0 < 2, "no", "yes")]
-dm[, initiated_plus3  := fifelse(datetime_rel_pair0 < 3, "no", "yes")]
-
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity and probability of extra-pair interactions
 #--------------------------------------------------------------------------------------------------------------
 
-# subset data for model
-dm = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 5]
-
-# relative time in seconds
-dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
-
-# sin and cos of datetime
-dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
-dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
-
-fm1 <- glmmTMB(ID1_any_ep_int ~ interaction + datetime_rel_pair +
+# model
+fm1 <- glmmTMB(ID1_any_ep_int ~ interaction + poly(datetime_rel_pair, 2) +
                  scale(sin_time) + scale(cos_time) +
-                 (1 + datetime_rel_pair | pairID),
+                 (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
                REML = FALSE,
                control = glmmTMBControl(parallel = 15)
