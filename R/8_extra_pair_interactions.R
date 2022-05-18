@@ -19,17 +19,12 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # Data
 dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
-# Threshold to exclude data
-Np_min = 0
-# Np_min = 0.25
-# Np_min = 0.5
-
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity and probability of extra-pair interactions
 #--------------------------------------------------------------------------------------------------------------
 
 # subset data for model
-dm = dp[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10]
+dm = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 5]
 
 # relative time in seconds
 dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
