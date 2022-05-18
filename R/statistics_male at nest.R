@@ -10,7 +10,7 @@ sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'foreach', 'knitr',  'stri
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/Reply_to_Mihai.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/statistics_male at nest.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Data
 dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
