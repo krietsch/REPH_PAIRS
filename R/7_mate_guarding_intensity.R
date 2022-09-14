@@ -64,6 +64,27 @@ ggplot(data = dIDs[both_tagged_overlapping == TRUE]) +
   ylab('N') +
   xlab('')
 
+
+# plot by nest
+dp[, datetime_rel_pair_min := min(datetime_rel_pair), by = nestID]
+
+du = unique(dp, by = c('nestID'))
+setorder(du, by = datetime_rel_pair_min)
+dp[, nestID := factor(nestID, levels = c(du$nestID))]
+
+ggplot(data = dp) +
+  geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  # scale_x_continuous(limits = c(-12, 5)) +
+  theme_classic(base_size = 8)
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation to breeding state
 #--------------------------------------------------------------------------------------------------------------
