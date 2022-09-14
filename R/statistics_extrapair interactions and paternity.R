@@ -100,3 +100,18 @@ pa + pb +
 
 
 
+
+# model
+fm1 <- glmmTMB(ID1_any_ep_int ~ interaction +
+                 scale(sin_time) + scale(cos_time) +
+                 (1 | pairID),
+               family = binomial, data = dm,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+summary(fm1)
+plot(allEffects(fm1))
+
+
+
