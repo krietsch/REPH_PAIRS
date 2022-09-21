@@ -73,17 +73,30 @@ setorder(du, by = datetime_rel_pair_min)
 dp[, nestID := factor(nestID, levels = c(du$nestID))]
 
 ggplot(data = dp) +
-  geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
+  geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
   scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4', 'NA' = 'grey50')) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
   xlab('Date relative to initiation') + ylab('Nest') +
   # scale_x_continuous(limits = c(-12, 5)) +
-  theme_classic(base_size = 8)
+  theme_classic(base_size = 8) + 
+  theme(legend.position = c(0.05, 0.9))
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
+ggplot(data = dp) +
+  geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
+  scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4', 'NA' = 'grey50')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  xlab('Date relative to initiation') + ylab('Nest') +
+  scale_x_continuous(limits = c(-12, 5)) +
+  theme_classic(base_size = 8) + 
+  theme(legend.position = c(0.05, 0.9))
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID_crop.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+dp[, nestID := as.character(nestID)]
 
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation to breeding state
@@ -104,7 +117,10 @@ dur[is.na(N_int), N_int := 0]
 dur[, int_prop := N_int / N]
 
 # rbind data
-du = rbind(du, dur)
+dp[, datetime_rel_pair_min := NULL]
+
+
+du = rbind(du, dur, fill = TRUE)
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 ### MODEL breeding pairs
@@ -118,8 +134,9 @@ dm[, datetime_rel_pair_sec := datetime_rel_pair * 3600 * 24]
 # sin and cos of datetime
 dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
 dm[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+dm[, year_ := as.character(year_)]
 
-fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + factor(year_) +
+fm1 <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + year_ +
                  scale(sin_time) + scale(cos_time) +
                  (1 + poly(datetime_rel_pair, 2) | pairID),
                family = binomial, data = dm,
