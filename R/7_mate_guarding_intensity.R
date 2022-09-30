@@ -112,18 +112,23 @@ du[, int_prop := N_int / N]
 dp[, datetime_rel_pair_min := NULL]
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
+# median per day
+dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
+
 ### plot proportion of time together 
 
-du[, data_quantity := Np > 0.5]
+du[, data_quality := ifelse(Np >= 0.75, '>0.75', '<0.75')]
 
 pb = 
 ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du[Np >= Np_min], 
                aes(datetime_rel_pair0, int_prop,  
                    group = interaction(datetime_rel_pair0)), 
-               lwd = 0.4, outlier.size = 0.7, outlier.colour = 'white') +
-  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quantity)) +
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
+  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality), size = 1) +
+  scale_shape_manual(values=c(1, 16)) +
   # geom_smooth(data = du[Np >= Np_min],  aes(datetime_rel_pair0, int_prop), method = "gam") +
   scale_color_manual(values = c('firebrick3'), name = '', 
                      labels = c('Breeding pair', 'Male-female pair')) +
@@ -131,7 +136,7 @@ ggplot() +
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(0, 1.01), breaks = seq(0, 1, 0.2), 
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
@@ -141,7 +146,8 @@ ggplot() +
 
 pb 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new.tiff', plot = last_plot(),  width = 180, height = 120, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Time spent at the nest
