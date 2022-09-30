@@ -95,14 +95,25 @@ du[is.na(N_f_alone_at_nest), N_f_alone_at_nest := 0]
 du[, f_alone_at_nest_prop := N_f_alone_at_nest / N]
 d5 = copy(du)
 
+# male alone and not at the nest
+d5
+
+d6 = merge(d0[, .(pairID, nestID, datetime_rel_pair0, int_prop)], 
+           d4[, .(pairID, nestID, datetime_rel_pair0, m_alone_at_nest_prop)], 
+           by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+d6[, m_alone_prop := 1 - int_prop + m_alone_at_nest_prop]
+
+
 # merge data
 du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, type = 'm_f_together')],
                     d1[, .(pairID, nestID, datetime_rel_pair0, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
                     d2[, .(pairID, nestID, datetime_rel_pair0, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
                     d3[, .(pairID, nestID, datetime_rel_pair0, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
                     d4[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
-                    d5[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')]
+                    d5[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')],
+                    d6[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_prop, type = 'm_alone_prop')]
                     ))
+
 
 
 # Males and females at the nest
@@ -154,16 +165,34 @@ ggplot() +
   ylab('Proportion of time at nest') +
   xlab('Day relative to clutch initiation (= 0)')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_m_alone_at_nest.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_m_alone_at_nest.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
 
 
+# Males and females together and males alone
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.7) +
+  scale_color_manual(values = c('dodgerblue4', 'darkorange'), name = '', 
+                     labels = c('Male alone at nest', 'Male alone not at nest'), drop = FALSE) +
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
+                     labels = c('-5', '', '', '', '', '0', 
+                                '', '', '', '', '5'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
 
-
-
-
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_m_alone.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
 
 
