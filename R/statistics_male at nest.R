@@ -18,7 +18,7 @@ dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', head
 dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 # subset data for models
-dm = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 5]
+dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 # sin and cos of datetime
 dm[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
@@ -46,6 +46,14 @@ dm[, f_at_nest := at_nest2 == TRUE | at_nest1 == TRUE & interaction == TRUE]
 dm[, both_at_nest := at_nest1 == TRUE & interaction == TRUE | at_nest2 == TRUE & interaction == TRUE]
 dm[, m_alone_at_nest := at_nest1 == TRUE & interaction == FALSE]
 dm[, f_alone_at_nest := at_nest2 == TRUE & interaction == FALSE]
+
+# Male and female together
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+d0 = copy(du)
 
 # Proportion of time males at nest
 dms = dm[m_at_nest == TRUE, .(N_m_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
@@ -88,17 +96,183 @@ du[, f_alone_at_nest_prop := N_f_alone_at_nest / N]
 d5 = copy(du)
 
 # merge data
-du = rbindlist(list(d1[, .(pairID, nestID, datetime_rel_pair0, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
+du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, type = 'm_f_together')],
+                    d1[, .(pairID, nestID, datetime_rel_pair0, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
                     d2[, .(pairID, nestID, datetime_rel_pair0, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
                     d3[, .(pairID, nestID, datetime_rel_pair0, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
                     d4[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
                     d5[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')]
                     ))
 
+
+# Males and females at the nest
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.7) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
+                    labels = c('Female', 'Male'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                   labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                              '', '', '', '', '5', '', '', '', '', '10'),
+                   expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.85), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+# Males and females together and males alone at nest
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'm_alone_at_nest_prop' | type == 'm_f_together'], 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du[type == 'm_alone_at_nest_prop' | type == 'm_f_together'], 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.7) +
+  scale_color_manual(values = c('dodgerblue4', 'yellowgreen'), name = '', 
+                     labels = c('Male alone at nest', 'Male & female together'), drop = FALSE) +
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
+                     labels = c('-5', '', '', '', '', '0', 
+                                '', '', '', '', '5'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_m_alone_at_nest.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[Np >= Np_min], 
+               aes(datetime_rel_pair0, int_prop,  
+                   group = interaction(datetime_rel_pair0)), 
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
+  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality), size = 1) +
+  scale_shape_manual(values=c(1, 16)) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+
 ggplot() +
   geom_boxplot(data = du, 
                aes(as.factor(datetime_rel_pair0), prop, color = type),
                lwd = 0.4, outlier.size = 0.7)
+
+ggplot() +
+  geom_boxplot(data = du[type == 'm_alone_at_nest_prop' | type == 'm_f_together'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+ggplot() +
+  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'm_f_together'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+
+ggplot() +
+  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'm_alone_at_nest_prop'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+
+ggplot() +
+  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'both_at_nest_prop'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+ggplot() +
+  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+
+ggplot() +
+  geom_boxplot(data = du[type == 'f_at_nest_prop' | type == 'f_alone_at_nest_prop'], 
+               aes(as.factor(datetime_rel_pair0), prop, color = type),
+               lwd = 0.4, outlier.size = 0.7)
+
+
+
+pc = 
+  ggplot() +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = dup[Np >= Np_min], 
+               aes(datetime_rel_pair0, N_type, 
+                   group = interaction(type, datetime_rel_pair0), color = type),
+               lwd = 0.4, outlier.size = 0.7) +
+  scale_color_manual(values = c('darkorange2', 'firebrick3'), name = '', 
+                     labels = c('Total', 'With female')) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.1, 0.93), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion ot time at nest') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+pc 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # First nest location visit
