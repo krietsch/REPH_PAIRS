@@ -17,6 +17,9 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Data
+dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+da = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+da[, year_ := year(datetime_1)]
 dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 # subset data for models
@@ -34,15 +37,33 @@ dss = unique(du[datetime_rel_pair >= -10 & datetime_rel_pair <= 10],
 dss = dss[, .N, by = datetime_rel_pair0]
 dss
 
+# plot settings
+margin_ = unit(c(0, 4, 0, 0), 'pt')
+
 #--------------------------------------------------------------------------------------------------------------
-#' Proportions of EP interactions
+#' Define ID flying away and joining
 #--------------------------------------------------------------------------------------------------------------
 
-# assign parameters
-dm[, m_ep_int_alone := interaction == FALSE & ID1_any_ep_int == TRUE]
-dm[, m_ep_int_mg := interaction == TRUE & ID1_any_ep_int == TRUE]
-dm[, f_ep_int_alone := interaction == FALSE & ID2_any_ep_int == TRUE]
-dm[, f_ep_int_mg := interaction == TRUE & ID2_any_ep_int == TRUE]
+# subset events
+das = da[split == TRUE | merge == TRUE]
+
+# ID flying further is the one splitting or merging
+das[split == TRUE, ID_splitting := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
+das[merge == TRUE, ID_merging := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
+
+# merge with dm
+dm = merge(dm, das[, .(pairID, year_, datetime_1, datetime_2, ID_splitting, ID_merging, distance1_before, distance2_before)], 
+           by = c('pairID', 'year_', 'datetime_1', 'datetime_2'), all.x = TRUE)
+
+dm[split == TRUE, N_splits := .N, by = .(pairID, nestID, datetime_rel_pair0)]
+dm[, N_splits := min(N_splits, na.rm = TRUE), by = .(pairID, nestID, datetime_rel_pair0)]
+
+# subset events
+das = da[merge == TRUE]
+
+#--------------------------------------------------------------------------------------------------------------
+#' Proportions split events by which sex
+#--------------------------------------------------------------------------------------------------------------
 
 # Male and female together
 dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
@@ -60,58 +81,31 @@ du[is.na(N_split), N_split := 0]
 du[, split_prop := N_split / N]
 d1 = copy(du)
 
-# Proportion of ep interactions females
-dms = dm[ID2_any_ep_int == TRUE, .(N_f_ep_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+# Times male split
+dms = dm[split == TRUE & ID_splitting == 'ID1', .(N_m_split = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_f_ep_int), N_f_ep_int := 0]
-du[, f_ep_int_prop := N_f_ep_int / N]
+du[is.na(N_m_split), N_m_split := 0]
+du[, m_split_prop := N_m_split / N]
 d2 = copy(du)
 
-# Proportion of ep interactions males alone
-dms = dm[m_ep_int_alone == TRUE, .(N_m_ep_int_alone = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+# Times females split
+dms = dm[split == TRUE & ID_splitting == 'ID2', .(N_f_split = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_m_ep_int_alone), N_m_ep_int_alone := 0]
-du[, m_ep_int_alone_prop := N_m_ep_int_alone / N]
+du[is.na(N_f_split), N_f_split := 0]
+du[, f_split_prop := N_f_split / N]
 d3 = copy(du)
-
-# Proportion of ep interactions males mg
-dms = dm[m_ep_int_mg == TRUE, .(N_m_ep_int_mg = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_m_ep_int_mg), N_m_ep_int_mg := 0]
-du[, m_ep_int_mg_prop := N_m_ep_int_mg / N]
-d4 = copy(du)
-
-# Proportion of ep interactions females alone
-dms = dm[f_ep_int_alone == TRUE, .(N_f_ep_int_alone = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_f_ep_int_alone), N_f_ep_int_alone := 0]
-du[, f_ep_int_alone_prop := N_f_ep_int_alone / N]
-d5 = copy(du)
-
-# Proportion of ep interactions females mg
-dms = dm[f_ep_int_mg == TRUE, .(N_f_ep_int_mg = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_f_ep_int_mg), N_f_ep_int_mg := 0]
-du[, f_ep_int_mg_prop := N_f_ep_int_mg / N]
-d6 = copy(du)
 
 # merge data
 du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, type = 'm_f_together')],
                     d1[, .(pairID, nestID, datetime_rel_pair0, prop = split_prop, type = 'split_prop')],
-                    d2[, .(pairID, nestID, datetime_rel_pair0, prop = f_ep_int_prop, type = 'f_ep_int_prop')],
-                    d3[, .(pairID, nestID, datetime_rel_pair0, prop = m_ep_int_alone_prop, type = 'm_ep_int_alone_prop')],
-                    d4[, .(pairID, nestID, datetime_rel_pair0, prop = m_ep_int_mg_prop, type = 'm_ep_int_mg_prop')],
-                    d5[, .(pairID, nestID, datetime_rel_pair0, prop = f_ep_int_alone_prop, type = 'f_ep_int_alone_prop')],
-                    d6[, .(pairID, nestID, datetime_rel_pair0, prop = f_ep_int_mg_prop, type = 'f_ep_int_mg_prop')]
-))
+                    d2[, .(pairID, nestID, datetime_rel_pair0, prop = m_split_prop, type = 'm_split_prop')],
+                    d3[, .(pairID, nestID, datetime_rel_pair0, prop = f_split_prop, type = 'f_split_prop')]
+                    ))
 
 
-# Males and females extra-pair interactions
+# Males and females splitting
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
@@ -119,9 +113,9 @@ ggplot() +
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[type == 'm_f_together' | type == 'split_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.7) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '', 
-                     labels = c('Female', 'Male'), drop = FALSE) +
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('yellowgreen', 'dodgerblue4'), name = '', 
+                     labels = c('with partner', 'split event'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
                                 '', '', '', '', '5', '', '', '', '', '10'),
@@ -131,8 +125,138 @@ ggplot() +
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of extra-pair interactions') +
+  ylab('Proportion of time') +
   xlab('Day relative to clutch initiation (= 0)')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_ep_int.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 0.5), fill = 'grey90') +
+  geom_boxplot(data = du[type == 'm_split_prop' | type == 'f_split_prop'], 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du[type == 'm_split_prop' | type == 'f_split_prop'], 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  # scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2),
+  #                    labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  #                    expand = expansion(add = c(0, 0.05))) +
+  scale_y_continuous(limits = c(-0.01, 0.51), breaks = seq(0, 0.5, 0.2),
+                     labels = c('0.0', '0.2', '0.4'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_assigned.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+#--------------------------------------------------------------------------------------------------------------
+#' Distance moved away
+#--------------------------------------------------------------------------------------------------------------
+
+
+dms = dm[split == TRUE]
+
+# merge male and female data for plot
+dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, split_distance = distance1_before)]
+dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, split_distance = distance2_before)]
+
+dms = rbindlist(list(dms_m, dms_f))
+
+
+ggplot() +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, split_distance, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, split_distance, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when split (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+ggplot() +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, split_distance, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, split_distance, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
+  coord_cartesian(ylim = c(0, 600))  +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when split (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved_zoom.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+dms = dm[merge == TRUE]
+
+# merge male and female data for plot
+dms_m = dms[ID_merging == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, merge_distance = distance1_before)]
+dms_f = dms[ID_merging == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, merge_distance = distance2_before)]
+
+dms = rbindlist(list(dms_m, dms_f))
+
+
+ggplot() +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, merge_distance, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, merge_distance, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves towards', 'Male moves towards'), drop = FALSE) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when split (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_merge_events_distance_moved.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+ggplot() +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, merge_distance, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, merge_distance, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.5) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves towards', 'Male moves towards'), drop = FALSE) +
+  coord_cartesian(ylim = c(0, 600))  +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when split (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_merge_events_distance_moved_zoom.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
 
