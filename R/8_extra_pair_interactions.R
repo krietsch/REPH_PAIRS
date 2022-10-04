@@ -61,6 +61,8 @@ du[is.na(N_m_ep_int), N_m_ep_int := 0]
 du[, m_ep_int_prop := N_m_ep_int / N]
 d1 = copy(du)
 
+dm = merge(dm, du[, .(pairID, nestID, datetime_rel_pair0, N_m_ep_int)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+
 # Proportion of ep interactions females
 dms = dm[ID2_any_ep_int == TRUE, .(N_f_ep_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
@@ -68,6 +70,8 @@ du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TR
 du[is.na(N_f_ep_int), N_f_ep_int := 0]
 du[, f_ep_int_prop := N_f_ep_int / N]
 d2 = copy(du)
+
+dm = merge(dm, du[, .(pairID, nestID, datetime_rel_pair0, N_f_ep_int)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
 # Proportion of ep interactions males alone
 dms = dm[m_ep_int_alone == TRUE, .(N_m_ep_int_alone = .N), by = .(pairID, nestID, datetime_rel_pair0)]
