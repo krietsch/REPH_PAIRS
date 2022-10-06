@@ -27,6 +27,23 @@ Np_min = 0
 # plot settings
 margin_ = unit(c(0, 4, 0, 0), 'pt')
 
+# Assign polyandry
+# polyandrous females
+xf = c(270170564, 270170901, 270170935, 273145005, 273145036, 273145109, 273145121, 273145140)
+dp[ID2 %in% xf, f_polyandrous := TRUE]
+dp[is.na(f_polyandrous), f_polyandrous := FALSE]
+
+# first nests
+x1 = c("R606_19", "R805_18", "R311_19", "R206_19", "R405_19", "R904_18", "R211_19", "R901_19", "R207_19", "REPH050_19")
+dp[nestID %in% x1, f_polyandrous_first := TRUE]
+dp[is.na(f_polyandrous_first), f_polyandrous_first := FALSE]
+
+# second nest
+x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_19", "R220_19", "R911_19", "R907_19")
+dp[nestID %in% x2, f_polyandrous_second := TRUE]
+dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' Data available relative to clutch initiation
 #--------------------------------------------------------------------------------------------------------------
@@ -190,8 +207,8 @@ p =
   #              aes(datetime_rel_pair0, int_prop,  
   #                  group = interaction(datetime_rel_pair0)), 
   #              lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
   geom_line(data = du, aes(datetime_rel_pair0, int_prop, group = nestID, color = any_EPY), size = 0.7) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
   geom_line(data = du[any_EPY == TRUE], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 1) +
   # geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
   # scale_shape_manual(values=c(1, 16)) +
@@ -217,6 +234,158 @@ p
 # how many nests with EPY
 du[any_EPY == TRUE, .N, by = .(nestID)]
 
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation polyandry
+#--------------------------------------------------------------------------------------------------------------
+
+
+# polyandrous females
+p = 
+  ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  # geom_boxplot(data = du[Np >= Np_min], 
+  #              aes(datetime_rel_pair0, int_prop,  
+  #                  group = interaction(datetime_rel_pair0)), 
+  #              lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_line(data = du, aes(datetime_rel_pair0, int_prop, group = nestID, color =f_polyandrous_first ), size = 0.7) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
+  geom_line(data = du[f_polyandrous_first == TRUE], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 1) +
+  # geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
+  # scale_shape_manual(values=c(1, 16)) +
+  scale_color_manual(values = c('grey75', 'firebrick4'), name = '',
+                     labels = c('unknown', 'polyandrous 1st clutch')) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p 
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_1st.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+# how many nests with EPY
+du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
+
+du[f_polyandrous_second == TRUE, .N, by = .(nestID)]
+
+
+
+273145121
+270170935
+273145036
+273145109
+
+# polyandrous females
+p = 
+  ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  # geom_boxplot(data = du[Np >= Np_min], 
+  #              aes(datetime_rel_pair0, int_prop,  
+  #                  group = interaction(datetime_rel_pair0)), 
+  #              lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_line(data = du, aes(datetime_rel_pair0, int_prop, group = nestID), color = 'grey75', size = 0.7) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
+  geom_line(data = du[ID2 == 273145121], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 1) +
+  # geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
+  # scale_shape_manual(values=c(1, 16)) +
+  # scale_color_manual(values = c('grey75', 'firebrick4'), name = '',
+  #                    labels = c('unknown', 'polyandrous 1st clutch')) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p
+
+
+# polyandrous females single 
+
+p1 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_line(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p1
+
+
+p2 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_line(data = du[ID2 == 270170935], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p2
+
+p3 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_line(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p3
+
+p4 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_line(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p4
+
+
+
+
+# merge plots
+p1 + p2 + p3 + p4 +
+  plot_layout(nrow = 2, ncol = 2) +
+  # plot_layout(heights = c(1, 4, 4)) +
+  plot_annotation(tag_levels = 'A')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Time spent at the nest
