@@ -132,7 +132,7 @@ ggplot() +
 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 0.5), fill = 'grey90') +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 0.2), fill = 'grey90') +
   geom_boxplot(data = du[type == 'm_split_prop' | type == 'f_split_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
@@ -147,8 +147,8 @@ ggplot() +
   # scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2),
   #                    labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
   #                    expand = expansion(add = c(0, 0.05))) +
-  scale_y_continuous(limits = c(-0.01, 0.51), breaks = seq(0, 0.5, 0.2),
-                     labels = c('0.0', '0.2', '0.4'),
+  scale_y_continuous(limits = c(-0.01, 0.21), breaks = seq(0, 0.2, 0.2),
+                     labels = c('0.0', '0.2'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
@@ -227,7 +227,7 @@ ggplot() +
                      labels = c('Female moves towards', 'Male moves towards'), drop = FALSE) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Distance moved when split (m)') +
+  ylab('Distance moved when merged (m)') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
@@ -245,7 +245,7 @@ ggplot() +
   coord_cartesian(ylim = c(0, 600))  +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Distance moved when split (m)') +
+  ylab('Distance moved when merged (m)') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
