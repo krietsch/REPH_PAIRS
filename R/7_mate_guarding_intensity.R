@@ -110,6 +110,11 @@ du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
 
 dp[, datetime_rel_pair_min := NULL]
+
+# N 
+du[, .N, by = pairID] |> nrow()
+du[, .N, by = nestID] |> nrow()
+
 du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 # median per day
@@ -176,6 +181,41 @@ pb =
 pb 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new_EPY.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+p = 
+  ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  # geom_boxplot(data = du[Np >= Np_min], 
+  #              aes(datetime_rel_pair0, int_prop,  
+  #                  group = interaction(datetime_rel_pair0)), 
+  #              lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
+  geom_line(data = du, aes(datetime_rel_pair0, int_prop, group = nestID, color = any_EPY), size = 0.7) +
+  geom_line(data = du[any_EPY == TRUE], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 1) +
+  # geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
+  # scale_shape_manual(values=c(1, 16)) +
+  scale_color_manual(values = c('grey75', 'firebrick4', 'grey'), name = '',
+                     labels = c('no EPY', 'EPY', 'unknown')) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
+                                '', '', '', '', '5', '', '', '', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.8), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p 
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new_EPY_lines.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+# how many nests with EPY
+du[any_EPY == TRUE, .N, by = .(nestID)]
 
 
 #--------------------------------------------------------------------------------------------------------------
