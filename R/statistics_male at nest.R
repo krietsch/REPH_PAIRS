@@ -101,7 +101,9 @@ d5
 d6 = merge(d0[, .(pairID, nestID, datetime_rel_pair0, int_prop)], 
            d4[, .(pairID, nestID, datetime_rel_pair0, m_alone_at_nest_prop)], 
            by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-d6[, m_alone_prop := 1 - int_prop + m_alone_at_nest_prop]
+d6[, m_alone_prop := 1 - c(int_prop + m_alone_at_nest_prop)]
+
+d6[, total := m_alone_prop + int_prop + m_alone_at_nest_prop]
 
 
 # merge data
