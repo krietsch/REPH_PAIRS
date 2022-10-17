@@ -451,7 +451,7 @@ p1 =
   ggplot(data = dud[breeding_pair == TRUE]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = as.factor(year_), 
                    group = interaction(year_, datetime_rel_initiation0)), varwidth = TRUE) +
-  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
+  # geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = as.factor(year_), color = as.factor(year_))) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   scale_color_manual(values = c('darkorange', 'dodgerblue3'), name = 'Year') +
   xlab('Date') + ylab('Percentage of positions together') +
@@ -477,7 +477,7 @@ p1 + p2 + plot_layout(ncol = 1, heights = c(3, 1))
 ggplot(data = dud[breeding_pair == TRUE & !is.na(datetime_rel_initiation0) & !is.na(initiation_type)]) +
   geom_boxplot(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, color = initiation_type, 
                    group = interaction(datetime_rel_initiation0, initiation_type)), varwidth = TRUE) +
-  geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
+  # geom_smooth(aes(datetime_rel_initiation0, N_pairwise_interactions_daily_per, group = initiation_type, color = initiation_type)) +
   scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation timing') +
   geom_vline(aes(xintercept = 0), color = 'black', size = 1, alpha = 0.3) +
   # geom_text(data = dss, aes(as.factor(datetime_rel_initiation0), Inf, label = N), 
