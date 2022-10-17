@@ -592,16 +592,31 @@ ggplot() +
 
 # pairwise sample size for each season 
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss = unique(du[!is.na(any_EPY) & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
 
-# pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-                 by = c('nestID', 'datetime_rel_pair0'))
-dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
-dss_epy
+# early
+dss_early = unique(du[initiation_type == 'early' & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss_early = dss_early[, .N, by = datetime_rel_pair0]
+
+# peak
+dss_peak = unique(du[initiation_type == 'peak' & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                   by = c('nestID', 'datetime_rel_pair0'))
+dss_peak = dss_peak[, .N, by = datetime_rel_pair0]
+
+# late 
+dss_late = unique(du[initiation_type == 'late' & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                  by = c('nestID', 'datetime_rel_pair0'))
+dss_late = dss_late[, .N, by = datetime_rel_pair0]
+
+# merge 
+dss = merge(dss_early[, .(N_early = N, datetime_rel_pair0)], dss_peak[, .(N_peak = N, datetime_rel_pair0)], 
+            by = 'datetime_rel_pair0', all.x = TRUE)
+
+dss = merge(dss, dss_late[, .(N_late = N, datetime_rel_pair0)], 
+            by = 'datetime_rel_pair0', all.x = TRUE)
+
+dss[, N_season_label := paste0(N_early, '/', N_peak, '/', N_late)]
+
 
 
 # Male and female together
@@ -614,7 +629,7 @@ du[, int_prop := N_int / N]
 
 
 ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = 3) +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_season_label), vjust = 1, size = 3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du, 
                aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, initiation_type), color = initiation_type),
@@ -622,7 +637,7 @@ ggplot() +
   geom_point(data = du, 
              aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, initiation_type), color = initiation_type), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation timing') +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation') +
   scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
                    labels = c('', '-4', '', '-2', '', '0', 
                               '', '2', '', '4', ''),
@@ -631,25 +646,71 @@ ggplot() +
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.18, 0.14), legend.background = element_blank(), plot.margin = margin_) +
+  theme(legend.position = c(0.12, 0.17), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 129, height = 89, units = c('mm'), dpi = 'print')
 
 
+# Differences between years
+
+# pairwise sample size for each season 
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+
+# 2018
+dss_2018 = unique(du[year_ == 2018 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                   by = c('nestID', 'datetime_rel_pair0'))
+dss_2018 = dss_2018[, .N, by = datetime_rel_pair0]
+
+# 2019
+dss_2019 = unique(du[year_ == 2019 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                  by = c('nestID', 'datetime_rel_pair0'))
+dss_2019 = dss_2019[, .N, by = datetime_rel_pair0]
+
+# merge 
+dss = merge(dss_early[, .(N_2018 = N, datetime_rel_pair0)], dss_peak[, .(N_2019 = N, datetime_rel_pair0)], 
+            by = 'datetime_rel_pair0', all.x = TRUE)
 
 
+dss[, N_year_label := paste0(N_2018, '/', N_2019)]
 
 
+# Male and female together
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+
+du[, year_c := as.character(year_)]
+
+# plot by year
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_year_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du, 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, year_c), color = year_c),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, year_c), color = year_c), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3')) +
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.12, 0.17), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
 
 
-
-
-
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_year.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
