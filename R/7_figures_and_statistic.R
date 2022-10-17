@@ -21,10 +21,15 @@ dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t
 da = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 da[, year_ := year(datetime_1)]
 
-# Threshold to exclude data
-Np_min = 0
-# Np_min = 0.25
-# Np_min = 0.5
+
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+dn = dbq(con, 'select * FROM NESTS')
+dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
+dn = dn[year_ > 2017]
+dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
+dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
+dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
+DBI::dbDisconnect(con)
 
 # plot settings
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
@@ -45,6 +50,32 @@ dp[is.na(f_polyandrous_first), f_polyandrous_first := FALSE]
 x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_19", "R220_19", "R911_19", "R907_19")
 dp[nestID %in% x2, f_polyandrous_second := TRUE]
 dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
+
+
+# season mean 
+di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+dp = merge(dp, di, by = 'year_', all.x = TRUE)
+
+# merge with nests
+dp = merge(dp, dnID[, .(male_id, female_id, year_, nestID, initiation)], by.x = c('ID1', 'ID2', 'year_', 'nestID'), 
+           by.y = c('male_id', 'female_id', 'year_', 'nestID'), all.x = TRUE)
+
+# relative initiation date
+dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+# early and late clutches?
+dp[initiation_rel < -2, initiation_type := 'early']
+dp[initiation_rel > 2, initiation_type := 'late']
+dp[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
+
+# datetime relative to nest initiation date
+dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
+
+# subset data 10 days around clutch initiation
+dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Data available relative to clutch initiation
@@ -101,10 +132,6 @@ dp[, nestID := as.character(nestID)]
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation to breeding state
 #--------------------------------------------------------------------------------------------------------------
-
-# subset data 10 days around clutch initiation
-dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
-dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 # Male and female together
 dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
@@ -164,7 +191,7 @@ ggplot() +
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state
+#' Split and merge events
 #--------------------------------------------------------------------------------------------------------------
 
 # define who flies away or joins  
@@ -439,7 +466,7 @@ ggplot() +
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
-  scale_x_continuous(limits = c(-3.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
@@ -463,7 +490,7 @@ ggplot() +
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
-  scale_x_continuous(limits = c(-3.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
@@ -488,112 +515,128 @@ pa + pb + pc +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_alone_at_nest.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding effect on extra-pair paternity
+#--------------------------------------------------------------------------------------------------------------
 
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(du[any_EPY == FALSE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
 
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
+dss_epy
 
+# merge 
+dss = merge(dss, dss_epy[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss[, N_epy_label := paste0(N_epy, '/', N)]
 
+# Proportion of time together breeders
+dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
 
+dp[, datetime_rel_pair_min := NULL]
 
+# N 
+du[, .N, by = pairID] |> nrow()
+du[, .N, by = nestID] |> nrow()
 
+du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
+# median per day
+dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
 
+# order
+du[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
 
-
-
-
-
+### plot proportion of time together 
 
 ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[Np >= Np_min], 
-               aes(datetime_rel_pair0, int_prop,  
-                   group = interaction(datetime_rel_pair0)), 
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
-  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality), size = 1) +
-  scale_shape_manual(values=c(1, 16)) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du[!is.na(any_EPY)], 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du[!is.na(any_EPY)], 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
+                     labels = c('EPY', 'No EPY'), drop = FALSE) +
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.18, 0.14), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation to time within season
+#--------------------------------------------------------------------------------------------------------------
+
+# pairwise sample size for each season 
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(du[!is.na(any_EPY) & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                 by = c('nestID', 'datetime_rel_pair0'))
+dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
+dss_epy
+
+
+# Male and female together
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+
+
 
 ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du, 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-ggplot() +
-  geom_boxplot(data = du[type == 'm_alone_at_nest_prop' | type == 'm_f_together'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-ggplot() +
-  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'm_f_together'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-
-ggplot() +
-  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'm_alone_at_nest_prop'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-
-ggplot() +
-  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'both_at_nest_prop'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-ggplot() +
-  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-
-ggplot() +
-  geom_boxplot(data = du[type == 'f_at_nest_prop' | type == 'f_alone_at_nest_prop'], 
-               aes(as.factor(datetime_rel_pair0), prop, color = type),
-               lwd = 0.4, outlier.size = 0.7)
-
-
-
-pc = 
-  ggplot() +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = 0, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = dup[Np >= Np_min], 
-               aes(datetime_rel_pair0, N_type, 
-                   group = interaction(type, datetime_rel_pair0), color = type),
-               lwd = 0.4, outlier.size = 0.7) +
-  scale_color_manual(values = c('darkorange2', 'firebrick3'), name = '', 
-                     labels = c('Total', 'With female')) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2), 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, initiation_type), color = initiation_type),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, initiation_type), color = initiation_type), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation timing') +
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+                   labels = c('', '-4', '', '-2', '', '0', 
+                              '', '2', '', '4', ''),
+                   expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.1, 0.93), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion ot time at nest') +
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.18, 0.14), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
-pc 
 
-
-
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
