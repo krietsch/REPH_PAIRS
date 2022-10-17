@@ -696,7 +696,7 @@ ggplot() +
   geom_point(data = du, 
              aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, year_c), color = year_c), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue3')) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3'), name = '') +
   scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
@@ -705,12 +705,21 @@ ggplot() +
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.12, 0.17), legend.background = element_blank(), plot.margin = margin_) +
+  theme(legend.position = c(0.12, 0.12), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_year.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
 
 
 
