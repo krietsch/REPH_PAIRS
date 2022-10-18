@@ -305,7 +305,7 @@ dps =
 dp[breeding_pair == TRUE & sex1 == 'M', 
    .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
      datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, 
-     at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, 
+     at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, 
      breeding_pair, type = 'breeding pair')]
 
 # save data
