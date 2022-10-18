@@ -51,6 +51,23 @@ x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_1
 dp[nestID %in% x2, f_polyandrous_second := TRUE]
 dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
 
+# assign renesting females
+du = unique(dp, by = c('pairID', 'nestID'))
+x = du[female_clutch == 2 & f_polyandrous_second == FALSE, .(year_ , ID2)]
+x[, renesting_female := TRUE]
+
+du = merge(du, x, all.x = TRUE, by = c('year_', 'ID2'))
+du[renesting_female == TRUE & female_clutch == 1]
+
+# first nests of renesting females
+x1 = du[renesting_female == TRUE & female_clutch == 1, .(nestID)]
+x1 = c('R406_19', 'R502_19', 'R905_19', 'R217_19', 'R201_19', 'R220_19', 'R911_19')
+dp[nestID %in% x1, f_renesting_first := TRUE]
+
+# second nests of renesting females
+x2 = du[renesting_female == TRUE & female_clutch == 2, .(nestID)]
+x2 = c('R320_19', 'R218_19','R913_19', 'R211_19', 'R232_19', 'R901_19', 'R207_19')
+dp[nestID %in% x2, f_renesting_second := TRUE]
 
 # season mean 
 di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
@@ -584,6 +601,65 @@ ggplot() +
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation polyandry
+#--------------------------------------------------------------------------------------------------------------
+
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(du[f_polyandrous_first == FALSE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+
+# polyandrous 1st clutch sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss_fp = unique(du[f_polyandrous_first == TRUE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+                 by = c('nestID', 'datetime_rel_pair0'))
+dss_fp = dss_fp[, .N, by = datetime_rel_pair0]
+dss_fp
+
+# merge 
+dss = merge(dss, dss_fp[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss[, N_fp_label := paste0(N_epy, '/', N)]
+
+# Proportion of time together breeders
+dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+
+
+# order
+du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (polyandrous)', 'Other mates')]
+
+### plot proportion of time together polyandrous females
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_fp_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du, 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
+                     drop = FALSE) +
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.25, 0.14), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_polyandrous_females.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
