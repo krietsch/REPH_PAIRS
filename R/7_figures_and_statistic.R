@@ -191,8 +191,8 @@ ggplot() +
   scale_color_manual(values = c('yellowgreen', 'steelblue4'), name = '', 
                      labels = c('breeding pair', 'random pair'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
@@ -273,6 +273,45 @@ du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, 
                     d2[, .(pairID, nestID, datetime_rel_pair0, prop = m_split_prop, type = 'm_split_prop')],
                     d3[, .(pairID, nestID, datetime_rel_pair0, prop = f_split_prop, type = 'f_split_prop')]
 ))
+
+
+
+
+
+
+dx = dm[split == TRUE & datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 4]
+
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 1, 0)]
+
+fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
+                 (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+fm2 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
+                 (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm2))
+summary(fm2)
+
+anova(fm1, fm2)
+
+
+
+
+
 
 
 
@@ -602,6 +641,182 @@ ggplot() +
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
+# statistic less time together before cltuch initiation?
+dx = du[!is.na(any_EPY) & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 2]
+
+dx[, year_c := as.character(year_)]
+
+
+
+
+dx
+
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + any_EPY:datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
+                 initiation_type + initiation_type:datetime_rel_pair0 +  (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+
+dx = du[!is.na(any_EPY) & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 2]
+
+dx[, year_c := as.character(year_)]
+
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + any_EPY:datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
+                             initiation_type + initiation_type:datetime_rel_pair0 +  (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+dx = du[ datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 4]
+
+dx[, year_c := as.character(year_)]
+
+
+
+fm1 <- glmmTMB(interaction ~ initiation_type + scale(datetime_rel_pair0) +
+                (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+fm2 <- glmmTMB(interaction ~ scale(datetime_rel_pair0) +
+                 (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+anova(fm1, fm2)
+
+plot(allEffects(fm2))
+summary(fm2)
+
+
+
+fm1 <- glmmTMB(interaction ~ scale(any_EPY) + scale(datetime_rel_pair0) + scale(any_EPY):datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
+                 initiation_rel + initiation_rel:datetime_rel_pair0 +  (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 +  (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 + (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+allEffects(fm1)
+
+ggplot() +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair0, group = initiation_type, color = initiation_type), size = 0.8) 
+
+
+
+
+
+fm1 <- glmmTMB(interaction ~ initiation_type*datetime_rel_pair0 + year_c + (1 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 + year_c +  (1 + poly(datetime_rel_pair0, 2) | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+e <- allEffects(fm1, xlevels = 100)$"initiation_type" |>
+  data.frame() |>
+  setDT()
+e
+
+
+ggplot() +
+  geom_line(data = e, aes(y = fit, x = datetime_rel_pair0, group = initiation_type, color = initiation_type), size = 0.8) 
+
+
+
+
+f1 = glmmTMB(int_prop ~ any_EPY + year_ + (1|nestID), data = dx)
+
+
+ggplot() +
+  geom_boxplot(data = dx, 
+               aes(any_EPY, int_prop),
+               lwd = 0.3, outlier.size = 0.7) 
+
+summary(fm1)
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity in relation polyandry
@@ -702,7 +917,8 @@ du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TR
 du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
 
-
+# order factor
+du[, initiation_type := factor(initiation_type, levels = c('early', 'peak', 'late'))]
 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_season_label), vjust = 1, size = 3) +
@@ -728,6 +944,42 @@ ggplot() +
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 129, height = 89, units = c('mm'), dpi = 'print')
+
+
+du[, peak := ifelse(initiation_rel < -2, 'pre', 'post')]
+
+# order factor
+du[, initiation_type := factor(initiation_type, levels = c('early', 'peak', 'late'))]
+
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_season_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du, 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, peak), color = peak),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, peak), color = peak), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue3', 'darkgreen'), name = 'Initiation') +
+  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.12, 0.17), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+
+du[peak == 'pre' & datetime_rel_pair0 < 0 &  int_prop < 0.5, .(nestID, datetime_rel_pair0, int_prop)]
+
+
+
+
 
 
 # Differences between years
