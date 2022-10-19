@@ -68,22 +68,13 @@ x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_1
 dp[nestID %in% x2, f_polyandrous_second := TRUE]
 dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
 
-# assign renesting females
-du = unique(dp, by = c('pairID', 'nestID'))
-x = du[female_clutch == 2 & f_polyandrous_second == FALSE, .(year_ , ID2)]
-x[, renesting_female := TRUE]
-
-du = merge(du, x, all.x = TRUE, by = c('year_', 'ID2'))
-du[renesting_female == TRUE & female_clutch == 1]
-
+# renesting females
 # first nests of renesting females
-x1 = du[renesting_female == TRUE & female_clutch == 1, .(nestID)]
-x1 = c('R406_19', 'R502_19', 'R905_19', 'R217_19', 'R201_19', 'R220_19', 'R911_19')
+x1 = c("R201_19", "R402_19", "R406_19", "R222_19", "R502_19", "R905_19")
 dp[nestID %in% x1, f_renesting_first := TRUE]
 
 # second nests of renesting females
-x2 = du[renesting_female == TRUE & female_clutch == 2, .(nestID)]
-x2 = c('R320_19', 'R218_19','R913_19', 'R211_19', 'R232_19', 'R901_19', 'R207_19')
+x2 = c("R232_19",  "R803_19",  "R320_19",  "R1101_19", "R218_19", "R913_19")
 dp[nestID %in% x2, f_renesting_second := TRUE]
 
 # season mean 
@@ -487,11 +478,6 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S2. GLMM split by sex after clutch initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
-
-# save word file
-print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away
 #--------------------------------------------------------------------------------------------------------------
@@ -782,29 +768,113 @@ ggplot() +
 
 
 
+# model fertile period
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+
+
+fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
 
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
 
 
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S3. GLMM together and EPY fertile period initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
+# model before clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+
+fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
 
 
+plot(allEffects(fm1))
+summary(fm1)
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
 
 
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S4. GLMM together and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+# model during clutch initiation
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+
+fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
 
 
+plot(allEffects(fm1))
+summary(fm1)
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
 
 
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-
-
-
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM together and EPY during initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Split events and extra-pair paternity
@@ -892,7 +962,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S5. GLMM split by sex and EPY fertile period initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S6. GLMM split by sex and EPY fertile period initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -930,7 +1000,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S6. GLMM split by sex and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S7. GLMM split by sex and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -972,13 +1042,47 @@ ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = du, 
                aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot),
-               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+               lwd = 0.2, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du, 
              aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot), 
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      drop = FALSE) +
-  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
+                     labels = c('', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', ''),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.25, 0.14), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_polyandrous_females.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+
+
+
+# order
+du[is.na(f_renesting_first), f_renesting_first := FALSE]
+du[, f_renesting_first_plot := ifelse(f_renesting_first == TRUE, '1st mate (renesting)', 'Other mates')]
+
+du[f_renesting_first == TRUE, .N, by = .(nestID, initiation_rel)]
+
+### plot proportion of time together polyandrous females
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_fp_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = du, 
+               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_renesting_first_plot), color = f_renesting_first_plot),
+               lwd = 0.2, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_renesting_first_plot), color = f_renesting_first_plot), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
+                     drop = FALSE) +
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
@@ -1062,7 +1166,7 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 129, height = 89, units = c('mm'), dpi = 'print')
 
 
-du[, peak := ifelse(initiation_rel < -1, 'pre', 'post')]
+du[, peak := ifelse(initiation_rel <= -2, 'pre', 'post')]
 
 # order factor
 du[, initiation_type := factor(initiation_type, levels = c('early', 'peak', 'late'))]
@@ -1098,236 +1202,33 @@ du[peak == 'pre' & datetime_rel_pair0 < 0 &  int_prop < 0.5, .(nestID, datetime_
 
 
 
-# Differences between years
 
-# pairwise sample size for each season 
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 
-# 2018
-dss_2018 = unique(du[year_ == 2018 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-                   by = c('nestID', 'datetime_rel_pair0'))
-dss_2018 = dss_2018[, .N, by = datetime_rel_pair0]
+# model during clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -2]
+dx[, peak := ifelse(initiation_rel <= -3, 'pre', 'post')]
 
-# 2019
-dss_2019 = unique(du[year_ == 2019 & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-                  by = c('nestID', 'datetime_rel_pair0'))
-dss_2019 = dss_2019[, .N, by = datetime_rel_pair0]
+fm1 <- glmmTMB(interaction ~ peak + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
 
-# merge 
-dss = merge(dss_early[, .(N_2018 = N, datetime_rel_pair0)], dss_peak[, .(N_2019 = N, datetime_rel_pair0)], 
-            by = 'datetime_rel_pair0', all.x = TRUE)
 
+plot(allEffects(fm1))
+summary(fm1)
 
-dss[, N_year_label := paste0(N_2018, '/', N_2019)]
 
 
-# Male and female together
-dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
 
-du[, year_c := as.character(year_)]
 
-# plot by year
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_year_label), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du, 
-               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, year_c), color = year_c),
-               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du, 
-             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, year_c), color = year_c), 
-             position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue3'), name = '') +
-  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
-                     labels = c('', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', ''),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = c(0.12, 0.12), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_year.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
+# save word file
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state OLD
-#--------------------------------------------------------------------------------------------------------------
-
-
-
-# Proportion of time together breeders
-dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
-
-dp[, datetime_rel_pair_min := NULL]
-
-# N 
-du[, .N, by = pairID] |> nrow()
-du[, .N, by = nestID] |> nrow()
-
-du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
-
-# median per day
-dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
-
-### plot proportion of time together 
-
-du[, data_quality := ifelse(Np >= 0.75, '>0.75', '<0.75')]
-
-pb = 
-  ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[Np >= Np_min], 
-               aes(datetime_rel_pair0, int_prop,  
-                   group = interaction(datetime_rel_pair0)), 
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
-  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality), size = 1) +
-  scale_shape_manual(values=c(1, 16)) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-pb 
-
-
-
-
-pb = 
-  ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = dr[Np >= Np_min], 
-               aes(datetime_rel_pair0, int_prop,  
-                   group = interaction(datetime_rel_pair0)), 
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
-  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality), size = 1) +
-  scale_shape_manual(values=c(1, 16)) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-pb 
-
-
-
-
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-
-pb = 
-  ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[Np >= Np_min], 
-               aes(datetime_rel_pair0, int_prop,  
-                   group = interaction(datetime_rel_pair0)), 
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
-  geom_line(data = du[any_EPY == TRUE], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 0.7) +
-  geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
-  scale_shape_manual(values=c(1, 16)) +
-  scale_color_manual(values = c('black', 'firebrick4', 'grey'), name = '',
-                     labels = c('no EPY', 'EPY', 'unknown')) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.8), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-pb 
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new_EPY.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-p = 
-  ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  # geom_boxplot(data = du[Np >= Np_min], 
-  #              aes(datetime_rel_pair0, int_prop,  
-  #                  group = interaction(datetime_rel_pair0)), 
-  #              lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_line(data = du, aes(datetime_rel_pair0, int_prop, group = nestID, color = any_EPY), size = 0.7) +
-  geom_line(data = dmd, aes(datetime_rel_pair0, int_prop_median), color = 'yellowgreen', size = 1.2) +
-  geom_line(data = du[any_EPY == TRUE], aes(datetime_rel_pair0, int_prop, group = nestID), color = 'firebrick4', size = 1) +
-  # geom_jitter(data = du[Np >= Np_min], aes(datetime_rel_pair0, int_prop, shape = data_quality, color = any_EPY), size = 1) +
-  # scale_shape_manual(values=c(1, 16)) +
-  scale_color_manual(values = c('grey75', 'firebrick4', 'grey'), name = '',
-                     labels = c('no EPY', 'EPY', 'unknown')) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.8), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-p 
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model_50breeders_new_EPY_lines.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-
-# how many nests with EPY
-du[any_EPY == TRUE, .N, by = .(nestID)]
 
 
