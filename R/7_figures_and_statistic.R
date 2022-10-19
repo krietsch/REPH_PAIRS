@@ -119,6 +119,7 @@ ESM = read_docx()
 pn = fread("parname;                                                          parameter
             (Intercept);                                                      intercept  
             datetime_rel_pair0;                                               relative day
+            any_EPYTRUE;                                                      any EPY (yes)
             sd__(Intercept);                                                  random intercept
             r2marg;                                                           R² marginal
             r2cond;                                                           R² conditional
@@ -403,7 +404,7 @@ ggplot() +
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.92, 0.12), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of female moves') +
+  ylab('Proportion of moves by female') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
@@ -777,6 +778,34 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' Split events and extra-pair paternity
 #--------------------------------------------------------------------------------------------------------------
@@ -828,105 +857,13 @@ pa + pb +
 
 
 
+# model fertile period
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
 
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# statistic less time together before cltuch initiation?
-dx = du[!is.na(any_EPY) & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 2]
-
-dx[, year_c := as.character(year_)]
-
-
-
-
-dx
-
-
-
-fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + any_EPY:datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
-                 initiation_type + initiation_type:datetime_rel_pair0 +  (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-
-dx = du[!is.na(any_EPY) & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 2]
-
-dx[, year_c := as.character(year_)]
-
-
-
-fm1 <- glmmTMB(interaction ~ any_EPY + datetime_rel_pair0 + any_EPY:datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
-                             initiation_type + initiation_type:datetime_rel_pair0 +  (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-dx = du[ datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 4]
-
-dx[, year_c := as.character(year_)]
-
-
-
-fm1 <- glmmTMB(interaction ~ initiation_type + scale(datetime_rel_pair0) +
-                (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-fm2 <- glmmTMB(interaction ~ scale(datetime_rel_pair0) +
-                 (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-anova(fm1, fm2)
-
-plot(allEffects(fm2))
-summary(fm2)
-
-
-
-fm1 <- glmmTMB(interaction ~ scale(any_EPY) + scale(datetime_rel_pair0) + scale(any_EPY):datetime_rel_pair0 + year_c + year_c:datetime_rel_pair0 +
-                 initiation_rel + initiation_rel:datetime_rel_pair0 +  (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
+fm1 <- glmmTMB(ID_splitting_ ~ any_EPY + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -936,10 +873,36 @@ summary(fm1)
 
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
 
-fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 +  (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM split by sex and EPY fertile period initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# model before clutch initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+
+fm1 <- glmmTMB(ID_splitting_ ~ any_EPY + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -948,84 +911,27 @@ plot(allEffects(fm1))
 summary(fm1)
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
 
 
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-
-
-fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 + (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-
-
-allEffects(fm1)
-
-ggplot() +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair0, group = initiation_type, color = initiation_type), size = 0.8) 
-
-
-
-
-
-fm1 <- glmmTMB(interaction ~ initiation_type*datetime_rel_pair0 + year_c + (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-fm1 <- glmmTMB(interaction ~ any_EPY*datetime_rel_pair0 + year_c +  (1 + poly(datetime_rel_pair0, 2) | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-
-
-e <- allEffects(fm1, xlevels = 100)$"initiation_type" |>
-  data.frame() |>
-  setDT()
-e
-
-
-ggplot() +
-  geom_line(data = e, aes(y = fit, x = datetime_rel_pair0, group = initiation_type, color = initiation_type), size = 0.8) 
-
-
-
-
-f1 = glmmTMB(int_prop ~ any_EPY + year_ + (1|nestID), data = dx)
-
-
-ggplot() +
-  geom_boxplot(data = dx, 
-               aes(any_EPY, int_prop),
-               lwd = 0.3, outlier.size = 0.7) 
-
-summary(fm1)
-
-
-
-
-
-
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S6. GLMM split by sex and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 #--------------------------------------------------------------------------------------------------------------
