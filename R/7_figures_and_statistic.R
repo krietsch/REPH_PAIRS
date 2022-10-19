@@ -32,6 +32,7 @@ dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), f
 dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
 DBI::dbDisconnect(con)
 
+
 # plot settings
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
@@ -79,6 +80,13 @@ dp[nestID %in% x2, f_renesting_second := TRUE]
 
 # season mean 
 di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+# quantiles 
+dn = merge(dn, di, by = 'year_', all.x = TRUE)
+dn[, initiation_rel_ := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+quantile(dn[!is.na(initiation_rel_)]$initiation_rel_,  probs = c(33)/100)
+
 
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
 
@@ -1166,7 +1174,9 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 129, height = 89, units = c('mm'), dpi = 'print')
 
 
-du[, peak := ifelse(initiation_rel <= -2, 'pre', 'post')]
+du[f_polyandrous_first == TRUE, .N, by = .(nestID, initiation_rel)]
+
+du[, peak := ifelse(initiation_rel <= -3, 'pre', 'post')]
 
 # order factor
 du[, initiation_type := factor(initiation_type, levels = c('early', 'peak', 'late'))]
@@ -1205,8 +1215,8 @@ du[peak == 'pre' & datetime_rel_pair0 < 0 &  int_prop < 0.5, .(nestID, datetime_
 
 
 # model during clutch initiation
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -2]
-dx[, peak := ifelse(initiation_rel <= -3, 'pre', 'post')]
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -2 ]
+dx[, peak := ifelse(initiation_rel <= -2, 'pre', 'post')]
 
 fm1 <- glmmTMB(interaction ~ peak + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
