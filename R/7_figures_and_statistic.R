@@ -223,7 +223,7 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_null_model.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_null_model.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -335,6 +335,10 @@ du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, 
 ))
 
 
+# merge with EPY data
+duu = unique(dm, by = c('nestID'))
+dusm = merge(du, duu[, .(nestID, any_EPY)], by = 'nestID', all.x = TRUE)
+
 # proportion of all observations
 d0 = data.table(datetime_rel_pair0 = seq(-10, 10, 1))
 d1 = dm[split == TRUE, .(N_split = .N), by = .(datetime_rel_pair0)]
@@ -356,6 +360,7 @@ dua = rbindlist(list(d0[, .(datetime_rel_pair0, prop = f_split_prop, type = 'f_s
                      d0[, .(datetime_rel_pair0, prop = f_merge_prop, type = 'f_merge_prop')]
                      ))
 
+
 # plot splits and merges females 
 dus = du[type == 'f_split_prop' | type == 'f_merge_prop']
 
@@ -376,7 +381,7 @@ ggplot() +
   # geom_point(data = dua,
   # aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_dodge(width=0.75), size = 2) +
   scale_color_manual(values = c('yellowgreen', 'steelblue4'), name = '', 
-                      drop = FALSE) +
+                     labels = c('Away', 'Towards'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -385,46 +390,21 @@ ggplot() +
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time') +
+  theme(legend.position = c(0.92, 0.12), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of female moves') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_events_proportion.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
-#
 
+# model before clutch initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-dx = dm[split == TRUE & datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 3]
-
-dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
-
-fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
-                 (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
+fm1 <- glmmTMB(ID_splitting_ ~ datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -434,21 +414,13 @@ summary(fm1)
 
 
 
-
-
-
-
-
-
-
-dx = dm[split == TRUE & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 0]
+# model after clutch initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 
 dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
 
-fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
-                 (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
+fm1 <- glmmTMB(ID_splitting_ ~ datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -456,110 +428,6 @@ fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
 plot(allEffects(fm1))
 summary(fm1)
 
-
-
-
-
-
-
-fm2 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
-                 (1 | nestID),
-               family = binomial, data = dx,
-               REML = FALSE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm2))
-summary(fm2)
-
-anova(fm1, fm2)
-
-
-
-
-
-
-
-
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[type == 'm_split_prop'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du[type == 'm_split_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_proportion.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-
-
-
-
-# Males and females splitting
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_boxplot(data = du[type == 'm_f_together' | type == 'split_prop'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du[type == 'm_f_together' | type == 'split_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
-  scale_color_manual(values = c('yellowgreen', 'dodgerblue4'), name = '', 
-                     labels = c('with partner', 'split event'), drop = FALSE) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 0.2), fill = 'grey90') +
-  geom_boxplot(data = du[type == 'm_split_prop' | type == 'f_split_prop'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du[type == 'm_split_prop' | type == 'f_split_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
-                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '', '', '', '-5', '', '', '', '', '0', 
-                                '', '', '', '', '5', '', '', '', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  # scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2),
-  #                    labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-  #                    expand = expansion(add = c(0, 0.05))) +
-  scale_y_continuous(limits = c(-0.01, 0.21), breaks = seq(0, 0.2, 0.2),
-                     labels = c('0.0', '0.2'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_assigned.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -823,7 +691,7 @@ dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
 du[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
 
 ### plot proportion of time together 
-
+pa = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = 3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
@@ -848,7 +716,79 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
+#--------------------------------------------------------------------------------------------------------------
+#' Split events and extra-pair paternity
+#--------------------------------------------------------------------------------------------------------------
+
+
+# data from split events 
+dusm
+
+# plot splits and merges females 
+dus = dusm[!is.na(any_EPY) & type == 'f_split_prop']
+
+# order
+dus[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
+
+pb = 
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = dus, 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dus, 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
+             position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
+                     labels = c('EPY', 'No EPY'), drop = FALSE) +
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(10.86, 10.12), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of moves away by female') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+
+
+# merge plots
+pa + pb + 
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = 'A')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # statistic less time together before cltuch initiation?
 dx = du[!is.na(any_EPY) & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 2]
@@ -1155,7 +1095,7 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 129, height = 89, units = c('mm'), dpi = 'print')
 
 
-du[, peak := ifelse(initiation_rel < -2, 'pre', 'post')]
+du[, peak := ifelse(initiation_rel < -1, 'pre', 'post')]
 
 # order factor
 du[, initiation_type := factor(initiation_type, levels = c('early', 'peak', 'late'))]
