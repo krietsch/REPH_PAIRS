@@ -35,6 +35,25 @@ DBI::dbDisconnect(con)
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
 
+
+
+
+# nest data
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date)]
+dnID = unique(dnID, by = 'nestID')
+
+# as integer
+dnID[, male_id := as.integer(male_id)]
+dnID[, female_id := as.integer(female_id)]
+
+# assign clutch order
+setorder(dnID, male_id, initiation)
+dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
+dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
+dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
+
+
+
 # Assign polyandry
 # polyandrous females
 xf = c(270170564, 270170901, 270170935, 273145005, 273145036, 273145109, 273145121, 273145140)
@@ -98,14 +117,14 @@ dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 #' Data available relative to clutch initiation
 #--------------------------------------------------------------------------------------------------------------
 
-dIDs = unique(dID[Np >= Np_min & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+dIDs = unique(dID[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
               by = c('sex', 'nestID', 'datetime_rel_pair0'))
 dIDs = dIDs[, .N, by = .(sex, datetime_rel_pair0, both_tagged_overlapping)]
 dIDs
 
 # pairwise sample size
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss = unique(du[Np >= Np_min & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+dss = unique(du[datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
              by = c('nestID', 'datetime_rel_pair0'))
 dss = dss[, .N, by = datetime_rel_pair0]
 dss
@@ -214,6 +233,14 @@ ggplot() +
 # define who flies away or joins  
 
 
+# subset data
+dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+# dm = dp[Np > 0.75 & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+# check sex
+dp[, .N, .(sex1)]
+dp[, .N, .(sex2)]
+
 # subset events
 das = da[split == TRUE | merge == TRUE]
 
@@ -267,21 +294,132 @@ du[is.na(N_f_split), N_f_split := 0]
 du[, f_split_prop := N_f_split /N_split]
 d3 = copy(du)
 
+
+# Proportion of merge events
+dms = dm[merge == TRUE, .(N_merge = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_merge), N_merge := 0]
+du[, merge_prop := N_merge / N]
+d4 = copy(du)
+
+dm = merge(dm, du[, .(pairID, nestID, datetime_rel_pair0, N_merge)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+
+
+# Times males merge
+dms = dm[merge == TRUE & ID_merging == 'ID1', .(N_m_merge = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_m_merge), N_m_merge := 0]
+du[, m_merge_prop := N_m_merge /N_merge]
+d5 = copy(du)
+
+# Times females merge
+dms = dm[merge == TRUE & ID_merging == 'ID2', .(N_f_merge = .N), by = .(pairID, nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_f_merge), N_f_merge := 0]
+du[, f_merge_prop := N_f_merge /N_merge]
+d6 = copy(du)
+
+
+
 # merge data
 du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, type = 'm_f_together')],
                     d1[, .(pairID, nestID, datetime_rel_pair0, prop = split_prop, type = 'split_prop')],
                     d2[, .(pairID, nestID, datetime_rel_pair0, prop = m_split_prop, type = 'm_split_prop')],
-                    d3[, .(pairID, nestID, datetime_rel_pair0, prop = f_split_prop, type = 'f_split_prop')]
+                    d3[, .(pairID, nestID, datetime_rel_pair0, prop = f_split_prop, type = 'f_split_prop')],
+                    d4[, .(pairID, nestID, datetime_rel_pair0, prop = merge_prop, type = 'merge_prop')],
+                    d5[, .(pairID, nestID, datetime_rel_pair0, prop = m_merge_prop, type = 'm_merge_prop')],
+                    d6[, .(pairID, nestID, datetime_rel_pair0, prop = f_merge_prop, type = 'f_merge_prop')]
 ))
 
 
+# proportion of all observations
+d0 = data.table(datetime_rel_pair0 = seq(-10, 10, 1))
+d1 = dm[split == TRUE, .(N_split = .N), by = .(datetime_rel_pair0)]
+d2 = dm[split == TRUE & ID_splitting == 'ID2', .(N_f_split = .N), by = .(datetime_rel_pair0)]
+d3 = dm[merge == TRUE, .(N_merge = .N), by = .(datetime_rel_pair0)]
+d4 = dm[merge == TRUE & ID_merging == 'ID2', .(N_f_merge = .N), by = .(datetime_rel_pair0)]
+
+d0 = merge(d0, d1, by = 'datetime_rel_pair0', all.x = TRUE)
+d0 = merge(d0, d2, by = 'datetime_rel_pair0', all.x = TRUE)
+d0 = merge(d0, d3, by = 'datetime_rel_pair0', all.x = TRUE)
+d0 = merge(d0, d4, by = 'datetime_rel_pair0', all.x = TRUE)
+
+d0[, f_split_prop := N_f_split / N_split]
+d0[is.na(f_split_prop), f_split_prop := 0]
+d0[, f_merge_prop := N_f_merge / N_merge]
+d0[is.na(f_merge_prop), f_merge_prop := 0]
+
+dua = rbindlist(list(d0[, .(datetime_rel_pair0, prop = f_split_prop, type = 'f_split_prop')],
+                     d0[, .(datetime_rel_pair0, prop = f_merge_prop, type = 'f_merge_prop')]
+                     ))
+
+# plot splits and merges females 
+dus = du[type == 'f_split_prop' | type == 'f_merge_prop']
+
+dus[, type := factor(type, levels = c('f_split_prop', 'f_merge_prop'))]
+dua[, type := factor(type, levels = c('f_split_prop', 'f_merge_prop'))]
 
 
 
 
-dx = dm[split == TRUE & datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 4]
+ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = 3) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = dus, 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dus, 
+             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
+  # geom_point(data = dua,
+  # aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_dodge(width=0.75), size = 2) +
+  scale_color_manual(values = c('yellowgreen', 'steelblue4'), name = '', 
+                      drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.92), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time') +
+  xlab('Day relative to clutch initiation (= 0)')
 
-dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 1, 0)]
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_events_proportion.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dx = dm[split == TRUE & datetime_rel_pair0 >= -1 & datetime_rel_pair0 <= 3]
+
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
 
 fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
                  (datetime_rel_pair0 | nestID),
@@ -293,6 +431,35 @@ fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
 
 plot(allEffects(fm1))
 summary(fm1)
+
+
+
+
+
+
+
+
+
+
+dx = dm[split == TRUE & datetime_rel_pair0 >= -4 & datetime_rel_pair0 <= 0]
+
+dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
+
+fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
+                 (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx,
+               REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+
 
 
 fm2 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) +
@@ -393,6 +560,48 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_assigned.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' Distance moved away
+#--------------------------------------------------------------------------------------------------------------
+
+
+dms = dm[split == TRUE]
+
+# merge male and female data for plot
+dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, split_distance = distance1_before)]
+dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, split_distance = distance2_before)]
+
+dms = rbindlist(list(dms_m, dms_f))
+
+# adjust distance above 1000 m
+dms[, split_distance1000 := split_distance]
+dms[split_distance > 1000, split_distance1000 := 1000]
+
+
+ggplot() +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = 'grey90') +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(expand = expansion(add = c(0, 5))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when split (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance by sex
@@ -522,7 +731,7 @@ ggplot() +
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
-  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
@@ -546,7 +755,7 @@ ggplot() +
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
-  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
@@ -626,7 +835,7 @@ ggplot() +
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
                      labels = c('EPY', 'No EPY'), drop = FALSE) +
-  scale_x_continuous(limits = c(-4.4, 4.4), breaks = seq(-5, 5, 1), 
+  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
