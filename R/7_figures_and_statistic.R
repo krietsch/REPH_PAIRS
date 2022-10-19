@@ -7,7 +7,8 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects'), 
+          'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects', 'broomExtra',
+          'flextable', 'officer', 'dplyr', 'performance'), 
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -34,9 +35,6 @@ DBI::dbDisconnect(con)
 # plot settings
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
-
-
-
 
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date)]
@@ -112,6 +110,20 @@ dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days')
 dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
+
+
+# start word file for ESM
+ESM = read_docx()
+
+# parameter names 
+pn = fread("parname;                                                          parameter
+            (Intercept);                                                      intercept  
+            datetime_rel_pair0;                                               relative day
+            sd__(Intercept);                                                  random intercept
+            r2marg;                                                           R² marginal
+            r2cond;                                                           R² conditional
+            
+", sep = ';')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Data available relative to clutch initiation
@@ -413,6 +425,30 @@ plot(allEffects(fm1))
 summary(fm1)
 
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S1. GLMM split by sex before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+
 
 # model after clutch initiation
 dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
@@ -428,6 +464,31 @@ fm1 <- glmmTMB(ID_splitting_ ~ datetime_rel_pair0 + (datetime_rel_pair0 | nestID
 plot(allEffects(fm1))
 summary(fm1)
 
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S2. GLMM split by sex after clutch initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# save word file
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
 
 #--------------------------------------------------------------------------------------------------------------
