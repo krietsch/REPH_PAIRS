@@ -1172,7 +1172,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # model female polyandrous during initiation
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 
 
 fm1 <- glmmTMB(interaction ~ f_polyandrous_first + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
@@ -1205,7 +1205,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S10. GLMM together and female polyandrous 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S10. GLMM together and female polyandrous 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1359,7 +1359,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # model during clutch initiation
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 fm1 <- glmmTMB(interaction ~ early + datetime_rel_pair0 + (datetime_rel_pair0 | nestID),
@@ -1391,7 +1391,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and early season during clutch initiation 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and early season during clutch initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1440,7 +1440,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # model during initiation
-dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
+dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
@@ -1474,7 +1474,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S14. GLMM split by sex and early season during initiation 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S14. GLMM split by sex and early season during initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
