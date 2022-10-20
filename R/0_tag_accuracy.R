@@ -178,6 +178,9 @@ d[, dist := sqrt(sum((c(lon, lat) - c(-403.5346, -2076970))^2)) , by = 1:nrow(d)
 median_ = median(d[inc_t == 1]$dist) %>% round(., 1)
 q95 = quantile(d[inc_t == 1]$dist, probs = c(0.95)) %>% round(., 1)
 
+# number of data 
+d[inc_t == 1] |> nrow()
+
 # exclude distance over 50 m for plot
 d[inc_t == 1 & dist > 50] %>% nrow / d[inc_t == 1] %>% nrow * 100
 
