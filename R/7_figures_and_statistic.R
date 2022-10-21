@@ -112,6 +112,9 @@ dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days')
 dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
+# sample size
+dm[, .N, pairID] |> nrow()
+dm[, .N, nestID] |> nrow()
 
 
 # start word file for ESM
@@ -391,7 +394,7 @@ dua[, type := factor(type, levels = c('f_split_prop', 'f_merge_prop'))]
 pb = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = 0, xmax = 3, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = dus, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
