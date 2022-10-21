@@ -715,20 +715,6 @@ pa + pb +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_distances.tiff', plot = last_plot(),  width = 177, height = 220, units = c('mm'), dpi = 'print')
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance by sex
 #--------------------------------------------------------------------------------------------------------------
@@ -817,6 +803,32 @@ du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, 
                     d6[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_prop, type = 'm_alone_prop')],
                     d7[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_prop, type = 'f_alone_prop')]
 ))
+
+
+
+# descriptive statistic
+
+# day before clutch initiation
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# at clutch initiation
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# at clutch last day of egg laying
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# alone at nest
+# clutch initiation 
+du[type == 'f_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'm_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+
+# at clutch last day of egg laying
+du[type == 'f_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'm_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
 
 
@@ -973,7 +985,7 @@ ggplot() +
   ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
 
-
+pa
 
 
 
