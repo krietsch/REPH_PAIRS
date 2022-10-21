@@ -614,10 +614,10 @@ ESM = ESM |> body_add_par(paste0('Table S4. GLMM merge by sex after clutch initi
 ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Distance moved away
+#' Distance moved away or towars
 #--------------------------------------------------------------------------------------------------------------
 
-
+# moved away
 dms = dm[split == TRUE]
 
 # merge male and female data for plot
@@ -630,7 +630,7 @@ dms = rbindlist(list(dms_m, dms_f))
 dms[, split_distance1000 := split_distance]
 dms[split_distance > 1000, split_distance1000 := 1000]
 
-
+pa = 
 ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = 'grey90') +
   geom_boxplot(data = dms, 
@@ -652,6 +652,81 @@ ggplot() +
 
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+# before and during laying
+dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+
+# moved towards
+dms = dm[merge == TRUE]
+
+# merge male and female data for plot
+dms_m = dms[ID_merging == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, merge_distance = distance1_before)]
+dms_f = dms[ID_merging == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, merge_distance = distance2_before)]
+
+dms = rbindlist(list(dms_m, dms_f))
+
+# adjust distance above 1000 m
+dms[, merge_distance1000 := merge_distance]
+dms[merge_distance > 1000, merge_distance1000 := 1000]
+
+pb = 
+ggplot() +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = 'grey90') +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, merge_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, merge_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
+                     labels = c('Female moves towards', 'Male moves towards'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(expand = expansion(add = c(0, 5))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Distance moved when merged (m)') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+# before and during laying
+dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# before laying 
+dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# during laying
+dms[sex == 'F' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dms[sex == 'M' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+
+# merge plots
+pa + pb + 
+  plot_layout(nrow = 2) +
+  plot_annotation(tag_levels = 'A')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_distances.tiff', plot = last_plot(),  width = 177, height = 220, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------------------------
