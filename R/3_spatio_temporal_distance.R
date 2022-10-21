@@ -120,6 +120,9 @@ setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'tim
 ggplot(data = dp) +
   geom_histogram(aes(time_btw))
 
+# quantiles
+quantile(dp$time_btw, probs = c(5, 50, 95)/100)
+
 # any duplicates?
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
