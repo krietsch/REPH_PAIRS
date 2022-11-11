@@ -396,6 +396,8 @@ d0a[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
 
 d0as = d0a[sub %in% ds$sub]
 
+ds[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10, .N, datetime_rel_pair0]
+
 # rename order and save
 d0as = d0as[, 
         .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
