@@ -399,47 +399,65 @@ dua = rbindlist(list(d0[, .(datetime_rel_pair0, prop = f_split_prop, type = 'f_s
                      ))
 
 
-# plot splits and merges females 
-dus = du[type == 'f_split_prop' | type == 'f_merge_prop']
-
-dus[, type := factor(type, levels = c('f_split_prop', 'f_merge_prop'))]
-dua[, type := factor(type, levels = c('f_split_prop', 'f_merge_prop'))]
-
-
+# plot splits females 
+dus = du[type == 'f_split_prop']
 
 pb = 
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
+  ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = dus, 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'yellowgreen',
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = dus, 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.5) +
-  # geom_point(data = dua,
-  # aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_dodge(width=0.75), size = 2) +
-  scale_color_manual(values = c('yellowgreen', 'steelblue4'), name = '', 
-                     labels = c('Away', 'Towards'), drop = FALSE) +
+  geom_jitter(data = dus, aes(datetime_rel_pair0, prop), colour = 'yellowgreen', size = 0.5) + 
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
+                     expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of moves by female') +
+  ylab('Proportion of moves away by female') +
   xlab('Day relative to clutch initiation (= 0)')
 
+pb
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_events_proportion.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+# plot merges females 
+dus = du[type == 'f_merge_prop']
+
+
+pc = 
+  ggplot() +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_boxplot(data = dus, 
+               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'yellowgreen',
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_jitter(data = dus, aes(datetime_rel_pair0, prop), colour = 'yellowgreen', size = 0.5) + 
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of moves towards by female') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+pc
+
 
 
 # merge plots
-pa + pb + 
-  plot_layout(nrow = 2) +
-  plot_annotation(tag_levels = 'A')
+pa + pb + pc +
+  plot_layout(design = "
+  11
+  23
+") +
+  plot_annotation(tag_levels = 'a')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_split_merge.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
@@ -614,7 +632,7 @@ ESM = ESM |> body_add_par(paste0('Table S4. GLMM merge by sex after clutch initi
 ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Distance moved away or towars
+#' Distance moved away or towards
 #--------------------------------------------------------------------------------------------------------------
 
 # moved away
