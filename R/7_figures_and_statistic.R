@@ -1803,6 +1803,38 @@ ggplot() +
 
 
 
+# model before clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1 ]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+
+fm1 <- glmmTMB(interaction ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
+
+
+# model before clutch initiation
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+
+fm1 <- glmmTMB(interaction ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+
 
 
 
@@ -1899,6 +1931,22 @@ dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
+fm1 <- glmmTMB(ID_splitting ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+# model before clutch initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+
 fm1 <- glmmTMB(ID_splitting ~ early + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
@@ -1939,6 +1987,21 @@ dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
 fm1 <- glmmTMB(ID_splitting ~ early + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+# model during initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+
+fm1 <- glmmTMB(ID_splitting ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
