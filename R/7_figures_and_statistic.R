@@ -125,6 +125,7 @@ pn = fread("parname;                                                          pa
             (Intercept);                                                      intercept  
             scale(datetime_rel_pair0);                                        relative day (scaled)
             any_EPYTRUE;                                                      any EPY (yes)
+            sexM;                                                             sex (male)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
             earlyTRUE;                                                        early initiation (yes)
             sd__(Intercept);                                                  random intercept
@@ -778,6 +779,48 @@ ggplot() +
 dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
+dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(split_distance, na.rm = TRUE)]
+dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(split_distance, na.rm = TRUE)]
+
+
+
+# model before clutch initiation
+dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+
+fm1 <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = gaussian, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm1))
+summary(fm1)
+
+
+# create clean summary table 
+y = tidy(fm1) |> data.table()
+x = r2(fm1) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table SXXXX. GLMM split distance by sex before clutch initiation -5 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+
 
 # moved towards
 dms = dm[merge == TRUE]
@@ -1124,6 +1167,20 @@ ggplot() +
 pa
 
 
+# descriptive statistic
+
+# fertile period 
+du[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# before clutch initiation period 
+du[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
+# after clutch initiation period 
+du[any_EPY == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[any_EPY == FALSE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+
 
 
 # model fertile period
@@ -1282,6 +1339,31 @@ pa + pb +
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
+
+
+
+# descriptive statistic
+
+# movements away fertile period 
+dus[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, mean(prop, na.rm = TRUE)]
+
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, mean(prop, na.rm = TRUE)]
+
+# movements before clutch initiation
+dus[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, mean(prop, na.rm = TRUE)]
+
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, mean(prop, na.rm = TRUE)]
+
+# movements away after clutch initiation
+dus[any_EPY == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, mean(prop, na.rm = TRUE)]
+
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(prop, na.rm = TRUE)]
 
 
 
