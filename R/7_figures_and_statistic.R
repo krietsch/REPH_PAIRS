@@ -1663,6 +1663,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 #' Mate guarding intensity in relation to time within season
 #--------------------------------------------------------------------------------------------------------------
 
+
 # pairwise sample size for each season 
 du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 
@@ -1798,34 +1799,68 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_season.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
+# descriptive statistic 
 
+# before clutch initiation
+du[initiation_type == 'early' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75))] 
+du[initiation_type == 'peak' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75))] 
+du[initiation_type == 'late' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75))] 
 
+# during laying
+du[initiation_type == 'early' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
+du[initiation_type == 'peak' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
+du[initiation_type == 'late' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
 
 
 
 # model before clutch initiation
 dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1 ]
-dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 fm1 <- glmmTMB(interaction ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
+               family = binomial, data = dx, REML = FALSE,
                control = glmmTMBControl(parallel = 15)
 )
 
 
 plot(allEffects(fm1))
 summary(fm1)
-
 
 
 
 
 # model before clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+
+fm2 <- glmmTMB(interaction ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm2))
+summary(fm2)
+
+
+anova(fm1, fm2)
+
+
+fm3 <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm3))
+summary(fm3)
+
+anova(fm2, fm3)
+
+# model during egg-laying
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 fm1 <- glmmTMB(interaction ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
+               family = binomial, data = dx, REML = FALSE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -1834,6 +1869,20 @@ plot(allEffects(fm1))
 summary(fm1)
 
 
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+
+fm2 <- glmmTMB(interaction ~ poly(initiation_rel, 2) + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = FALSE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(fm2))
+summary(fm2)
+
+
+anova(fm1, fm2)
 
 
 
@@ -1887,7 +1936,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
-fm1 <- glmmTMB(interaction ~ early + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+fm1 <- glmmTMB(interaction ~ initiation_type + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
