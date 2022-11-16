@@ -1843,7 +1843,7 @@ summary(fm2)
 
 anova(fm1, fm2)
 
-
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 fm3 <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = FALSE,
                control = glmmTMBControl(parallel = 15)
@@ -1980,7 +1980,7 @@ dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
-fm1 <- glmmTMB(ID_splitting ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+fm1 <- glmmTMB(ID_splitting ~ scale(initiation_rel) + any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
