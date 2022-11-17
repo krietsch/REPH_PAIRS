@@ -274,6 +274,140 @@ d0[datetime_rel_pair0 >= 5, quantile(int_prop, c(0.5, 0.25, 0.75))]
 d1[, .N, .(datetime_rel_pair0, nestID)]
 
 
+### Models 
+
+# before clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+# dx = dx[initiation_rel < 5]
+
+m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+
+dms = dm[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+
+
+dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dm, by = c('pairID', 'nestID', 'initiation_rel'))
+
+
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_ini]
+d0 = copy(du)
+
+
+
+
+ggplot() +
+  geom_point(data = du, aes(initiation_rel, int_prop)) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) 
+
+x = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+x
+
+
+require(arm)
+invlogit(0.5)
+logit(0.9)
+
+
+library(scales)
+logit_perc <- trans_new("logit perc",
+                        transform = function(x)qlogis(x/100),
+                        inverse = function(x)100*plogis(x)
+)
+
+library(scales)
+logit_perc <- trans_new("logit perc",
+                        transform = function(x)invlogit(x/100),
+                        inverse = function(x)100*logit(x)
+)
+
+
+
+ggplot() +
+  geom_point(data = du, aes(initiation_rel, int_prop)) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
+  ylim(c(0, 1)) +
+  coord_trans(y = logit_perc)
+
+
+
+ggplot() +
+  # geom_point(data = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1], aes(initiation_rel, inv.logit(int_prop))) +
+  geom_line(data = e, aes(y = qlogis(fit), x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = qlogis(fit), x = initiation_rel, ymin = lower, ymax = upper), 
+              alpha = 0.2) 
+
+
+
+
+
+
+
+m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+# predict data
+e <- allEffects(m, xlevels = 100)$"poly(initiation_rel,2)" |>
+  data.frame() |>
+  setDT()
+
+m
+
+# during laying
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # test differences between breeding pairs and random pairs
 
 # assign random pairs nestID as pairID
@@ -281,8 +415,8 @@ dmr[, nestID := pairID]
 
 
 # merge data
-dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, datetime_rel_pair0, type)],
-                    dmr[, .(pairID, nestID, interaction, datetime_rel_pair0, type)]
+dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
+                    dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]
 ))
 
 
@@ -290,7 +424,7 @@ dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, datetime_rel_pair0, typ
 dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
 
 
-fm1 <- glmmTMB(interaction ~ type + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+fm1 <- glmmTMB(interaction ~ type + poly(initiation_rel, 2) + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
