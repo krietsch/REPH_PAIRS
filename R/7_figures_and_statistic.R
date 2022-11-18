@@ -126,6 +126,10 @@ pn = fread("parname;                                                          pa
             scale(datetime_rel_pair0);                                        relative day (scaled)
             any_EPYTRUE;                                                      any EPY (yes)
             sexM;                                                             sex (male)
+            poly(initiation_rel, 2)1;                                         clutch initiation relative to season (linear)
+            poly(initiation_rel, 2)2;                                         clutch initiation relative to season (quadratic)
+            poly(datetime_rel_pair0, 2)1;                                     clutch initiation relative to first egg (linear)
+            poly(datetime_rel_pair0, 2)2;                                     clutch initiation relative to first egg (quadratic)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
             earlyTRUE;                                                        early initiation (yes)
             sd__(Intercept);                                                  random intercept
@@ -276,11 +280,106 @@ d1[, .N, .(datetime_rel_pair0, nestID)]
 
 ### Models 
 
+
+# 
+# 
+# # test differences between breeding pairs and random pairs
+# 
+# # assign random pairs nestID as pairID
+# dmr[, nestID := pairID]
+# 
+# 
+# # merge data
+# dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
+#                      dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]
+# ))
+# 
+# 
+# # model fertile period
+# dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+# 
+# 
+# fm1 <- glmmTMB(interaction ~ type + poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
+#                family = binomial, data = dx, REML = TRUE,
+#                control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(fm1))
+# summary(fm1)
+# 
+# 
+# 
+# # create clean summary table 
+# y = tidy(fm1) |> data.table()
+# x = r2(fm1) |> data.table() 
+# 
+# 
+# setnames(x, c('estimate'))
+# x[, estimate := as.numeric(estimate)]
+# x[, term :=  c('r2cond', 'r2marg')]
+# y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+# y[, row_order := rownames(y) |> as.numeric()]
+# y = merge(y, pn, by.x = 'term', by.y = 'parname')
+# setorder(y, row_order)
+# y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+# y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+# 
+# # save table in word
+# ft = flextable(y) |> autofit()
+# ft = bold(ft, bold = TRUE, part = "header")
+# ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together vs randomized initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+# ESM = ESM |> body_add_break(pos = 'after')
+# 
+# 
+# 
+# 
+# # model after laying
+# dx = dmx[datetime_rel_pair0 >= 5 & datetime_rel_pair0 <= 10]
+# 
+# 
+# fm1 <- glmmTMB(interaction ~ type + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+#                family = binomial, data = dx, REML = TRUE,
+#                control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(fm1))
+# summary(fm1)
+# 
+# 
+# # create clean summary table 
+# y = tidy(fm1) |> data.table()
+# x = r2(fm1) |> data.table() 
+# 
+# 
+# setnames(x, c('estimate'))
+# x[, estimate := as.numeric(estimate)]
+# x[, term :=  c('r2cond', 'r2marg')]
+# y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+# y[, row_order := rownames(y) |> as.numeric()]
+# y = merge(y, pn, by.x = 'term', by.y = 'parname')
+# setorder(y, row_order)
+# y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+# # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
+# y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+# 
+# # save table in word
+# ft = flextable(y) |> autofit()
+# ft = bold(ft, bold = TRUE, part = "header")
+# ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together vs randomized initiation 5 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
+# ESM = ESM |> body_add_break(pos = 'after')
+# 
+
+
+
+
+
 # before clutch initiation
 dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-# dx = dx[initiation_rel < 5]
 
-m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
              family = binomial, data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
@@ -290,211 +389,158 @@ plot(allEffects(m))
 summary(m)
 
 
+
+# create clean summary table 
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# plot for season effect on time spent together
+
+# extract effect from model
 e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
 
 
+# data for points 
+dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
 
-dms = dm[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+# du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_ini]
+d0 = copy(du)
 
 
-dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+d0[initiation_rel < -6]
+
+
+dm[nestID == 'R901_19']
+
+pb = 
+ggplot() +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.01))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
+
+pb
+
+
+# during egg laying
+dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+
+
+# create clean summary table 
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together during laying 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# plot for season effect on time spent together
+
+# extract effect from model
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+# data for points 
+dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, N_ini := .N, by = .(pairID, nestID)]
 du = unique(dm, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
 
-
+dms = dm[interaction == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
 du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
 
-
-
-ggplot() +
-  geom_point(data = du, aes(initiation_rel, int_prop)) +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
-  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) 
-
-x = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-x
-
-
-require(arm)
-invlogit(0.5)
-logit(0.9)
-
-
-library(scales)
-logit_perc <- trans_new("logit perc",
-                        transform = function(x)qlogis(x/100),
-                        inverse = function(x)100*plogis(x)
-)
-
-library(scales)
-logit_perc <- trans_new("logit perc",
-                        transform = function(x)invlogit(x/100),
-                        inverse = function(x)100*logit(x)
-)
-
-
-
-ggplot() +
-  geom_point(data = du, aes(initiation_rel, int_prop)) +
+pc = 
+  ggplot() +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
-  ylim(c(0, 1)) +
-  coord_trans(y = logit_perc)
+  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.01))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
 
 
 
-ggplot() +
-  # geom_point(data = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1], aes(initiation_rel, inv.logit(int_prop))) +
-  geom_line(data = e, aes(y = qlogis(fit), x = initiation_rel), size = 0.8) +
-  geom_ribbon(data = e, aes(y = qlogis(fit), x = initiation_rel, ymin = lower, ymax = upper), 
-              alpha = 0.2) 
+# merge plots
+pa + pb + pc +
+  plot_layout(design = "
+  11
+  23
+") +
+  plot_annotation(tag_levels = 'a')
 
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 
-
-
-
-m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-
-# predict data
-e <- allEffects(m, xlevels = 100)$"poly(initiation_rel,2)" |>
-  data.frame() |>
-  setDT()
-
-m
-
-# during laying
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-m <- glmmTMB(interaction ~ poly(initiation_rel, 2) + any_EPY + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# test differences between breeding pairs and random pairs
-
-# assign random pairs nestID as pairID
-dmr[, nestID := pairID]
-
-
-# merge data
-dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
-                    dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]
-))
-
-
-# model fertile period
-dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
-
-
-fm1 <- glmmTMB(interaction ~ type + poly(initiation_rel, 2) + poly(datetime_rel_pair0, 2) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together vs randomized initiation -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-
-
-
-# model after laying
-dx = dmx[datetime_rel_pair0 >= 5 & datetime_rel_pair0 <= 10]
-
-
-fm1 <- glmmTMB(interaction ~ type + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table XXX. GLMM together vs randomized initiation 5 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Split and merge events
@@ -716,22 +762,24 @@ du[type == 'f_merge_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, m
 
 # model before clutch initiation
 dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
-dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
-fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
+
 
 
 # create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -754,23 +802,72 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 
-# model after clutch initiation
+
+# extract effect from model
+e = effect("scale(initiation_rel)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+# data for points 
+dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
+
+dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+# du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_ini]
+d0 = copy(du)
+
+
+
+pb = 
+  ggplot() +
+  # geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.01))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
+
+pb
+
+
+
+
+
+
+
+
+
+
+# model during egg-laying
 dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
 
-dx[, ID_splitting_ := ifelse(ID_splitting == 'ID1', 0, 1)]
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
-fm1 <- glmmTMB(ID_splitting_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
+
+
 
 # create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -791,6 +888,57 @@ ESM = ESM |> body_add_par(paste0('Table S2. GLMM split by sex after clutch initi
 ESM = ESM |> body_add_break(pos = 'after')
 
 
+
+
+
+
+# extract effect from model
+e = effect("scale(initiation_rel)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+# data for points 
+dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
+
+dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+# du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_ini]
+d0 = copy(du)
+
+
+
+pc = 
+  ggplot() +
+  # geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
+  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
+                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+                     expand = expansion(add = c(0, 0.01))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
+
+pc
+
+
+
+
+
+
+
+
+
+
+
+
 ### merging
 
 # model before clutch initiation
@@ -798,7 +946,7 @@ dx = dm[merge == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
 dx[, ID_merging_ := ifelse(ID_merging == 'ID1', 0, 1)] # males = 0
 
-fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
@@ -806,29 +954,6 @@ fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | n
 
 plot(allEffects(fm1))
 summary(fm1)
-
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'merge (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S3. GLMM merge by sex before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
 
 
 
@@ -838,7 +963,7 @@ dx = dm[merge == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 
 dx[, ID_merging_ := ifelse(ID_merging == 'ID1', 0, 1)]
 
-fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
@@ -847,27 +972,6 @@ fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + (datetime_rel_pair0 | n
 plot(allEffects(fm1))
 summary(fm1)
 
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'merge (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S4. GLMM merge by sex after clutch initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away or towards
