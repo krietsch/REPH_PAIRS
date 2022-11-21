@@ -239,8 +239,8 @@ ggplot() +
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.9, 0.8), legend.background = element_blank(), plot.margin = margin_, 
@@ -421,33 +421,35 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
 
 
 # data for points 
-dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, N_ini := .N, by = .(pairID, nestID)]
+dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+dms = dms[, N_ini := .N, by = .(pairID, nestID)]
 du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
 du = du[!is.na(N_ini)]
+du[, .(min(N_ini), max(N_ini))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
 dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
 du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
-# du[is.na(N_int), N_int := 0]
+du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
-
-d0[initiation_rel < -6]
-
-
-dm[nestID == 'R901_19']
 
 pb = 
 ggplot() +
   geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0.02, 0.02))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time together') +
   xlab('Clutch initiation date (standardized)')
@@ -501,9 +503,12 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
 
 
 # data for points 
-dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, N_ini := .N, by = .(pairID, nestID)]
-du = unique(dm, by = c('pairID', 'nestID', 'initiation_rel'))
+dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dms = dms[, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
 du = du[!is.na(N_ini)]
+du[, .(min(N_ini), max(N_ini))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
 dms = dm[interaction == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
 du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
@@ -512,21 +517,29 @@ du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
 
+
+
+
 pc = 
   ggplot() +
   geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1) +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0.02, 0.02))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time together') +
   xlab('Clutch initiation date (standardized)')
 
+pc
 
 
 # merge plots
