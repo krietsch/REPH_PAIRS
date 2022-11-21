@@ -1256,6 +1256,15 @@ du[type == 'm_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25,
 
 
 
+
+# pairwise sample size
+dus = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(dus[datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+dss
+
+
 # Males and females at the nest
 pa = 
 ggplot() +
@@ -1272,8 +1281,8 @@ ggplot() +
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.07, 0.9), legend.background = element_blank(), plot.margin = margin_) +
@@ -1296,8 +1305,8 @@ pb =
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_) +
@@ -1321,8 +1330,8 @@ ggplot() +
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_) +
@@ -1358,6 +1367,8 @@ e = effect("scale(initiation_rel)", m, xlevels = 100) |>
 dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dms[, N_nest_season := .N, by = .(pairID, nestID, initiation_rel)]
 du = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+du[, .(min(N_nest_season), max(N_nest_season))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
 dms = dm[m_at_nest == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, 
          .(N_m_at_nest = .N), by = .(pairID, nestID, initiation_rel)]
@@ -1368,15 +1379,19 @@ d1 = copy(du)
 
 pd = 
   ggplot() +
-  geom_point(data = du, aes(initiation_rel, m_at_nest_prop, size = N), shape = 1, color = 'steelblue4') +
+  geom_point(data = du, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.01))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time at nest (day 0 to 3)') +
   xlab('Clutch initiation date (standardized)')
@@ -1409,6 +1424,9 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
 dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dms[, N_nest_season := .N, by = .(pairID, nestID, initiation_rel)]
 du = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+du[, .(min(N_nest_season), max(N_nest_season))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+
 
 dms = dm[f_at_nest == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, 
          .(N_f_at_nest = .N), by = .(pairID, nestID, initiation_rel)]
@@ -1419,15 +1437,19 @@ d1 = copy(du)
 
 pe = 
   ggplot() +
-  geom_point(data = du, aes(initiation_rel, f_at_nest_prop, size = N), shape = 1, color = 'firebrick3') +
+  geom_point(data = du, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, color = 'firebrick3') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'firebrick3') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'firebrick3') +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.01))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time at nest (day 0 to 3)') +
   xlab('Clutch initiation date (standardized)')
