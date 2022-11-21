@@ -37,7 +37,7 @@ DBI::dbDisconnect(con)
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
 sample_size_label = 2.5
-
+egg_laying_color = 'grey85'
 
 
 # nest data
@@ -164,29 +164,22 @@ du = unique(dp, by = c('nestID'))
 setorder(du, by = datetime_rel_pair_min)
 dp[, nestID := factor(nestID, levels = c(du$nestID))]
 
+# last interaction
+dp[interaction == TRUE, max(datetime_rel_pair)]
+
 ggplot(data = dp) +
+  geom_rect(aes(xmin = 0, xmax = 3, ymin = -Inf, ymax = Inf), fill = egg_laying_color) +
   geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
-  scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4', 'NA' = 'grey50')) +
-  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
+  scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4')) +
+  geom_vline(aes(xintercept = 0), color = 'black', size = 0.2) +
+  geom_vline(aes(xintercept = 3), color = 'black', size = 0.2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Nest') +
-  # scale_x_continuous(limits = c(-12, 5)) +
+  scale_x_continuous(limits = c(-12, 19)) +
   theme_classic(base_size = 8) + 
   theme(legend.position = c(0.05, 0.9))
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID.tiff', plot = last_plot(),  width = 300, height = 177, units = c('mm'), dpi = 'print')
 
-ggplot(data = dp) +
-  geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
-  scale_fill_manual(values = c('TRUE' = 'yellowgreen', 'FALSE' = 'steelblue4', 'NA' = 'grey50')) +
-  geom_vline(aes(xintercept = 0), color = 'black', size = 3, alpha = 0.5) +
-  geom_vline(aes(xintercept = 3), color = 'black', size = 3, alpha = 0.5) +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Nest') +
-  scale_x_continuous(limits = c(-12, 5)) +
-  theme_classic(base_size = 8) + 
-  theme(legend.position = c(0.05, 0.9))
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID_crop.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
 
 dp[, nestID := as.character(nestID)]
 
@@ -225,7 +218,7 @@ du[, data_quality := ifelse(Np >= 0.75, '>=0.75', '<0.75')]
 pa = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
@@ -451,7 +444,7 @@ ggplot() +
   theme_classic(base_size = 10) +
   theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together') +
+  ylab('Proportion of time together (day -5 to -1)') +
   xlab('Clutch initiation date (standardized)')
 
 pb
@@ -536,7 +529,7 @@ pc =
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together') +
+  ylab('Proportion of time together (day 0 to 3)') +
   xlab('Clutch initiation date (standardized)')
 
 pc
@@ -705,7 +698,7 @@ dus = du[type == 'f_split_prop']
 pa = 
   ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = dus, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'black',
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
@@ -1002,7 +995,7 @@ dms[split_distance > 1000, split_distance1000 := 1000]
 
 pa = 
 ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = egg_laying_color) +
   geom_boxplot(data = dms, 
                aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
@@ -1085,7 +1078,7 @@ dms[merge_distance > 1000, merge_distance1000 := 1000]
 
 pb = 
 ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = egg_laying_color) +
   geom_boxplot(data = dms, 
                aes(datetime_rel_pair0, merge_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
@@ -1269,7 +1262,7 @@ dss
 pa = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
@@ -1293,13 +1286,13 @@ ggplot() +
 # Males alone and alone at nest
 pb = 
   ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'steelblue1'), name = '', 
+  scale_color_manual(values = c('steelblue4', 'black'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
@@ -1318,13 +1311,13 @@ pb
 # Female alone and alone at nest
 pc = 
 ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'salmon'), name = '', 
+  scale_color_manual(values = c('firebrick3', 'black'), name = '', 
                      labels = c('At nest', 'Not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
@@ -1516,26 +1509,27 @@ dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
 
 # order
 du[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
+du[, any_EPY_plot := factor(any_EPY_plot, levels = c('No EPY', 'EPY'))]
 
 ### plot proportion of time together 
 pa = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[!is.na(any_EPY)], 
                aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[!is.na(any_EPY)], 
              aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('yellowgreen', 'black'), name = '', 
-                     labels = c('EPY', 'No EPY'), drop = FALSE) +
+  scale_color_manual(values = c('black', 'yellowgreen'), name = '', 
+                     labels = c('No EPY', 'EPY'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.18, 0.14), legend.background = element_blank(), plot.margin = margin_) +
@@ -1682,29 +1676,32 @@ dus = dusm[!is.na(any_EPY) & type == 'f_split_prop']
 
 # order
 dus[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
+dus[, any_EPY_plot := factor(any_EPY_plot, levels = c('No EPY', 'EPY'))]
+
+
 
 pb = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = dus, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = dus, 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('yellowgreen', 'black'), name = '', 
-                     labels = c('EPY', 'No EPY'), drop = FALSE) +
+  scale_color_manual(values = c('black', 'yellowgreen'), name = '', 
+                     labels = c('No EPY', 'EPY'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(10.86, 10.12), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of moves away by female') +
+  ylab('Proportion female moves away') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
@@ -1895,7 +1892,7 @@ du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (
 pc = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_fp_label), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du, 
                aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
