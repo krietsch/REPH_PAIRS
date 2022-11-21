@@ -561,7 +561,6 @@ pa + pb + pc +
 
 # define who flies away or joins  
 
-
 # subset data
 dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 # dm = dp[Np > 0.75 & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
@@ -690,11 +689,22 @@ dua = rbindlist(list(d0[, .(datetime_rel_pair0, prop = f_split_prop, type = 'f_s
                      ))
 
 
+
+# pairwise sample size
+dus = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(dus[datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+dss
+
+
+
 # plot splits females 
 dus = du[type == 'f_split_prop']
 
 pa = 
   ggplot() +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
   geom_boxplot(data = dus, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'black',
@@ -707,51 +717,13 @@ pa =
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
+                     expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
   theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of female moves away') +
+  ylab('Proportion female moves away') +
   xlab('Day relative to clutch initiation (= 0)')
 
 pa
-# 
-# 
-# # plot merges females 
-# dus = du[type == 'f_merge_prop']
-# 
-# 
-# pc = 
-#   ggplot() +
-#   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = 'grey90') +
-#   geom_boxplot(data = dus, 
-#                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'yellowgreen',
-#                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-#   geom_jitter(data = dus, aes(datetime_rel_pair0, prop), colour = 'yellowgreen', size = 0.5) + 
-#   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-#                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
-#                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
-#                      expand = expansion(add = c(0.2, 0.2))) +
-#   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-#                      labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-#                      expand = expansion(add = c(0, 0))) +
-#   theme_classic(base_size = 11) +
-#   theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_) +
-#   ylab('Proportion of moves towards by female') +
-#   xlab('Day relative to clutch initiation (= 0)')
-# 
-# pc
-# 
-
-
-# merge plots
-pa + pb + pc +
-  plot_layout(design = "
-  11
-  23
-") +
-  plot_annotation(tag_levels = 'a')
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_split_merge.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 # descriptive statistic
@@ -830,6 +802,9 @@ e = effect("scale(initiation_rel)", m, xlevels = 100) |>
 dms = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 dms[, N_splits_season := .N, by = .(pairID, nestID, initiation_rel)]
 du = unique(dms[!is.na(N_splits_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+du[, .(min(N_splits_season), max(N_splits_season))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+
 
 # Proportion of split events
 dms = dm[split == TRUE & ID_splitting == 'ID2' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, 
@@ -839,8 +814,6 @@ du[is.na(N_split_female), N_split_female := 0]
 du[, split_prop := N_split_female / N_splits_season]
 d1 = copy(du)
 
-du[split_prop == 0]
-
 
 pb = 
   ggplot() +
@@ -848,22 +821,21 @@ pb =
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1) +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.01))) +
+  scale_size_area(max_size = 4, breaks=c(10, 20, 30)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of female moves away (day -5 to -1)') +
+  ylab('Proportion female moves away (day -5 to -1)') +
   xlab('Clutch initiation date (standardized)')
 
 pb
-
-
-
-
-
 
 
 
@@ -923,6 +895,9 @@ e = effect("scale(initiation_rel)", m, xlevels = 100) |>
 dms = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dms[, N_splits_season := .N, by = .(pairID, nestID, initiation_rel)]
 du = unique(dms[!is.na(N_splits_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+du[, .(min(N_splits_season), max(N_splits_season))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+
 
 # Proportion of split events
 dms = dm[split == TRUE & ID_splitting == 'ID2' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, 
@@ -940,14 +915,18 @@ pc =
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1) +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2) +
-  scale_x_continuous(expand = expansion(add = c(0.1, 0.1))) +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.01))) +
+  scale_size_area(max_size = 4, breaks=c(10, 20, 30)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.1), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of female moves away (day 0 to 3)') +
+  ylab('Proportion female moves away (day 0 to 3)') +
   xlab('Clutch initiation date (standardized)')
 
 pc
@@ -966,8 +945,6 @@ pa + pb + pc +
   plot_annotation(tag_levels = 'a')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
-
-
 
 
 
