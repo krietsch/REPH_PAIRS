@@ -1978,160 +1978,100 @@ ESM = ESM |> body_add_break(pos = 'after')
 #' Mate guarding intensity in relation polyandry
 #--------------------------------------------------------------------------------------------------------------
 
-# pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss = unique(du[f_polyandrous_first == FALSE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
-
-# polyandrous 1st clutch sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss_fp = unique(du[f_polyandrous_first == TRUE & datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-                 by = c('nestID', 'datetime_rel_pair0'))
-dss_fp = dss_fp[, .N, by = datetime_rel_pair0]
-dss_fp
-
-# merge 
-dss = merge(dss, dss_fp[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
-dss[, N_fp_label := paste0(N_epy, '/', N)]
-
-# Proportion of time together breeders
-dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
-
-
-# order
-du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (polyandrous)', 'Other')]
-
-### plot proportion of time together polyandrous females
-pc = 
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_fp_label), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
-  geom_boxplot(data = du, 
-               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot),
-               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du, 
-             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, f_polyandrous_first_plot), color = f_polyandrous_first_plot), 
-             position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('darkgreen', 'darkorange'), name = '', 
-                     drop = FALSE) +
-  scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
-                     labels = c('', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', ''),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.2), 
-                     labels = c('0.0', '0.2', '0.4', '0.6', '0.8', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = c(0.3, 0.14), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-pc
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_polyandrous_females.tiff', plot = last_plot(),  width = 89, height = 89, units = c('mm'), dpi = 'print')
-
-
-
-
-
-
-
-
-
-
-
-# how many nests with EPY
+# how many nests with polyandrous first clutch 
 du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
-
-du[f_polyandrous_second == TRUE, .N, by = .(nestID)]
-
-
-273145121
-270170935
-273145036
-273145109
-
 
 # polyandrous females single 
 
 p1 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
-  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
-                     labels = c('2nd clutch', '1st clutch')) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+                     labels = c('1st mate', '2nd mate')) +
+  geom_point(data = du[ID2 == 273145121], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
+  scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
+  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_x_date(date_breaks = '3 day', date_labels = '%d %b', limits = c(as.Date('2019-06-10'), as.Date('2019-07-01'))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.9, 0.65), legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time together') +
-  xlab('Date')
+  xlab('')
 
 p1
 
 
 p2 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_path(data = du[ID2 == 270170935], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
-  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
-                     labels = c('2nd clutch', '1st clutch')) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_path(data = du[ID2 == 270170935], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+                     labels = c('1st mate', '2nd mate')) +
+  geom_point(data = du[ID2 == 270170935], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
+  scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
+  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  theme_classic(base_size = 10) +
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
-  xlab('Date')
+  xlab('')
 
 p2
 
 p3 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_path(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
-  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
-                     labels = c('2nd clutch', '1st clutch')) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_path(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+                     labels = c('1st mate', '2nd mate')) +
+  geom_point(data = du[ID2 == 273145036], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
+  scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
+  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  theme_classic(base_size = 10) +
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
-  xlab('Date')
-
+  xlab('')
 p3
 
 p4 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.01, ymax = 1), fill = 'grey90') +
-  geom_path(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
-  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
-                     labels = c('2nd clutch', '1st clutch')) +
-  theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_path(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+                     labels = c('1st mate', '2nd mate')) +
+  geom_point(data = du[ID2 == 273145109], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
+  scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
+  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  theme_classic(base_size = 10) +
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
   xlab('Date')
 
 p4
 
 
-
-
 # merge plots
 p1 + p2 + p3 + p4 +
-  plot_layout(nrow = 2, ncol = 2) +
+  plot_layout(nrow = 4, ncol = 1) +
   # plot_layout(heights = c(1, 4, 4)) +
-  plot_annotation(tag_levels = 'A')
+  plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
-
-
-
-
-
-
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 
