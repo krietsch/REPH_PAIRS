@@ -2040,6 +2040,108 @@ pc
 
 
 
+
+
+
+
+
+# how many nests with EPY
+du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
+
+du[f_polyandrous_second == TRUE, .N, by = .(nestID)]
+
+
+273145121
+270170935
+273145036
+273145109
+
+
+# polyandrous females single 
+
+p1 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p1
+
+
+p2 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_path(data = du[ID2 == 270170935], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p2
+
+p3 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_path(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p3
+
+p4 = 
+  ggplot() +
+  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.01, ymax = 1), fill = 'grey90') +
+  geom_path(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first), size = 1) +
+  scale_color_manual(values = c('darkorange', 'firebrick4'), name = '',
+                     labels = c('2nd clutch', '1st clutch')) +
+  theme_classic(base_size = 11) +
+  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Proportion of time together') +
+  xlab('Date')
+
+p4
+
+
+
+
+# merge plots
+p1 + p2 + p3 + p4 +
+  plot_layout(nrow = 2, ncol = 2) +
+  # plot_layout(heights = c(1, 4, 4)) +
+  plot_annotation(tag_levels = 'A')
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 250, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # save word file
 print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
