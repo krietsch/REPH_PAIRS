@@ -402,7 +402,6 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
@@ -482,7 +481,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S3. GLMM together and year -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S3. GLMM together -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -555,13 +554,12 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S4. GLMM together and year 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S4. GLMM together 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -658,7 +656,6 @@ pa + pb + pc +
 # y = merge(y, pn, by.x = 'term', by.y = 'parname')
 # setorder(y, row_order)
 # y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 # y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 # 
 # # save table in word -----
@@ -696,7 +693,6 @@ pa + pb + pc +
 # y = merge(y, pn, by.x = 'term', by.y = 'parname')
 # setorder(y, row_order)
 # y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 # y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 # 
 # # save table in word -----
@@ -860,7 +856,6 @@ pa =
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0)), colour = 'steelblue4',
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
   geom_jitter(data = dus, aes(datetime_rel_pair0, prop), colour = 'steelblue4', size = 0.5) + 
-  # geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -927,7 +922,6 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
@@ -1013,7 +1007,6 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
@@ -1157,7 +1150,6 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
@@ -1676,24 +1668,23 @@ du[any_EPY == FALSE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantil
 
 
 
-# model fertile period
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+# before clutch initiation
+dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
 
-fm1 <- glmmTMB(interaction ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
 
 
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -1704,67 +1695,31 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S5. GLMM together and EPY fertile period initiation -5 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
 # model before clutch initiation
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-
-fm1 <- glmmTMB(interaction ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S6. GLMM together and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-# model during clutch initiation
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
 
-fm1 <- glmmTMB(interaction ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+m <- glmmTMB(interaction ~ scale(datetime_rel_pair0) + poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
 
 
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -1775,14 +1730,14 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S7. GLMM together and EPY during initiation 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Split events and extra-pair paternity
@@ -1863,25 +1818,23 @@ dus[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(
 
 
 
-# model fertile period
-dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
-
+# before clutch initiation
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)]
 
-fm1 <- glmmTMB(ID_splitting ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + any_EPY + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
 
 
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -1892,72 +1845,34 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S8. GLMM split by sex and EPY fertile period initiation -5 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S13. GLMM female moves away and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-# model before clutch initiation
-dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-
-dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
-
-fm1 <- glmmTMB(ID_splitting ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
 
 
-plot(allEffects(fm1))
-summary(fm1)
-
-
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S9. GLMM split by sex and EPY before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-
-# model during initiation
+# during clutch initiation (fertile period)
 dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
-
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
-fm1 <- glmmTMB(ID_splitting ~ any_EPY + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + any_EPY + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
 
 
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -1968,14 +1883,14 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S10. GLMM split by sex and EPY during initiation 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S14. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Mate guarding intensity of polyandrous females
@@ -1984,7 +1899,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 # how many nests with polyandrous first clutch 
 du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
 
-# polyandrous females single 
+# polyandrous females single plots
 
 p1 = 
   ggplot() +
