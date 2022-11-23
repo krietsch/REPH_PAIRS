@@ -714,7 +714,6 @@ pa + pb + pc +
 
 # subset data
 dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
-# dm = dp[Np > 0.75 & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 
 # check sex
 dp[, .N, .(sex1)]
@@ -896,11 +895,13 @@ du[type == 'f_merge_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, q
 du[type == 'f_merge_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, mean(prop, na.rm = TRUE)]
 
 
+### Models 
 
-# model before clutch initiation
+# Statistic females moving away
+
+# before clutch initiation
 dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
-
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
 m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
@@ -913,8 +914,7 @@ plot(allEffects(m))
 summary(m)
 
 
-
-# create clean summary table 
+# create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -930,13 +930,11 @@ y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subs
 # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S1. GLMM split by sex before clutch initiation -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S7. GLMM female moving away -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
-
-
 
 
 
@@ -944,10 +942,6 @@ ESM = ESM |> body_add_break(pos = 'after')
 e = effect("scale(initiation_rel)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
-
-
-
-
 
 # data for points 
 dms = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
@@ -990,12 +984,9 @@ pb
 
 
 
-
-
-# model during egg-laying
+#  during egg-laying
 dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
-
 dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
 
 m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
@@ -1009,7 +1000,7 @@ summary(m)
 
 
 
-# create clean summary table 
+# create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -1025,14 +1016,11 @@ y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subs
 # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S2. GLMM split by sex after clutch initiation 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S8. GLMM female moving away 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
-
-
-
 
 
 
@@ -1083,10 +1071,6 @@ pc =
 pc
 
 
-
-
-
-
 # merge plots
 pa + pb + pc +
   plot_layout(design = "
@@ -1097,53 +1081,16 @@ pa + pb + pc +
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
-
-
-
-### merging
-
-# model before clutch initiation
-dx = dm[merge == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-
-dx[, ID_merging_ := ifelse(ID_merging == 'ID1', 0, 1)] # males = 0
-
-fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
-
-
-# model after clutch initiation
-dx = dm[merge == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-
-dx[, ID_merging_ := ifelse(ID_merging == 'ID1', 0, 1)]
-
-fm1 <- glmmTMB(ID_merging_ ~ scale(datetime_rel_pair0) + scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(fm1))
-summary(fm1)
-
-
 #--------------------------------------------------------------------------------------------------------------
-#' Distance moved away or towards
+#' Distance moved away by sex
 #--------------------------------------------------------------------------------------------------------------
 
 # moved away
 dms = dm[split == TRUE]
 
 # merge male and female data for plot
-dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, split_distance = distance1_before)]
-dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, split_distance = distance2_before)]
+dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex1, split_distance = distance1_before)]
+dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex2, split_distance = distance2_before)]
 
 dms = rbindlist(list(dms_m, dms_f))
 
@@ -1185,21 +1132,21 @@ dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(split_
 
 
 # model before clutch initiation
-dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
 
-fm1 <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
                family = gaussian, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
 
-plot(allEffects(fm1))
-summary(fm1)
+plot(allEffects(m))
+summary(m)
 
 
-# create clean summary table 
-y = tidy(fm1) |> data.table()
-x = r2(fm1) |> data.table() 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -1213,50 +1160,13 @@ y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subs
 # y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word
+# save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table SXXXX. GLMM split distance by sex before clutch initiation -5 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S9. GLMM split distance -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-
-
-# moved towards
-dms = dm[merge == TRUE]
-
-# merge male and female data for plot
-dms_m = dms[ID_merging == 'ID1', .(pairID, nestID, datetime_rel_pair0, sex = sex1, merge_distance = distance1_before)]
-dms_f = dms[ID_merging == 'ID2', .(pairID, nestID, datetime_rel_pair0, sex = sex2, merge_distance = distance2_before)]
-
-dms = rbindlist(list(dms_m, dms_f))
-
-# adjust distance above 1000 m
-dms[, merge_distance1000 := merge_distance]
-dms[merge_distance > 1000, merge_distance1000 := 1000]
-
-pb = 
-ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = egg_laying_color) +
-  geom_boxplot(data = dms, 
-               aes(datetime_rel_pair0, merge_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = dms, 
-             aes(datetime_rel_pair0, merge_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'dodgerblue4'), name = '',
-                     labels = c('Female moves towards', 'Male moves towards'), drop = FALSE) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', '', '6', '', '8', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(expand = expansion(add = c(0, 5))) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Distance moved when merged (m)') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 # before and during laying
 dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
@@ -1270,13 +1180,6 @@ dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(m
 dms[sex == 'F' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 dms[sex == 'M' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
-
-# merge plots
-pa + pb + 
-  plot_layout(nrow = 2) +
-  plot_annotation(tag_levels = 'A')
-
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_merge_distances.tiff', plot = last_plot(),  width = 177, height = 220, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' # First nest location visit
@@ -1302,7 +1205,6 @@ pa + pb +
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance by sex
 #--------------------------------------------------------------------------------------------------------------
-
 
 # assign parameters
 dm[, m_at_nest := at_nest1 == TRUE | at_nest2 == TRUE & interaction == TRUE]
@@ -1526,6 +1428,26 @@ m <- glmmTMB(m_at_nest ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (da
 plot(allEffects(m))
 summary(m)
 
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word -----
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S10. GLMM male at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 
@@ -1572,9 +1494,6 @@ pd
 
 
 
-
-
-
 # during egg-laying female
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 m <- glmmTMB(f_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
@@ -1585,6 +1504,29 @@ m <- glmmTMB(f_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (
 
 plot(allEffects(m))
 summary(m)
+
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word -----
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S11. GLMM female at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
 
 # extract effect from model
 e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
@@ -2036,7 +1978,7 @@ ESM = ESM |> body_add_par(paste0('Table S10. GLMM split by sex and EPY during in
 ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation polyandry
+#' Mate guarding intensity of polyandrous females
 #--------------------------------------------------------------------------------------------------------------
 
 # how many nests with polyandrous first clutch 
