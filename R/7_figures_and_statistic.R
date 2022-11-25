@@ -89,22 +89,19 @@ di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.
 dn = merge(dn, di, by = 'year_', all.x = TRUE)
 dn[, initiation_rel_ := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
-quantile(dn[!is.na(initiation_rel_)]$initiation_rel_,  probs = c(33, 66)/100)
-
-
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
+dr = merge(dr, di, by = 'year_', all.x = TRUE)
 
 # merge with nests
 dp = merge(dp, dnID[, .(male_id, female_id, year_, nestID, initiation)], by.x = c('ID1', 'ID2', 'year_', 'nestID'), 
            by.y = c('male_id', 'female_id', 'year_', 'nestID'), all.x = TRUE)
 
+dr = merge(dr, dnID[, .(male_id, female_id, year_, nestID, initiation)], by.x = c('ID1', 'ID2', 'year_', 'nestID'), 
+           by.y = c('male_id', 'female_id', 'year_', 'nestID'), all.x = TRUE)
+
 # relative initiation date
 dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-# early and late clutches?
-dp[initiation_rel < -2, initiation_type := 'early']
-dp[initiation_rel > 1, initiation_type := 'late']
-dp[!is.na(initiation) & is.na(initiation_type), initiation_type := 'peak']
+dr[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 # datetime relative to nest initiation date
 dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
@@ -244,8 +241,6 @@ ggplot() +
 
 pa
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_null_model.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
-
 # Plot time together breeding pairs split by year
 
 # pairwise sample size 2018
@@ -341,7 +336,7 @@ p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
 
@@ -620,91 +615,91 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 
-# Statistic together differences between years
+# Statistic together breeding pairs vs. random pairs
 
-# # assign random pairs nestID as pairID
-# dmr[, nestID := pairID]
-# 
-# # merge data
-# dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
-#                      dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]))
-# 
-# 
-# # model fertile period
-# dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
-# 
-# 
-# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
-#                family = binomial, data = dx, REML = TRUE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# 
-# plot(allEffects(m))
-# summary(m)
-# 
-# 
-# # create clean summary table -----
-# y = tidy(m) |> data.table()
-# x = r2(m) |> data.table() 
-# 
-# 
-# setnames(x, c('estimate'))
-# x[, estimate := as.numeric(estimate)]
-# x[, term :=  c('r2cond', 'r2marg')]
-# y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-# y[, row_order := rownames(y) |> as.numeric()]
-# y = merge(y, pn, by.x = 'term', by.y = 'parname')
-# setorder(y, row_order)
-# y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-# 
-# # save table in word -----
-# ft = flextable(y) |> autofit()
-# ft = bold(ft, bold = TRUE, part = "header")
-# ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
-# ESM = ESM |> body_add_break(pos = 'after')
-# 
-# 
-# 
-# # model after laying
-# dx = dmx[datetime_rel_pair0 >= 5 & datetime_rel_pair0 <= 10]
-# 
-# 
-# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
-#                family = binomial, data = dx, REML = TRUE,
-#                control = glmmTMBControl(parallel = 15)
-# )
-# 
-# 
-# plot(allEffects(m))
-# summary(m)
-# 
-# 
-# # create clean summary table -----
-# y = tidy(m) |> data.table()
-# x = r2(m) |> data.table() 
-# 
-# 
-# setnames(x, c('estimate'))
-# x[, estimate := as.numeric(estimate)]
-# x[, term :=  c('r2cond', 'r2marg')]
-# y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-# y[, row_order := rownames(y) |> as.numeric()]
-# y = merge(y, pn, by.x = 'term', by.y = 'parname')
-# setorder(y, row_order)
-# y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-# 
-# # save table in word -----
-# ft = flextable(y) |> autofit()
-# ft = bold(ft, bold = TRUE, part = "header")
-# ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 5 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
-# ESM = ESM |> body_add_break(pos = 'after')
+# assign random pairs nestID as pairID
+dmr[, nestID := pairID]
+
+# merge data
+dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
+                     dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]))
+
+
+# model fertile period
+dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table()
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
+
+# save table in word -----
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+
+# model after laying
+dx = dmx[datetime_rel_pair0 >= 5 & datetime_rel_pair0 <= 10]
+
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
+               family = binomial, data = dx, REML = TRUE,
+               control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table()
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
+
+# save table in word -----
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 5 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1079,7 +1074,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away by sex
@@ -1579,7 +1574,7 @@ pa + pb + pc + pd + pe +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1856,7 +1851,7 @@ pa + pb +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -2024,7 +2019,7 @@ gt = patchworkGrob(p)
 g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 9)))
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -2032,28 +2027,38 @@ g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)',
 #' Mate guarding intensity of polyandrous females
 #--------------------------------------------------------------------------------------------------------------
 
+# Proportion of time together breeders
+dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_)]
+du = unique(dp, by = c('pairID', 'nestID', 'date_'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'date_'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+
 # how many nests with polyandrous first clutch 
 du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
 du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (polyandrous)', 'Other')]
+
+
 
 # polyandrous females single plots
 
 p1 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
-  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145121], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
-  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+  scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '3 day', date_labels = '%d %b', limits = c(as.Date('2019-06-10'), as.Date('2019-07-01'))) +
+  scale_x_date(date_breaks = '3 day', date_labels = '%d %b', limits = c(as.Date('2019-06-11'), as.Date('2019-07-01'))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.9, 0.65), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.9, 0.88), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  guides(size = "none") +
   ylab('Proportion of time together') +
   xlab('')
 
@@ -2062,14 +2067,14 @@ p1
 
 p2 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
-  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
-  geom_path(data = du[ID2 == 270170935], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
+  geom_path(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
-  geom_point(data = du[ID2 == 270170935], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
+  geom_point(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
-  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+  scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
@@ -2082,14 +2087,14 @@ p2
 
 p3 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
-  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145036], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
-  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+  scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
@@ -2101,14 +2106,14 @@ p3
 
 p4 = 
   ggplot() +
-  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
-  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.05, ymax = 1.05), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
+  geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145109], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
-  scale_y_continuous(limits = c(-0.05, 1.05), breaks = seq(0, 1, 0.1), 
+  scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
   scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
@@ -2120,13 +2125,18 @@ p4 =
 p4
 
 
+
+p1 
+
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
+
+
 # merge plots
 p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
-  # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 
