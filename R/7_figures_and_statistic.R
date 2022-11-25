@@ -36,6 +36,7 @@ DBI::dbDisconnect(con)
 # plot settings
 # margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
+margin_top = unit(c(2, 2, 6, 2), 'pt')
 sample_size_label = 2.5
 egg_laying_color = 'grey85'
 
@@ -123,13 +124,15 @@ ESM = read_docx()
 # parameter names 
 pn = fread("parname;                                                          parameter
             (Intercept);                                                      intercept  
-            scale(datetime_rel_pair0);                                        relative day (scaled)
             any_EPYTRUE;                                                      any EPY (yes)
             sexM;                                                             sex (male)
+            scale(initiation_rel);                                            clutch initiation relative to season
             poly(initiation_rel, 2)1;                                         clutch initiation relative to season (linear)
             poly(initiation_rel, 2)2;                                         clutch initiation relative to season (quadratic)
+            scale(datetime_rel_pair0);                                        clutch initiation relative to first egg
             poly(datetime_rel_pair0, 2)1;                                     clutch initiation relative to first egg (linear)
             poly(datetime_rel_pair0, 2)2;                                     clutch initiation relative to first egg (quadratic)
+            year_2019;                                                        year (2019)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
             earlyTRUE;                                                        early initiation (yes)
             sd__(Intercept);                                                  random intercept
@@ -225,7 +228,7 @@ ggplot() +
              position=position_jitterdodge(), size = 0.2) +
   # scale_shape_manual(values=c(20, 19)) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('Breeding pair', 'Randomized pair'), drop = FALSE) +
+                     labels = c('Breeding pair', 'Random pair'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -234,7 +237,7 @@ ggplot() +
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.9, 0.8), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_top, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
   ylab('Proportion of time together') +
   xlab('Day relative to clutch initiation (= 0)')
@@ -453,7 +456,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 dx[, year_ := as.character(year_)]
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + year_ + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
              family = binomial, data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
@@ -508,6 +511,7 @@ d0 = copy(du)
 
 pb = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
@@ -517,12 +521,12 @@ pb =
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0.02, 0.02))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
   theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together (day -5 to -1)') +
+  ylab('Proportion of time together') +
   xlab('Clutch initiation date (standardized)')
 
 pb
@@ -532,7 +536,7 @@ pb
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, year_ := as.character(year_)]
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + year_ + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
              family = binomial, data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
@@ -586,6 +590,7 @@ d0 = copy(du)
 
 pc = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
@@ -595,12 +600,12 @@ pc =
                      expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0.02, 0.02))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.9, 0.9), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together (day 0 to 3)') +
+  ylab('') +
   xlab('Clutch initiation date (standardized)')
 
 pc
@@ -864,7 +869,7 @@ pa =
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 11) +
-  theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_) +
+  theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_top) +
   ylab('Proportion female moves away') +
   xlab('Day relative to clutch initiation (= 0)')
 
@@ -956,6 +961,7 @@ d1 = copy(du)
 
 pb = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
   geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
@@ -966,12 +972,12 @@ pb =
                      expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(10, 20, 30)) +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion female moves away (day -5 to -1)') +
+  ylab('Proportion female moves away') +
   xlab('Clutch initiation date (standardized)')
 
 pb
@@ -1043,6 +1049,7 @@ d1 = copy(du)
 
 pc = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
@@ -1053,12 +1060,12 @@ pc =
                      expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(10, 20, 30)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion female moves away (day 0 to 3)') +
+  ylab('') +
   xlab('Clutch initiation date (standardized)')
 
 pc
@@ -1157,20 +1164,6 @@ ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S9. GLMM split distance -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
-
-
-
-# before and during laying
-dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-
-# before laying 
-dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-
-# during laying
-dms[sex == 'F' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-dms[sex == 'M' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(merge_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1331,18 +1324,23 @@ dss = dss[, .N, by = datetime_rel_pair0]
 dss
 
 
+# order
+dus = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop']
+dus[, type := factor(type, levels = c('m_at_nest_prop', 'f_at_nest_prop'))]
+
+
 # Males and females at the nest
 pa = 
 ggplot() +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
-  geom_boxplot(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
+  geom_boxplot(data = dus, 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du[type == 'm_at_nest_prop' | type == 'f_at_nest_prop'], 
+  geom_point(data = dus, 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '', 
-                     labels = c('Female', 'Male'), drop = FALSE) +
+  scale_color_manual(values = c('steelblue4', 'firebrick3'), name = '', 
+                     labels = c('Male', 'Female'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -1351,14 +1349,16 @@ ggplot() +
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.07, 0.9), legend.background = element_blank(), plot.margin = margin_) +
+  theme(legend.position = c(0.07, 0.9), legend.background = element_blank(), plot.margin = margin_top) +
   ylab('Proportion of time at nest') +
   xlab('Day relative to clutch initiation (= 0)')
 
+pa
 
 # Males alone and alone at nest
 pb = 
   ggplot() +
+  geom_text(aes(-5.2, Inf, label = 'Male'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
@@ -1366,17 +1366,17 @@ pb =
   geom_point(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('At nest', 'Not at nest'), drop = FALSE) +
+                     labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
+                     expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time alone (male)') +
+  theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_top) +
+  ylab('Proportion of time alone') +
   xlab('Day relative to clutch initiation (= 0)')
 
 pb
@@ -1384,6 +1384,7 @@ pb
 # Female alone and alone at nest
 pc = 
 ggplot() +
+  geom_text(aes(-5.2, Inf, label = 'Female'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
                aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
@@ -1391,17 +1392,17 @@ ggplot() +
   geom_point(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('firebrick3', 'darkorange'), name = '', 
-                     labels = c('At nest', 'Not at nest'), drop = FALSE) +
+                     labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
                      expand = expansion(add = c(0.2, 0.2))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
+                     expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time alone (female)') +
+  theme(legend.position = c(0.18, 0.9), legend.background = element_blank(), plot.margin = margin_top) +
+  ylab('') +
   xlab('Day relative to clutch initiation (= 0)')
 
 pc
@@ -1412,7 +1413,7 @@ pc
 # during egg-laying male
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 m <- glmmTMB(m_at_nest ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = FALSE,
+               family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
 
@@ -1465,6 +1466,7 @@ d1 = copy(du)
 
 pd = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
@@ -1474,12 +1476,12 @@ pd =
                      expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time at nest (day 0 to 3)') +
+  ylab('Proportion of time at nest') +
   xlab('Clutch initiation date (standardized)')
 
 pd
@@ -1543,6 +1545,7 @@ d1 = copy(du)
 
 pe = 
   ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, color = 'firebrick3') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'firebrick3') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'firebrick3') +
@@ -1552,12 +1555,12 @@ pe =
                      expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0.01))) +
+                     expand = expansion(add = c(0.05, 0.05))) +
   scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.1, 0.9), legend.background = element_blank(), plot.margin = margin_, 
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time at nest (day 0 to 3)') +
+  ylab('') +
   xlab('Clutch initiation date (standardized)')
 
 pe
@@ -1577,8 +1580,6 @@ pa + pb + pc + pd + pe +
   plot_annotation(tag_levels = 'a')
 
 # ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
-
-
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1735,7 +1736,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S13. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1850,7 +1851,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S13. GLMM female moves away and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S14. GLMM female moves away and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1888,7 +1889,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S14. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S15. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1898,6 +1899,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 # how many nests with polyandrous first clutch 
 du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
+du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (polyandrous)', 'Other')]
 
 # polyandrous females single plots
 
