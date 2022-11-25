@@ -1593,7 +1593,6 @@ dss = unique(du[any_EPY == FALSE & datetime_rel_pair0 >= -10 & datetime_rel_pair
 dss = dss[, .N, by = datetime_rel_pair0]
 
 # pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
              by = c('nestID', 'datetime_rel_pair0'))
 dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
@@ -1601,7 +1600,7 @@ dss_epy
 
 # merge 
 dss = merge(dss, dss_epy[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
-dss[, N_epy_label := paste0(N_epy, '/', N)]
+dss[, N_epy_label := paste0(N, '/', N_epy)]
 
 # Proportion of time together breeders
 dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
@@ -1705,6 +1704,12 @@ ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and EPY -5 to -1')) |
 ESM = ESM |> body_add_break(pos = 'after')
 
 
+# extract effect from model
+e1 = effect("any_EPY", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
+
+
 # model before clutch initiation
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
 
@@ -1739,10 +1744,72 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S13. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# extract effect from model
+e2 = effect("any_EPY", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
+
+
+# plot EPY effect
+
+# merge data
+e1[, type := '-5 to -1']
+e2[, type := '0 to 2']
+
+e = rbind(e1, e2)
+
+# pairwise sample size
+du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+du[, type := ifelse(datetime_rel_pair0 >= 0, '0 to 2', '-5 to -1')]
+dsss = unique(du[any_EPY == FALSE], by = c('nestID', 'type'))
+dsss = dsss[, .N, by = type]
+
+dsss_epy = unique(du[any_EPY == TRUE], by = c('nestID', 'type'))
+dsss_epy = dsss_epy[, .N, by = type]
+
+# merge 
+dsss = merge(dsss, dsss_epy[, .(N_epy = N, type)], by = 'type', all.x = TRUE)
+dsss[, N_epy_label := paste0(N, '/', N_epy)]
+
+
+p1 =
+  ggplot() +
+  geom_point(data = e, aes(type, fit, group = interaction(any_EPY, type), color = any_EPY), position = position_dodge(width = 0.5)) +
+  geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = any_EPY), size = 0.3, position = position_dodge(width = 0.5)) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+                       labels = c('No EPY', 'EPY'), drop = FALSE) +
+  geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                   labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                   expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.3, 0.15), legend.background = element_blank(), plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('')
+
+p1
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' Split events and extra-pair paternity
 #--------------------------------------------------------------------------------------------------------------
+
+# pairwise sample size
+du = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(du[any_EPY == FALSE & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+
+# pairwise sample size
+dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+                 by = c('nestID', 'datetime_rel_pair0'))
+dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
+dss_epy
+
+# merge 
+dss = merge(dss, dss_epy[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss[, N_epy_label := paste0(N, '/', N_epy)]
 
 
 # data from split events 
@@ -1855,6 +1922,10 @@ ESM = ESM |> body_add_par(paste0('Table S14. GLMM female moves away and EPY -5 t
 ESM = ESM |> body_add_break(pos = 'after')
 
 
+# extract effect from model
+e1 = effect("any_EPY", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
 
 
 # during clutch initiation (fertile period)
@@ -1891,6 +1962,70 @@ ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S15. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
+
+# extract effect from model
+e2 = effect("any_EPY", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
+
+
+
+# plot EPY effect
+
+# merge data
+e1[, type := '-5 to -1']
+e2[, type := '0 to 2']
+
+e = rbind(e1, e2)
+
+# pairwise sample size
+du = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+du = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
+du[, type := ifelse(datetime_rel_pair0 >= 0, '0 to 2', '-5 to -1')]
+dsss = unique(du[any_EPY == FALSE], by = c('nestID', 'type'))
+dsss = dsss[, .N, by = type]
+
+dsss_epy = unique(du[any_EPY == TRUE], by = c('nestID', 'type'))
+dsss_epy = dsss_epy[, .N, by = type]
+
+# merge 
+dsss = merge(dsss, dsss_epy[, .(N_epy = N, type)], by = 'type', all.x = TRUE)
+dsss[, N_epy_label := paste0(N, '/', N_epy)]
+
+
+p2 =
+ggplot() +
+  geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
+  geom_point(data = e, aes(type, fit, group = interaction(any_EPY, type), color = any_EPY), position = position_dodge(width = 0.5)) +
+  geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = any_EPY), size = 0.3, position = position_dodge(width = 0.5)) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+                     labels = c('No EPY', 'EPY'), drop = FALSE) +
+  geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1),
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = 'none', legend.background = element_blank(), plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
+  ylab('Proportion female moves away') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+p2
+
+
+# merge plots
+library(grid)
+library(gridExtra)
+
+p <- p1 + p2 + 
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = 'a')
+
+gt = patchworkGrob(p)
+g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 9)))
+
+
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+
 
 
 #--------------------------------------------------------------------------------------------------------------
