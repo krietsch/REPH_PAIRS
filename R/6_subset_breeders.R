@@ -101,17 +101,6 @@ dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .
 dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
 dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
 
-# relative timing 
-di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
-
-dp = merge(dp, di, by = 'year_', all.x = TRUE)
-dp[, datetime_rel_season := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-# for plots subset study site nests
-di = dn[!is.na(year_) & plot == 'NARL']
-di[, initiation_mean := mean(initiation, na.rm = TRUE), by = year_]
-di[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
 # data available relative to clutch initiation for each ID
 dnIDu = rbind(dnID[!is.na(male_id), .(year_, ID = male_id, sex = 'M', nestID, initiation, both_tagged_overlapping)],
               dnID[!is.na(female_id), .(year_, ID = female_id, sex = 'F', nestID, initiation, both_tagged_overlapping)])
@@ -222,6 +211,41 @@ dp[, same_sex := sex1 == sex2]
 # breeding pair
 dp[, breeding_pair := !is.na(nestID)]
 
+# Assign polyandry
+# polyandrous females
+xf = c(270170564, 270170901, 270170935, 273145005, 273145036, 273145109, 273145121, 273145140)
+dp[ID2 %in% xf, f_polyandrous := TRUE]
+dp[is.na(f_polyandrous), f_polyandrous := FALSE]
+
+# first nests
+x1 = c("R606_19", "R805_18", "R311_19", "R206_19", "R405_19", "R904_18", "R211_19", "R901_19", "R207_19", "REPH050_19")
+dp[nestID %in% x1, f_polyandrous_first := TRUE]
+dp[is.na(f_polyandrous_first), f_polyandrous_first := FALSE]
+
+# second nest
+x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_19", "R220_19", "R911_19", "R907_19")
+dp[nestID %in% x2, f_polyandrous_second := TRUE]
+dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
+
+# renesting females
+# first nests of renesting females
+x1 = c("R201_19", "R402_19", "R406_19", "R222_19", "R502_19", "R905_19")
+dp[nestID %in% x1, f_renesting_first := TRUE]
+
+# second nests of renesting females
+x2 = c("R232_19",  "R803_19",  "R320_19",  "R1101_19", "R218_19", "R913_19")
+dp[nestID %in% x2, f_renesting_second := TRUE]
+
+# relative timing 
+di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+dp = merge(dp, di, by = 'year_', all.x = TRUE)
+dp[, datetime_rel_season := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+# relative initiation date
+dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance 
 #--------------------------------------------------------------------------------------------------------------
@@ -305,8 +329,9 @@ dps =
 dp[breeding_pair == TRUE & sex1 == 'M', 
    .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
      datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, 
-     at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, 
-     breeding_pair, type = 'breeding pair')]
+     initiation, initiation_rel, at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, 
+     ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, breeding_pair, f_polyandrous, f_polyandrous_first,
+     f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
 # save data
 fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
@@ -382,7 +407,7 @@ d0a = d0a[int_prop_nb > 0]
 # subset pairs with at least 50% data
 d0a = d0a[Np_nb >= 0.5]
 
-# select 31 random pairs for each day 
+# select random pairs for each day 
 ds = unique(d0a, by = c('pairID', 'date_', 'datetime_rel_pair0'))
 
 # shuffle data
@@ -398,12 +423,26 @@ d0as = d0a[sub %in% ds$sub]
 
 ds[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10, .N, datetime_rel_pair0]
 
+# merge with nest data from female
+duf = unique(dp[!is.na(nestID)], by = c('ID2', 'year_'))
+
+# delete columns in d0as
+d0as[, nestID := NULL]
+d0as[, initiation := NULL]
+d0as[, initiation_rel := NULL]
+
+d0as = merge(d0as, duf[, .(year_, ID2, nestID, initiation, initiation_rel)], 
+             by = c('year_', 'ID2'), all.x = TRUE)
+
+d0as[is.na(nestID)]
+
 # rename order and save
 d0as = d0as[, 
         .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
           datetime_rel_season, datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, 
-          split, merge, nestID, at_nest1, at_nest2, any_EPY, ID1_any_ep_int, ID2_any_ep_int, breeding_pair, 
-          type = 'randomization')]
+          split, merge, nestID, initiation, initiation_rel, at_nest1, at_nest2, any_EPY, ID1_any_ep_int, 
+          ID2_any_ep_int, breeding_pair, f_polyandrous, f_polyandrous_first, f_polyandrous_second, 
+          f_renesting_first, f_renesting_second, type = 'randomization')]
 
 # save data
 fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
