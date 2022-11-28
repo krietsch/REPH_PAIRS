@@ -22,7 +22,6 @@ dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t
 da = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 da[, year_ := year(datetime_1)]
 
-
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
@@ -32,79 +31,11 @@ dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), f
 dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
 DBI::dbDisconnect(con)
 
-
 # plot settings
-# margin_ = unit(c(0, 4, 0, 0), 'pt')
 margin_ = unit(c(2, 2, 2, 2), 'pt')
 margin_top = unit(c(2, 2, 6, 2), 'pt')
 sample_size_label = 2.5
 egg_laying_color = 'grey85'
-
-
-# nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, nest_state_date)]
-dnID = unique(dnID, by = 'nestID')
-
-# as integer
-dnID[, male_id := as.integer(male_id)]
-dnID[, female_id := as.integer(female_id)]
-
-# assign clutch order
-setorder(dnID, male_id, initiation)
-dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
-dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
-dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
-
-
-
-# Assign polyandry
-# polyandrous females
-xf = c(270170564, 270170901, 270170935, 273145005, 273145036, 273145109, 273145121, 273145140)
-dp[ID2 %in% xf, f_polyandrous := TRUE]
-dp[is.na(f_polyandrous), f_polyandrous := FALSE]
-
-# first nests
-x1 = c("R606_19", "R805_18", "R311_19", "R206_19", "R405_19", "R904_18", "R211_19", "R901_19", "R207_19", "REPH050_19")
-dp[nestID %in% x1, f_polyandrous_first := TRUE]
-dp[is.na(f_polyandrous_first), f_polyandrous_first := FALSE]
-
-# second nest
-x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_19", "R220_19", "R911_19", "R907_19")
-dp[nestID %in% x2, f_polyandrous_second := TRUE]
-dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
-
-# renesting females
-# first nests of renesting females
-x1 = c("R201_19", "R402_19", "R406_19", "R222_19", "R502_19", "R905_19")
-dp[nestID %in% x1, f_renesting_first := TRUE]
-
-# second nests of renesting females
-x2 = c("R232_19",  "R803_19",  "R320_19",  "R1101_19", "R218_19", "R913_19")
-dp[nestID %in% x2, f_renesting_second := TRUE]
-
-# season mean 
-di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
-
-# quantiles 
-dn = merge(dn, di, by = 'year_', all.x = TRUE)
-dn[, initiation_rel_ := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-dp = merge(dp, di, by = 'year_', all.x = TRUE)
-dr = merge(dr, di, by = 'year_', all.x = TRUE)
-
-# merge with nests
-dp = merge(dp, dnID[, .(male_id, female_id, year_, nestID, initiation)], by.x = c('ID1', 'ID2', 'year_', 'nestID'), 
-           by.y = c('male_id', 'female_id', 'year_', 'nestID'), all.x = TRUE)
-
-dr = merge(dr, dnID[, .(male_id, female_id, year_, nestID, initiation)], by.x = c('ID1', 'ID2', 'year_', 'nestID'), 
-           by.y = c('male_id', 'female_id', 'year_', 'nestID'), all.x = TRUE)
-
-# relative initiation date
-dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-dr[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-
-# datetime relative to nest initiation date
-dp[, datetime_rel_initiation := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
 # subset data 10 days around clutch initiation
 dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
@@ -113,7 +44,6 @@ dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 # sample size
 dm[, .N, pairID] |> nrow()
 dm[, .N, nestID] |> nrow()
-
 
 # start word file for ESM
 ESM = read_docx()
@@ -294,6 +224,10 @@ p1
 
 
 # clutch initiation distribution
+di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+
+dn = merge(dn, di, by = 'year_', all.x = TRUE)
+dn[, initiation_rel_ := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 dns = dn[plot == 'NARL' & !is.na(initiation_rel_)]
 dns[, year_ := as.character(year_)]
@@ -630,7 +564,7 @@ dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetim
 
 
 # model fertile period
-dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+dx = dmx[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 3]
 
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
@@ -661,13 +595,13 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -10 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
 
 # model after laying
-dx = dmx[datetime_rel_pair0 >= 5 & datetime_rel_pair0 <= 10]
+dx = dmx[datetime_rel_pair0 >= 4 & datetime_rel_pair0 <= 10]
 
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
@@ -698,7 +632,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 5 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 4 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1998,7 +1932,7 @@ ggplot() +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1),
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0))) +
+                     expand = expansion(add = c(0, 0.05))) +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
   ylab('Proportion female moves away') +
@@ -2016,7 +1950,7 @@ p <- p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 gt = patchworkGrob(p)
-g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 9)))
+g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
 
 
 ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
