@@ -270,7 +270,7 @@ p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
 
@@ -437,6 +437,8 @@ du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
+# point sizes range
+du[, .(min(N_ini), max(N_ini))]
 
 pb = 
   ggplot() +
@@ -516,6 +518,8 @@ du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
+# point sizes range
+du[, .(min(N_ini), max(N_ini))]
 
 pc = 
   ggplot() +
@@ -549,7 +553,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 
@@ -887,6 +891,8 @@ du[is.na(N_split_female), N_split_female := 0]
 du[, split_prop := N_split_female / N_splits_season]
 d1 = copy(du)
 
+# point sizes range
+du[, .(min(N_splits_season), max(N_splits_season))]
 
 pb = 
   ggplot() +
@@ -974,7 +980,8 @@ du[is.na(N_split_female), N_split_female := 0]
 du[, split_prop := N_split_female / N_splits_season]
 d1 = copy(du)
 
-
+# point sizes range
+du[, .(min(N_splits_season), max(N_splits_season))]
 
 pc = 
   ggplot() +
@@ -1008,7 +1015,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away by sex
@@ -1393,6 +1400,9 @@ du[is.na(N_m_at_nest), N_m_at_nest := 0]
 du[, m_at_nest_prop := N_m_at_nest / N_nest_season]
 d1 = copy(du)
 
+# point sizes range
+du[, .(min(N_nest_season), max(N_nest_season))]
+
 pd = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
@@ -1472,6 +1482,9 @@ du[is.na(N_f_at_nest), N_f_at_nest := 0]
 du[, f_at_nest_prop := N_f_at_nest / N_nest_season]
 d1 = copy(du)
 
+# point sizes range
+du[, .(min(N_nest_season), max(N_nest_season))]
+
 pe = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
@@ -1508,7 +1521,7 @@ pa + pb + pc + pd + pe +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1785,7 +1798,7 @@ pa + pb +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -1950,10 +1963,10 @@ p <- p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 gt = patchworkGrob(p)
-g = arrangeGrob(gt, bottom = textGrob('Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
+g = arrangeGrob(gt, bottom = textGrob('          Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
 
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -1972,6 +1985,8 @@ du[, int_prop := N_int / N]
 du[f_polyandrous_first == TRUE, .N, by = .(nestID)]
 du[, f_polyandrous_first_plot := ifelse(f_polyandrous_first == TRUE, '1st mate (polyandrous)', 'Other')]
 
+# point sizes range
+du[, .(min(N), max(N))]
 
 
 # polyandrous females single plots
@@ -1982,7 +1997,7 @@ p1 =
   geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
-                     labels = c('1st mate', '2nd mate')) +
+                     labels = c(bquote("1"^st~ mate), bquote("2"^nd~ mate))) +
   geom_point(data = du[ID2 == 273145121], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
@@ -2062,7 +2077,7 @@ p4
 
 p1 
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
 
 
 # merge plots
@@ -2070,7 +2085,7 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 
