@@ -61,7 +61,7 @@ pn = fread("parname;                                                          pa
             poly(datetime_rel_pair0, 2)2;                                     clutch initiation relative to first egg (quadratic)
             year_2019;                                                        year (2019)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
-            earlyTRUE;                                                        early initiation (yes)
+            typerandomization;                                                data type (random pairs)
             sd__(Intercept);                                                  random intercept
             r2marg;                                                           R² marginal
             r2cond;                                                           R² conditional
@@ -110,7 +110,7 @@ ggplot(data = dp) +
   theme(legend.position = c(0.07, 0.95), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank())
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, units = c('mm'), dpi = 'print')
 
 dp[, nestID := as.character(nestID)]
 
@@ -270,7 +270,7 @@ p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
 
@@ -422,6 +422,17 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
 
+# descriptive part
+effect("poly(initiation_rel,2)", m, xlevels = 20) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+effect("poly(datetime_rel_pair0,2)", m, xlevels = 5) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
 
 # data for points 
 dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
@@ -503,6 +514,16 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
 
+# descriptive part
+effect("poly(initiation_rel,2)", m, xlevels = 22) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+effect("poly(datetime_rel_pair0,2)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print()
 
 # data for points 
 dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
@@ -553,7 +574,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 
@@ -1015,7 +1036,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away by sex
@@ -1056,7 +1077,7 @@ ggplot() +
 
 pa
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 # before and during laying
 dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
@@ -1521,7 +1542,7 @@ pa + pb + pc + pd + pe +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1798,7 +1819,7 @@ pa + pb +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -1966,7 +1987,7 @@ gt = patchworkGrob(p)
 g = arrangeGrob(gt, bottom = textGrob('          Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -2077,7 +2098,7 @@ p4
 
 p1 
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
 
 
 # merge plots
@@ -2085,7 +2106,7 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MATE_GUARDING/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 
