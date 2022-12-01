@@ -273,37 +273,6 @@ p1 + p2 +
 # ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
-
-
-# random pairs
-d1[, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-d1[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d1[datetime_rel_pair0 == 4, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d1[datetime_rel_pair0 >= 5, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-# some descriptive statistic
-d0[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-d0[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d0[datetime_rel_pair0 == -5, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-d0[datetime_rel_pair0 == -2, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-d0[datetime_rel_pair0 == -2] |> nrow()
-d0[datetime_rel_pair0 == -2 & int_prop > 0.95] |> nrow()
-d0[datetime_rel_pair0 == -1, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-d0[datetime_rel_pair0 == 3, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d0[datetime_rel_pair0 == 4, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d0[datetime_rel_pair0 >= 5, quantile(int_prop, c(0.5, 0.25, 0.75))] 
-
-d1[, .N, .(datetime_rel_pair0, nestID)]
-
-
-
-
-
 ### Models 
 
 # Statistic together differences between years
@@ -369,7 +338,6 @@ y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
 y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
 # save table in word -----
@@ -417,21 +385,36 @@ ESM = ESM |> body_add_par(paste0('Table S3. GLMM together -5 to -1')) |>  body_a
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-# extract effect from model
+# descriptive part
+x = effect("poly(initiation_rel,2)", m, xlevels = 20) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+# more than 95% together 
+x[fit > 0.95] 
+
+# before and after peak
+x[initiation_rel < -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel > 8, .(fit = mean(fit), se = mean(se))] * 100
+
+
+x = effect("poly(datetime_rel_pair0,2)", m, xlevels = 5) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+x[, .(fit = mean(fit), se = mean(se))] * 100
+
+# pairs with more than 95% together
+d0[datetime_rel_pair0 == -2 & int_prop > 0.95] |> nrow()
+
+
+
+# extract effect from model for plot
 e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
-
-# descriptive part
-effect("poly(initiation_rel,2)", m, xlevels = 20) |>
-  data.frame() |>
-  setDT() |> 
-  print()
-
-effect("poly(datetime_rel_pair0,2)", m, xlevels = 5) |>
-  data.frame() |>
-  setDT() |> 
-  print()
 
 
 # data for points 
@@ -508,22 +491,21 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S4. GLMM together 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
-
-# extract effect from model
-e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
-  data.frame() |>
-  setDT()
-
 # descriptive part
-effect("poly(initiation_rel,2)", m, xlevels = 22) |>
-  data.frame() |>
-  setDT() |> 
-  print()
-
 effect("poly(datetime_rel_pair0,2)", m, xlevels = 4) |>
   data.frame() |>
   setDT() |> 
-  print()
+  print() * 100
+
+x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+# extract effect from model for plot
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
 
 # data for points 
 dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
@@ -589,7 +571,7 @@ dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetim
 
 
 # model fertile period
-dx = dmx[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 3]
+dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
 
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
@@ -620,9 +602,14 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -10 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# extract effect from model for plot
+effect("type", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print()
 
 
 # model after laying
@@ -659,6 +646,13 @@ ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 4 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
+
+
+# extract effect from model for plot
+effect("type", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print()
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -830,25 +824,6 @@ pa =
 pa
 
 
-# descriptive statistic
-
-# movements away
-du[type == 'f_split_prop' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'f_split_prop' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, mean(prop, na.rm = TRUE)]
-
-
-du[type == 'f_merge_prop' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'f_merge_prop' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, mean(prop, na.rm = TRUE)]
-
-
-# movements together
-du[type == 'f_split_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'f_split_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, mean(prop, na.rm = TRUE)]
-
-du[type == 'f_merge_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'f_merge_prop' & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, mean(prop, na.rm = TRUE)]
-
-
 ### Models 
 
 # Statistic females moving away
@@ -889,12 +864,28 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S7. GLMM female moving away -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
 
+x[, .(fit = mean(fit), se = mean(se))] * 100
 
-# extract effect from model
+x = effect("scale(initiation_rel)", m, xlevels = 16) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+# before and after peak
+x[initiation_rel <= -2, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= -1, .(fit = mean(fit), se = mean(se))] * 100
+
+# extract effect from model for plot
 e = effect("scale(initiation_rel)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
+
 
 # data for points 
 dms = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
@@ -978,12 +969,29 @@ ESM = ESM |> body_add_par(paste0('Table S8. GLMM female moving away 0 to 3')) |>
 ESM = ESM |> body_add_break(pos = 'after')
 
 
+# descriptive part
+x = effect("scale(initiation_rel)", m, xlevels = 16) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
 
-# extract effect from model
+# before and after peak
+x[initiation_rel <= -2, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= -1, .(fit = mean(fit), se = mean(se))] * 100
+
+
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+x[, .(fit = mean(fit), se = mean(se))] * 100
+
+
+# extract effect from model for plot
 e = effect("scale(initiation_rel)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
-
 
 # data for points 
 dms = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
@@ -1079,15 +1087,6 @@ pa
 
 # ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
-# before and during laying
-dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, quantile(split_distance, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-
-dms[sex == 'F' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(split_distance, na.rm = TRUE)]
-dms[sex == 'M' & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3, mean(split_distance, na.rm = TRUE)]
-
-
-
 # model before clutch initiation
 dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
 
@@ -1122,26 +1121,41 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S9. GLMM split distance -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+x = effect("sex", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 9) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+# before and after clutch initiation
+x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
+x[datetime_rel_pair0 >= 0, .(fit = mean(fit), se = mean(se))]
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # First nest location visit
 #--------------------------------------------------------------------------------------------------------------
 
-# ds1 = dm[, .(first_pairwise_location = min(datetime_rel_pair)), by = nestID]
-# ds2 = dm[m_at_nest == TRUE | f_at_nest == TRUE, .(first_nest_visit = min(datetime_rel_pair)), by = nestID]
-# ds = merge(ds1, ds2, by = 'nestID')
-# 
-# # how many days with data before?
-# ds[, days_data_before_nest_visit := first_pairwise_location - first_nest_visit]
-# 
-# # subset pairs with at least one day of data before
-# dss = ds[days_data_before_nest_visit < -1]
-# 
-# # summary (relative to clutch initiation)
-# dss |> nrow()
-# dss[, .(mean = mean(first_nest_visit), 
-#         min = min(first_nest_visit), 
-#         max = max(first_nest_visit))]
+ds1 = dp[, .(first_pairwise_location = min(datetime_rel_pair)), by = nestID]
+ds2 = dp[m_at_nest == TRUE | f_at_nest == TRUE, .(first_nest_visit = min(datetime_rel_pair)), by = nestID]
+ds = merge(ds1, ds2, by = 'nestID')
+
+# how many days with data before?
+ds[, days_data_before_nest_visit := first_pairwise_location - first_nest_visit]
+
+# subset pairs with at least one day of data before
+dss = ds[days_data_before_nest_visit < -1]
+
+# summary (relative to clutch initiation)
+dss |> nrow()
+dss[, .(mean = mean(first_nest_visit),
+        min = min(first_nest_visit),
+        max = max(first_nest_visit))]
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1154,6 +1168,23 @@ dm[, f_at_nest := at_nest2 == TRUE | at_nest1 == TRUE & interaction == TRUE]
 dm[, both_at_nest := at_nest1 == TRUE & interaction == TRUE | at_nest2 == TRUE & interaction == TRUE]
 dm[, m_alone_at_nest := at_nest1 == TRUE & interaction == FALSE]
 dm[, f_alone_at_nest := at_nest2 == TRUE & interaction == FALSE]
+
+# First nest location visit
+ds1 = dm[, .(first_pairwise_location = min(datetime_rel_pair)), by = nestID]
+ds2 = dm[m_at_nest == TRUE | f_at_nest == TRUE, .(first_nest_visit = min(datetime_rel_pair)), by = nestID]
+ds = merge(ds1, ds2, by = 'nestID')
+
+# how many days with data before?
+ds[, days_data_before_nest_visit := first_pairwise_location - first_nest_visit]
+
+# subset pairs with at least one day of data before
+dss = ds[days_data_before_nest_visit < -1]
+
+# summary (relative to clutch initiation)
+dss |> nrow()
+dss[, .(mean = mean(first_nest_visit),
+        min = min(first_nest_visit),
+        max = max(first_nest_visit))]
 
 # Male and female together
 dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
@@ -1237,38 +1268,38 @@ du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, 
 # descriptive statistic
 
 # day before clutch initiation
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 # at clutch initiation
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 # at clutch last day of egg laying
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 ## without partner at nest
 # clutch initiation 
-du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 # at clutch last day of egg laying
-du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 ### without partner away from nest
 # clutch initiation 
-du[type == 'f_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 # at clutch last day of egg laying
-du[type == 'f_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[type == 'm_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[type == 'f_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 
@@ -1400,8 +1431,26 @@ ESM = ESM |> body_add_par(paste0('Table S10. GLMM male at nest 0 to 3')) |>  bod
 ESM = ESM |> body_add_break(pos = 'after')
 
 
+# descriptive part
+x = effect("scale(initiation_rel)", m, xlevels = 22) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
 
-# extract effect from model
+# before and after peak
+x[initiation_rel <= 0, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= 0, .(fit = mean(fit), se = mean(se))] * 100
+
+
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+x[, .(fit = mean(fit), se = mean(se))] * 100
+
+
+# extract effect from model for plot
 e = effect("scale(initiation_rel)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
@@ -1480,9 +1529,29 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S11. GLMM female at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
+x = effect("scale(initiation_rel)", m, xlevels = 22) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+x[fit > 0.15]
+
+# before and after peak
+x[initiation_rel <= 1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= 2 & initiation_rel <= 5, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= 6, .(fit = mean(fit), se = mean(se))] * 100
 
 
-# extract effect from model
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+x[, .(fit = mean(fit), se = mean(se))] * 100
+
+
+# extract effect from model for plot
 e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
@@ -1667,7 +1736,7 @@ ESM = ESM |> body_add_par(paste0('Table S12. GLMM together and EPY -5 to -1')) |
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-# extract effect from model
+# extract effect from model for plot
 e1 = effect("any_EPY", m, xlevels = 2) |>
   data.frame() |>
   setDT()
@@ -1707,7 +1776,7 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S13. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
-# extract effect from model
+# extract effect from model for plot
 e2 = effect("any_EPY", m, xlevels = 2) |>
   data.frame() |>
   setDT()
@@ -1885,7 +1954,7 @@ ESM = ESM |> body_add_par(paste0('Table S14. GLMM female moves away and EPY -5 t
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-# extract effect from model
+# extract effect from model for plot
 e1 = effect("any_EPY", m, xlevels = 2) |>
   data.frame() |>
   setDT()
@@ -1926,7 +1995,7 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S15. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
-# extract effect from model
+# extract effect from model for plot
 e2 = effect("any_EPY", m, xlevels = 2) |>
   data.frame() |>
   setDT()
