@@ -93,7 +93,7 @@ d = d[!is.na(nestID)]
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
 
 # interactions
-dp[, interaction := distance_pair < 40]
+dp[, interaction := distance_pair < 30]
 
 # count bouts of split and merge
 dp[, bout := bCounter(interaction), by = nestID]
@@ -214,7 +214,7 @@ o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
   bsm = bout_seq_max_value[i]
   
   # interactions
-  dp[, interaction := distance_pair < 40]
+  dp[, interaction := distance_pair < 30]
   
   # count bouts of split and merge
   dp[, bout := bCounter(interaction), by = nestID]
@@ -291,10 +291,54 @@ dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^
 dp[, distance2_next := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)) , by = 1:nrow(dp)]
 
 # interaction with "movement buffer"
-dp[, interaction_buffer := distance_pair < c(max(distance1_before, distance2_before) + 40), by = 1:nrow(dp)]
+dp[, interaction_buffer := distance_pair < c(max(distance1_before, distance2_before) + 30), by = 1:nrow(dp)]
+
+# simple interactions
+dp[, interaction_threshold := distance_pair < distance_threshold]
+dp[is.na(interaction), interaction := interaction_threshold]
+
+# count bouts of split and merge
+dp[, bout := bCounter(interaction), by = nestID]
+dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
+dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
+
+dp[, any_interaction_threshold := any(interaction_threshold == TRUE), by = .(nestID, bout)]
+dp[any_interaction_threshold == FALSE, interaction := FALSE]
+
+# split points and merging points
+dp[, interaction_next := shift(interaction, type = 'lead'), by = nestID]
+dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
+
+# correct for true splits
+dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
 
 
 dp
+
+# datetime relative to nest initiation date
+dp[, datetime_rel_pair := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
+dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
+
+# subset data 10 days around clutch initiation
+dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+
+# Male and female together
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(nestID, datetime_rel_pair0)]
+du = unique(dm, by = c('nestID', 'datetime_rel_pair0'))
+du = merge(du, dms, by = c('nestID', 'datetime_rel_pair0'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_daily]
+
+
+ggplot(data = du) +
+  geom_point(aes(datetime_rel_pair0, int_prop, color = nestID, group = nestID), size = 2, alpha = 1) +
+  geom_path(aes(datetime_rel_pair0, int_prop, color = nestID, group = nestID), size = 1, alpha = 0.5) +
+  scale_color_viridis(direction = -1, limits = c(0, 5), name = 'min bout lenght') +
+  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
+  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
+  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
+  theme_classic(base_size = 8) +
+  theme(legend.position = c(0.8, 0.8))
 
 
 ggplot(data = dp) +
