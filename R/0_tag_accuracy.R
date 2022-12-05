@@ -84,16 +84,23 @@ q95 = quantile(d$dist_each_m, probs = c(0.95)) %>% round(., 1)
 
 # exclude distance over 50 m for plot
 d[dist_each_m > 50] %>% nrow / d %>% nrow * 100
+d[dist_each_m > 50] %>% nrow # N
+d[, max(dist_each_m)]
 
+pa = 
 ggplot(data = d[dist_each_m < 50]) +
-  ggtitle('Distance test location') +
-  geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50') +
-  geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 5, color = 'firebrick3') +
-  geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 5, color = 'dodgerblue4') +
+  geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50', size = 0.1) +
+  geom_vline(xintercept = median_, color = 'black', linetype = 'dashed') +
+  geom_vline(xintercept = q95, color = 'black', linetype = 'dotted') +
+  geom_text(aes(median_, Inf, label = paste0(median_, '.0 m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
+  geom_text(aes(q95, Inf, label = paste0(q95, ' m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
+  scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(expand = expansion(add = c(0, 0))) +
   xlab('Distance (m)') +
-  theme_classic(base_size = 18)
+  ylab('Number of locations') +
+  theme_classic(base_size = 10)
+
+pa
 
 # all points on map
 bm = create_bm(d, buffer = 10)
@@ -132,7 +139,7 @@ st_transform_DT(dn)
 # Incubation data
 b = fread('./DATA/R203_2018_07_16_MSR323219_180625_155302.csv', skip = 27, header = FALSE, sep = ';')
 
-b = data.table(datetime_  = as.POSIXct(b$V1),
+b = data.table(datetime_  = as.POSIXct(as.character(b$V1)),
                t_surface = as.numeric(b$V2),
                t_nest    = as.numeric(b$V4))
 
@@ -176,7 +183,7 @@ d[, dist := sqrt(sum((c(lon, lat) - c(-403.5346, -2076970))^2)) , by = 1:nrow(d)
 
 # plot distance
 median_ = median(d[inc_t == 1]$dist) %>% round(., 1)
-q95 = quantile(d[inc_t == 1]$dist, probs = c(0.95)) %>% round(., 1)
+q95_ = quantile(d[inc_t == 1]$dist, probs = c(0.95)) %>% round(., 1)
 
 # number of data 
 d[inc_t == 1] |> nrow()
@@ -184,15 +191,24 @@ d[inc_t == 1] |> nrow()
 # exclude distance over 50 m for plot
 d[inc_t == 1 & dist > 50] %>% nrow / d[inc_t == 1] %>% nrow * 100
 
+d[inc_t == 1 & dist > 50] %>% nrow # N
+d[inc_t == 1, max(dist)]
+
+
+pb = 
 ggplot(data = d[inc_t == 1 & dist < 50]) +
-  ggtitle('Distance from nest R203_18 while T>30°C') +
-  geom_histogram(aes(dist), bins = 60, fill = 'grey85', color = 'grey50') +
-  geom_vline(xintercept = median_, color = 'firebrick3') +
-  geom_text(aes(median_, Inf, label = paste0(median_, ' m median')), vjust = 1, hjust = -0.1, size = 5, color = 'firebrick3') +
-  geom_vline(xintercept = q95, color = 'dodgerblue4') +
-  geom_text(aes(q95, Inf, label = paste0(q95, ' m q95')), vjust = 1, hjust = -0.1, size = 5, color = 'dodgerblue4') +
+  geom_histogram(aes(dist), bins = 60, fill = 'grey85', color = 'grey50', size = 0.1) +
+  geom_vline(xintercept = median_, color = 'black', linetype = 'dashed') +
+  geom_vline(xintercept = q95_, color = 'black', linetype = 'dotted') +
+  geom_text(aes(median_, Inf, label = paste0(median_, '.0 m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
+  geom_text(aes(q95_, Inf, label = paste0(q95_, ' m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
+  scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
+  scale_y_continuous(expand = expansion(add = c(0, 0))) +
   xlab('Distance (m)') +
-  theme_classic(base_size = 18)
+  ylab('') +
+  theme_classic(base_size = 10)
+
+pb 
 
 # all around nest on map
 bm = create_bm(d[inc_t == 1 & dist < 50], buffer = 10)
@@ -201,6 +217,15 @@ bm +
   geom_point(data = n, aes(lon, lat), color = 'black', size = 3) +
   scale_colour_manual(values = c('dodgerblue4', 'firebrick3'), labels = c('off nest', 'on nest'), name = c('T>30°C'))
   
+
+# merge plots
+pa + pb + 
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = 'a')
+
+ggsave('./OUTPUTS/FIGURES/Tag_accuracy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+
 
 # version information
 sessionInfo()
