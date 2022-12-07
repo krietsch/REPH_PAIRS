@@ -17,7 +17,8 @@
 # 2. Tag accuracy based on incubation data
 
 # Packages
-sapply( c('data.table', 'sdb', 'anytime', 'foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf', 'knitr'),
+sapply( c('data.table', 'sdb', 'anytime', 'foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 'sf', 'knitr', 
+          'patchwork'),
         require, character.only = TRUE)
 
 # Functions
@@ -96,9 +97,10 @@ ggplot(data = d[dist_each_m < 50]) +
   geom_text(aes(q95, Inf, label = paste0(q95, ' m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
   scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
   scale_y_continuous(expand = expansion(add = c(0, 0))) +
-  xlab('Distance (m)') +
-  ylab('Number of locations') +
-  theme_classic(base_size = 10)
+  theme_classic(base_size = 10) +
+  theme(plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
+  ylab('Number of locations') 
+
 
 pa
 
@@ -204,9 +206,9 @@ ggplot(data = d[inc_t == 1 & dist < 50]) +
   geom_text(aes(q95_, Inf, label = paste0(q95_, ' m')), vjust = 1, hjust = -0.1, size = 3, color = 'black') +
   scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
   scale_y_continuous(expand = expansion(add = c(0, 0))) +
-  xlab('Distance (m)') +
-  ylab('') +
-  theme_classic(base_size = 10)
+  theme_classic(base_size = 10) +
+  theme(plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
+  ylab('')
 
 pb 
 
@@ -219,11 +221,18 @@ bm +
   
 
 # merge plots
-pa + pb + 
+library(grid)
+library(gridExtra)
+
+p <- pa + pb + 
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/Tag_accuracy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+gt = patchworkGrob(p)
+g = arrangeGrob(gt, bottom = textGrob('          Distance between logger and true locations', gp = gpar(fontsize = 10)))
+
+
+ggsave('./OUTPUTS/FIGURES/Tag_accuracy.tiff', plot = g,  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
