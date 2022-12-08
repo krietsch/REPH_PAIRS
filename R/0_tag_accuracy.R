@@ -98,7 +98,7 @@ ggplot(data = d[dist_each_m < 50]) +
   scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
   scale_y_continuous(expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
-  theme(plot.margin = unit(c(2, 2, 0, 2), 'pt'), axis.title.x = element_blank()) +
+  theme(plot.margin = unit(c(2, 4, 0, 2), 'pt'), axis.title.x = element_blank()) +
   ylab('Number of locations') 
 
 
@@ -229,7 +229,7 @@ p <- pa + pb +
   plot_annotation(tag_levels = 'a')
 
 gt = patchworkGrob(p)
-g = arrangeGrob(gt, bottom = textGrob('          Distance between logger and true locations', gp = gpar(fontsize = 10)))
+g = arrangeGrob(gt, bottom = textGrob('          Distance between telemetry logger fixes and precise location (m)', gp = gpar(fontsize = 10)))
 
 
 ggsave('./OUTPUTS/FIGURES/Tag_accuracy.tiff', plot = g,  width = 177, height = 89, units = c('mm'), dpi = 'print')
