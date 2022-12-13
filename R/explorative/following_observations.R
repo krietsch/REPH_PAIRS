@@ -33,7 +33,7 @@ dg = dbq(con, 'select * FROM SEX')
 dpa = dbq(con, 'select * FROM PATERNITY')
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
-dn = dn[year_ > 2017]
+dn = dn[year_ > 2016]
 dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
@@ -329,3 +329,44 @@ d[flight %like%('F'), .N, by = sex]
 d[aggres %like%('F'), .N, by = sex]
 
 d[is.na(min_dist)]
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Sex ratio
+#--------------------------------------------------------------------------------------------------------------
+
+# number of males and females per day seen
+du = unique(d, by = c('ID', 'date_'))
+du = du[, .N, by = .(sex, date_)]
+
+dm = du[sex == 'M']
+df = du[sex == 'F']
+
+
+
+ds = merge(dm[, .(date_, N_males = N)], df[, .(date_, N_females = N)], by = 'date_', all.x = TRUE)
+
+
+ds[, sex_ratio := N_males/N_females]
+ds[, year_ := year(date_)]
+
+ggplot() +
+  geom_line(data = ds[year_ == 2019], aes(date_, sex_ratio))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
