@@ -1136,28 +1136,6 @@ x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
 x[datetime_rel_pair0 >= 0, .(fit = mean(fit), se = mean(se))]
 
 
-
-#--------------------------------------------------------------------------------------------------------------
-#' # First nest location visit
-#--------------------------------------------------------------------------------------------------------------
-
-ds1 = dp[, .(first_pairwise_location = min(datetime_rel_pair)), by = nestID]
-ds2 = dp[m_at_nest == TRUE | f_at_nest == TRUE, .(first_nest_visit = min(datetime_rel_pair)), by = nestID]
-ds = merge(ds1, ds2, by = 'nestID')
-
-# how many days with data before?
-ds[, days_data_before_nest_visit := first_pairwise_location - first_nest_visit]
-
-# subset pairs with at least one day of data before
-dss = ds[days_data_before_nest_visit < -1]
-
-# summary (relative to clutch initiation)
-dss |> nrow()
-dss[, .(mean = mean(first_nest_visit),
-        min = min(first_nest_visit),
-        max = max(first_nest_visit))]
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance by sex
 #--------------------------------------------------------------------------------------------------------------
@@ -1400,7 +1378,7 @@ pc
 
 # during egg-laying male
 dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-m <- glmmTMB(m_at_nest ~ scale(initiation_rel) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
+m <- glmmTMB(m_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
                family = binomial, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
@@ -1451,7 +1429,7 @@ x[, .(fit = mean(fit), se = mean(se))] * 100
 
 
 # extract effect from model for plot
-e = effect("scale(initiation_rel)", m, xlevels = 100) |>
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
   data.frame() |>
   setDT()
 
