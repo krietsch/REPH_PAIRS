@@ -1410,7 +1410,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # descriptive part
-x = effect("scale(initiation_rel)", m, xlevels = 22) |>
+x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
   data.frame() |>
   setDT() |> 
   print() 
@@ -1583,8 +1583,8 @@ pe
 pa + pb + pc + pd + pe +
   plot_layout(design = "
   11
-  23
   45
+  23
 ") +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
