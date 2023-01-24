@@ -1112,7 +1112,7 @@ dss
 
 
 ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.1, ymax = 16.1), fill = egg_laying_color) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.3, ymax = 16.1), fill = egg_laying_color) +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_boxplot(data = dms, 
                aes(datetime_rel_pair0, N_splits, group = interaction(datetime_rel_pair0)),
@@ -1124,7 +1124,7 @@ ggplot() +
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.1, 16.9), breaks = seq(0, 16, 1),
+  scale_y_continuous(limits = c(-0.3, 16.7), breaks = seq(0, 16, 1),
                      labels = c('0', '', '2', '', '4', '', '6', '', '8', '', '10', '', '12', '', '14', '', '16'),
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
@@ -1144,31 +1144,54 @@ ggplot() +
 dms = dm[split == TRUE]
 
 # merge male and female data for plot
-dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex1, split_distance = distance1_before)]
-dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex2, split_distance = distance2_before)]
+dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex1, 
+                                     split_distance = distance1_before)]
+dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex2, 
+                                     split_distance = distance2_before)]
 
 dms = rbindlist(list(dms_m, dms_f))
+
+
+
+# pairwise sample size
+du = unique(dm[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss_m = unique(du[ID_splitting == 'ID1' & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss_m = dss_m[, .N, by = datetime_rel_pair0]
+
+# pairwise sample size
+dss_f = unique(du[ID_splitting == 'ID2' & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+               by = c('nestID', 'datetime_rel_pair0'))
+dss_f = dss_f[, .N, by = datetime_rel_pair0]
+
+# merge 
+dss = merge(dss_m[, .(N_m = N, datetime_rel_pair0)], dss_f[, .(N_f = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss[, N_label := paste0(N_f, '/', N_m)]
+
 
 # adjust distance above 1000 m
 dms[, split_distance1000 := split_distance]
 dms[split_distance > 1000, split_distance1000 := 1000]
 
 ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = egg_laying_color) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1005), fill = egg_laying_color) +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_label), vjust = 1, size = sample_size_label) +
   geom_boxplot(data = dms, 
-               aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex),
+               aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), 
+                   color = sex),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = dms, 
-             aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
+             aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), 
+                 color = sex), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '',
                      labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
                      expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(expand = expansion(add = c(0, 5))) +
+  scale_y_continuous(expand = expansion(add = c(0, 50))) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
+  theme(legend.position = c(0.87, 0.92), legend.background = element_blank(), plot.margin = margin_) +
   ylab('Distance moved when separated (m)') +
   xlab('Day relative to clutch initiation (= 0)')
 
