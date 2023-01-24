@@ -755,6 +755,9 @@ du[is.na(N_m_split), N_m_split := 0]
 du[, m_split_prop := N_m_split / N_split]
 d2 = copy(du)
 
+dm = merge(dm, du[, .(pairID, nestID, datetime_rel_pair0, N_m_split)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+
+
 # Times females split
 dms = dm[split == TRUE & ID_splitting == 'ID2', .(N_f_split = .N), by = .(pairID, nestID, datetime_rel_pair0)]
 du = unique(dm[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
@@ -762,6 +765,8 @@ du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TR
 du[is.na(N_f_split), N_f_split := 0]
 du[, f_split_prop := N_f_split /N_split]
 d3 = copy(du)
+
+dm = merge(dm, du[, .(pairID, nestID, datetime_rel_pair0, N_f_split)], by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
 
 
 # Proportion of merge events
@@ -1089,6 +1094,85 @@ pa + pb + pc +
 # ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
+#' Number moved away by sex
+#--------------------------------------------------------------------------------------------------------------
+
+# subset data
+dms = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dms[is.na(N_splits),  N_splits := 0]
+dms[is.na(N_m_split), N_m_split := 0]
+dms[is.na(N_f_split), N_f_split := 0]
+
+# pairwise sample size
+dus = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dss = unique(dus[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
+             by = c('nestID', 'datetime_rel_pair0'))
+dss = dss[, .N, by = datetime_rel_pair0]
+dss
+
+
+
+ggplot() +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.1, ymax = 16.1), fill = egg_laying_color) +
+  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, N_splits, group = interaction(datetime_rel_pair0)),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0, color = 'steelblue4') +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, N_splits, group = interaction(datetime_rel_pair0)), color = 'steelblue4', 
+             position=position_jitter(height = 0), size = 0.2) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.1, 16.9), breaks = seq(0, 16, 1),
+                     labels = c('0', '', '2', '', '4', '', '6', '', '8', '', '10', '', '12', '', '14', '', '16'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Number of separation movements') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+
+
+# merge male and female data for plot
+dms_m = dms[, .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = 'M', N_m_f_splits = N_m_split)]
+dms_f = dms[, .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = 'F', N_m_f_splits = N_f_split)]
+
+dms = rbindlist(list(dms_m, dms_f))
+
+dms[, max(N_m_f_splits)]
+
+
+ggplot() +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.1, ymax = 12.1), fill = egg_laying_color) +
+  geom_boxplot(data = dms, 
+               aes(datetime_rel_pair0, N_m_f_splits, group = interaction(datetime_rel_pair0, sex), color = sex),
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = dms, 
+             aes(datetime_rel_pair0, N_m_f_splits, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
+  scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '',
+                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.1, 12.1), breaks = seq(0, 12, 1), 
+                     labels = c('0', '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0, 0))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
+  ylab('Number of separation movements') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+
+# ggsave('./OUTPUTS/FIGURES/male_female_split_events_number_by_sex.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+
+
+#--------------------------------------------------------------------------------------------------------------
 #' Distance moved away by sex
 #--------------------------------------------------------------------------------------------------------------
 
@@ -1130,7 +1214,7 @@ pa
 # ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 # model before clutch initiation
-dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
 m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
                family = gaussian, data = dx, REML = TRUE,
@@ -1160,7 +1244,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S10. GLMM split distance -5 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S10. GLMM split distance -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 x = effect("sex", m, xlevels = 2) |>
@@ -1172,6 +1256,56 @@ x = effect("scale(datetime_rel_pair0)", m, xlevels = 9) |>
   data.frame() |>
   setDT() |> 
   print()
+
+
+# model during clutch initiation
+dx = dms[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+
+m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+             family = gaussian, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+# create clean summary table -----
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word -----
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S10. GLMM split distance 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+x = effect("sex", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+x = effect("scale(datetime_rel_pair0)", m, xlevels = 9) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+# before and after clutch initiation
+x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
+x[datetime_rel_pair0 >= 0, .(fit = mean(fit), se = mean(se))]
+
 
 # before and after clutch initiation
 x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
