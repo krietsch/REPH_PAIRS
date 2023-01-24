@@ -1111,7 +1111,6 @@ dss = dss[, .N, by = datetime_rel_pair0]
 dss
 
 
-
 ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.1, ymax = 16.1), fill = egg_laying_color) +
   geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
@@ -1137,41 +1136,6 @@ ggplot() +
 # ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
-
-# merge male and female data for plot
-dms_m = dms[, .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = 'M', N_m_f_splits = N_m_split)]
-dms_f = dms[, .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = 'F', N_m_f_splits = N_f_split)]
-
-dms = rbindlist(list(dms_m, dms_f))
-
-dms[, max(N_m_f_splits)]
-
-
-ggplot() +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.1, ymax = 12.1), fill = egg_laying_color) +
-  geom_boxplot(data = dms, 
-               aes(datetime_rel_pair0, N_m_f_splits, group = interaction(datetime_rel_pair0, sex), color = sex),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = dms, 
-             aes(datetime_rel_pair0, N_m_f_splits, group = interaction(datetime_rel_pair0, sex), color = sex), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '',
-                     labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', '', '6', '', '8', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.1, 12.1), breaks = seq(0, 12, 1), 
-                     labels = c('0', '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
-                     expand = expansion(add = c(0, 0))) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Number of separation movements') +
-  xlab('Day relative to clutch initiation (= 0)')
-
-
-# ggsave('./OUTPUTS/FIGURES/male_female_split_events_number_by_sex.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' Distance moved away by sex
 #--------------------------------------------------------------------------------------------------------------
@@ -1189,7 +1153,6 @@ dms = rbindlist(list(dms_m, dms_f))
 dms[, split_distance1000 := split_distance]
 dms[split_distance > 1000, split_distance1000 := 1000]
 
-pa = 
 ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1000), fill = egg_laying_color) +
   geom_boxplot(data = dms, 
@@ -1209,7 +1172,6 @@ ggplot() +
   ylab('Distance moved when separated (m)') +
   xlab('Day relative to clutch initiation (= 0)')
 
-pa
 
 # ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
