@@ -571,7 +571,7 @@ dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetim
 
 
 # model before clutch initiation
-dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 3]
+dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
@@ -925,8 +925,8 @@ x = effect("scale(initiation_rel)", m, xlevels = 16) |>
   print() 
 
 # before and after peak
-x[initiation_rel <= -2, .(fit = mean(fit), se = mean(se))] * 100
-x[initiation_rel >= -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel <= -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= 0, .(fit = mean(fit), se = mean(se))] * 100
 
 # extract effect from model for plot
 e = effect("scale(initiation_rel)", m, xlevels = 100) |>
@@ -1023,8 +1023,8 @@ x = effect("scale(initiation_rel)", m, xlevels = 16) |>
   print() 
 
 # before and after peak
-x[initiation_rel <= -2, .(fit = mean(fit), se = mean(se))] * 100
-x[initiation_rel >= -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel <= -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel >= 0, .(fit = mean(fit), se = mean(se))] * 100
 
 
 x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
@@ -1484,8 +1484,9 @@ ggplot() +
 
 pa
 
+
 # Males alone and alone at nest
-pb = 
+pd = 
   ggplot() +
   geom_text(aes(-5.2, Inf, label = 'Male'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
@@ -1508,11 +1509,11 @@ pb =
   ylab('Proportion of time alone') +
   xlab('Day relative to clutch initiation (= 0)')
 
-pb
+pd
 
 # Female alone and alone at nest
-pc = 
-ggplot() +
+pe = 
+  ggplot() +
   geom_text(aes(-5.2, Inf, label = 'Female'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
@@ -1534,7 +1535,7 @@ ggplot() +
   ylab('') +
   xlab('Day relative to clutch initiation (= 0)')
 
-pc
+pe
 
 
 # statistic 
@@ -1614,7 +1615,7 @@ d1 = copy(du)
 # point sizes range
 du[, .(min(N_nest_season), max(N_nest_season))]
 
-pd = 
+pb = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, color = 'steelblue4') +
@@ -1634,7 +1635,7 @@ pd =
   ylab('Proportion of time at nest') +
   xlab('Clutch initiation date (standardized)')
 
-pd
+pb
 
 
 
@@ -1716,7 +1717,7 @@ d1 = copy(du)
 # point sizes range
 du[, .(min(N_nest_season), max(N_nest_season))]
 
-pe = 
+pc = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = du, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, color = 'firebrick3') +
@@ -1736,18 +1737,15 @@ pe =
   ylab('') +
   xlab('Clutch initiation date (standardized)')
 
-pe
-
-
-
+pc
 
 
 # merge plots
 pa + pb + pc + pd + pe +
   plot_layout(design = "
   11
-  45
   23
+  45
 ") +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
