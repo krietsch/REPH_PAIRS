@@ -1100,8 +1100,10 @@ pa + pb + pc +
 # subset data
 dms = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 dms[is.na(N_splits),  N_splits := 0]
-dms[is.na(N_m_split), N_m_split := 0]
-dms[is.na(N_f_split), N_f_split := 0]
+
+# descriptive statistic 
+dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(mean = mean(N_splits), min = min(N_splits), max = max(N_splits))]
+dms[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, .(mean = mean(N_splits), min = min(N_splits), max = max(N_splits))]
 
 # pairwise sample size
 dus = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
