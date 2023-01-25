@@ -1274,7 +1274,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S10. GLMM split distance 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S11. GLMM split distance 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 x = effect("sex", m, xlevels = 2) |>
@@ -1566,7 +1566,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S11. GLMM male at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S12. GLMM male at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1665,7 +1665,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S12. GLMM female at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S13. GLMM female at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 # descriptive part
@@ -1871,7 +1871,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S13. GLMM together and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S14. GLMM together and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -1912,7 +1912,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S14. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S15. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 # extract effect from model for plot
@@ -1943,6 +1943,10 @@ dsss_epy = dsss_epy[, .N, by = type]
 dsss = merge(dsss, dsss_epy[, .(N_epy = N, type)], by = 'type', all.x = TRUE)
 dsss[, N_epy_label := paste0(N, '/', N_epy)]
 
+# p values
+dsp = data.table(type = c( '-5 to -1', '0 to 2'),
+                 p_value = c('p = 0.29', 'p = 0.20'))
+
 
 p1 =
   ggplot() +
@@ -1951,6 +1955,7 @@ p1 =
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                        labels = c('No EPY', 'EPY'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
+  geom_text(data = dsp, aes(type, c(0.75, 0.6), label = p_value), vjust = 1, size = sample_size_label) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                    labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                    expand = expansion(add = c(0, 0.05))) +
@@ -2089,7 +2094,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S15. GLMM female moves away and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S16. GLMM female moves away and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
@@ -2131,7 +2136,7 @@ y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
 # save table in word -----
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S16. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S17. GLMM female moves away and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 # extract effect from model for plot
@@ -2163,6 +2168,9 @@ dsss_epy = dsss_epy[, .N, by = type]
 dsss = merge(dsss, dsss_epy[, .(N_epy = N, type)], by = 'type', all.x = TRUE)
 dsss[, N_epy_label := paste0(N, '/', N_epy)]
 
+# p values
+dsp = data.table(type = c( '-5 to -1', '0 to 2'),
+                 p_value = c('p = 0.13', 'p = 0.44'))
 
 p2 =
 ggplot() +
@@ -2172,6 +2180,7 @@ ggplot() +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                      labels = c('No EPY', 'EPY'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
+  geom_text(data = dsp, aes(type, c(0.3, 0.4), label = p_value), vjust = 1, size = sample_size_label) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1),
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
@@ -2301,12 +2310,6 @@ p4 =
   xlab('Date')
 
 p4
-
-
-
-p1 
-
-# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_female_273145121.tiff', plot = last_plot(),  width = 177, height = 60, units = c('mm'), dpi = 'print')
 
 
 # merge plots
