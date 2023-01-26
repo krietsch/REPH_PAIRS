@@ -58,7 +58,7 @@ ESM = read_docx()
 # parameter names 
 pn = fread("parname;                                                          parameter
             (Intercept);                                                      intercept  
-            any_EPYTRUE;                                                      any EPY (yes)
+            any_EPYTRUE;                                                      EPP (yes)
             sexM;                                                             sex (male)
             scale(initiation_rel);                                            clutch initiation relative to season
             poly(initiation_rel, 2)1;                                         clutch initiation relative to season (linear)
@@ -1101,7 +1101,7 @@ pa + pb + pc +
 # ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Number moved away by sex
+#' Number of separating flights 
 #--------------------------------------------------------------------------------------------------------------
 
 # subset data
@@ -1113,7 +1113,7 @@ dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(mean = mean(N_splits)
 dms[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, .(mean = mean(N_splits), min = min(N_splits), max = max(N_splits))]
 
 # pairwise sample size
-dus = unique(dp[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dus = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
 dss = unique(dus[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
              by = c('nestID', 'datetime_rel_pair0'))
 dss = dss[, .N, by = datetime_rel_pair0]
@@ -1138,7 +1138,7 @@ ggplot() +
                      expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.87, 0.94), legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Number of separation movements') +
+  ylab('Number of separating flights') +
   xlab('Day relative to clutch initiation (= 0)')
 
 
@@ -1814,7 +1814,7 @@ ggplot() +
              aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('No EPY', 'EPY'), drop = FALSE) +
+                     labels = c('No EPP', 'EPP'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', ''),
@@ -1960,7 +1960,7 @@ p1 =
   geom_point(data = e, aes(type, fit, group = interaction(any_EPY, type), color = any_EPY), position = position_dodge(width = 0.5)) +
   geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = any_EPY), size = 0.3, position = position_dodge(width = 0.5)) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                       labels = c('No EPY', 'EPY'), drop = FALSE) +
+                       labels = c('No EPP', 'EPP'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   geom_text(data = dsp, aes(type, c(0.75, 0.6), label = p_value), vjust = 1, size = sample_size_label) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
@@ -2018,7 +2018,7 @@ ggplot() +
              aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('No EPY', 'EPY'), drop = FALSE) +
+                     labels = c('No EPP', 'EPP'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -2185,7 +2185,7 @@ ggplot() +
   geom_point(data = e, aes(type, fit, group = interaction(any_EPY, type), color = any_EPY), position = position_dodge(width = 0.5)) +
   geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = any_EPY), size = 0.3, position = position_dodge(width = 0.5)) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('No EPY', 'EPY'), drop = FALSE) +
+                     labels = c('No EPP', 'EPP'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   geom_text(data = dsp, aes(type, c(0.3, 0.4), label = p_value), vjust = 1, size = sample_size_label) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1),
