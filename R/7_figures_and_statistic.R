@@ -45,6 +45,13 @@ dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
 dm[, .N, pairID] |> nrow()
 dm[, .N, nestID] |> nrow()
 
+# nest method
+dmn = unique(dm, by = 'nestID')
+xn = dmn$nestID
+dns = dn[nestID %in% xn]
+dns = dns[, .N, by = initiation_method]
+dns[, N_percentage_total := round(N / nrow(dmn) * 100, 0)]
+
 # start word file for ESM
 ESM = read_docx()
 
