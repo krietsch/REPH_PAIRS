@@ -52,233 +52,136 @@ st_transform_DT(dn)
 #' # Select pairs
 #--------------------------------------------------------------------------------------------------------------
 
-pairIDs = dp[nestID == 'R903_19', .(ID1, ID2)]|> unique()|> as.vector()
-
-
-ds = d[ID %in% pairIDs]
-
-
-dpID = rbind(dp[, .(ID = ID1, nestID, datetime_ = datetime_1, interaction)], 
-             dp[, .(ID = ID2, nestID, datetime_ = datetime_2, interaction)])
-
-
-# merge with d
-ds = merge(ds, dpID[, .(ID, datetime_, nestID, interaction)], 
-          by = c('ID', 'datetime_'), all.x = TRUE)
-
-
-ds[interaction == TRUE]
-
-
-ds[, ID := as.character(ID)]
-
-bm = create_bm(ds[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 100)
-
-bm + 
-  geom_point(data = ds[interaction == TRUE], aes(lon, lat, group = ID, colour = ID))
-
-
-
-#--------------------------------------------------------------------------------------------------------------
-#' # Define breeding pairs with both sexes tagged
-#--------------------------------------------------------------------------------------------------------------
-
-# start and end of the data
-d[, start := min(datetime_), by = ID]
-d[, end   := max(datetime_), by = ID]
-dID = unique(d, by = 'ID')
-
-# check if data overlap
-dn = merge(dn, dID[, .(male_id = ID, start_m = start, end_m = end)], by = 'male_id', all.x = TRUE)
-dn = merge(dn, dID[, .(female_id = ID, start_f = start, end_f = end)], by = 'female_id', all.x = TRUE)
-
-# subset nests with both IDs tagged
-dn = dn[!is.na(start_m) & !is.na(start_f)]
-
-# subset nests with both IDs tagged and overlapping time intervals
-dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = nestID]
-dn = dn[overlap > 0]
-
-# check overlap with initiation date
-dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
-
-# nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, initiation_y, lat_n = lat, lon_n = lon)]
-dnID = unique(dnID, by = 'nestID')
-
-# as integer
-dnID[, male_id := as.integer(male_id)]
-dnID[, female_id := as.integer(female_id)]
-
-# create directory for each of these breeding pairs
-dnID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION_EACH/', nestID)]
-dnID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dnID)]
-
-# unique IDs
-IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
-
-# subset d
-d = d[ID %in% IDu]
-
-# merge with nest and initiation date
-dnIDu = rbind(dnID[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
-              dnID[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
-
-d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
-d = d[!is.na(nestID)]
-
-#--------------------------------------------------------------------------------------------------------------
-#' # Define interactions
-#--------------------------------------------------------------------------------------------------------------
-
-# merge with nests
-dp = merge(dp, dnID, by.x = c('ID1', 'ID2'), by.y = c('male_id', 'female_id'))
-
-# interactions
-dp[, interaction := distance_pair < 30]
-
-# count bouts of split and merge
-dp[, bout := bCounter(interaction), by = nestID]
-dp[, bout_seq := seq_len(.N), by = .(nestID, bout)]
-dp[, bout_seq_max := max(bout_seq), by = .(nestID, bout)]
-dp[interaction == FALSE & bout_seq_max == 1, interaction := TRUE] 
-
-# interaction ID
-dp[, int_id := seq_len(.N), by = nestID]
-
 # first and last interaction
 dp[interaction == TRUE, first_int := min(datetime_1), by = nestID]
 dp[, first_int := min(first_int, na.rm = TRUE), by = nestID]
 dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
 dp[, last_int := min(last_int, na.rm = TRUE), by = nestID]
 
-dpID = rbind(dp[, .(ID = ID1, nestID, datetime_ = datetime_1, interaction, int_id, first_int, last_int, distance_pair)], 
-             dp[, .(ID = ID2, nestID, datetime_ = datetime_2, interaction, int_id, first_int, last_int, distance_pair)])
 
-dpID[, distance_pair := round(distance_pair, 0)]
+
+
+pairIDs = dp[nestID == 'R903_19', .(ID1, ID2)]|> unique()|> as.vector()
+
+
+dd = d[ID %in% pairIDs]
+
+
+dpID = rbind(dp[, .(ID = ID1, nestID, sex = 'M', datetime_ = datetime_1, interaction, first_int, last_int)], 
+             dp[, .(ID = ID2, nestID, sex = 'F', datetime_ = datetime_2, interaction, first_int, last_int)])
+
 
 # merge with d
-d = merge(d, dpID[, .(ID, datetime_, nestID, interaction, int_id, first_int, last_int, distance_pair)], 
-          by = c('ID', 'datetime_', 'nestID'), all.x = TRUE)
+dd = merge(dd, dpID[, .(ID, datetime_, nestID, sex, interaction, first_int, last_int)], 
+          by = c('ID', 'datetime_'), all.x = TRUE)
+
+
+dd[interaction == TRUE]
+
+
+dd[, ID := as.character(ID)]
+
+bm = create_bm(dd[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)
+
+bm + 
+  geom_point(data = dd[interaction == TRUE], aes(lon, lat, group = ID, colour = ID))
+
+
+
+
+
 
 # subset period around interactions
-d[, first_int := min(first_int, na.rm = TRUE), by = nestID]
-d[, last_int  := max(last_int, na.rm = TRUE), by = nestID]
+dd[, first_int_ := min(first_int, na.rm = TRUE)]
+dd[, last_int_  := max(last_int, na.rm = TRUE)]
 
 # 3 hours before and after
-d = d[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
+dd = dd[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
+
+
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Animation
 #--------------------------------------------------------------------------------------------------------------
 
+
+# Set path to folder where it creates the pictures
+tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
+
+
+# subset time series ----
+ts = data.table( date = seq( dd[, (min(datetime_))],
+                             dd[, (max(datetime_))], by = '10 mins') )
+ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')   ]
+
+
+
+
+ts = ts[900:1200, ]
+
+
+
+
 # register cores
 # registerDoFuture()
-# plan(multiprocess)
+# plan(multisession)
 
-setorder(dnID, nestID)
+setorder(dd, datetime_)
 
-# loop for each nest
-foreach(j = 1:nrow(dnID)) %do% {
-  
-  # subset pair 
-  dnIDs = dnID[j, ]
-  
-  # subset data from this pair
-  dmf = d[nestID == dnIDs[, nestID]]
-  
-  # create base map
-  bm = create_bm(dnIDs, lat = 'lat_n', lon = 'lon_n', buffer = 1000)
-  # bm
-  
-  # plot all
-  # bm +
-  #   geom_path(data = dmf, aes(lon, lat, group = ID), size = 0.5, color = 'grey', alpha = 0.5) +
-  #   geom_point(data = dmf, aes(lon, lat, color = sex), size = 0.5, show.legend = FALSE) +
-  #   geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'black', stroke = 2, size = 5, shape = 21) + 
-  #   scale_color_manual(values = c('darkorange', 'dodgerblue3'))
-  
-  # Set path to folder where it creates the pictures
-  tmp_path = dnIDs[, directory]
-  
-  # subset time series ----
-  ts = data.table( date = seq( dmf[, (min(datetime_))],
-                               dmf[, (max(datetime_))], by = '10 mins') )
-  ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')   ]
-  
-  # ts = ts[900:1200, ]
-  
+
+
   # loop for all plots
   foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr', 
                                         'data.table', 'windR', 'ggnewscale', 'patchwork') ) %dopar% {
                                           
-                                          # subset data
-                                          tmp_date = ts[i]$date   # current date
-                                          ds = dmf[datetime_ %between% c(tmp_date - 60*60*3, tmp_date)]
-                                          
-                                          # create alpha and size
-                                          if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
-                                          if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 1, to = c(0.7, 3)) , by = ID] # size
-                                          
-                                          p = bm + 
-                                            
-                                            # track
-                                            geom_path(data = ds, aes(x = lon, y = lat, group = ID), color = 'grey', alpha = ds$a, size = ds$s, lineend = "round") +
-                                            
-                                            # interaction
-                                            geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
-                                                       alpha = 0.2, size = 15, show.legend = FALSE) +
-                                            scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = NA)) +
-                                            
-                                            # points
-                                            new_scale_color() +
-                                            geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
-                                                       alpha = 0.1, size = 10, show.legend = FALSE) +
-                                            geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
-                                                       alpha = 0.8, size = 5, show.legend = FALSE) +
-                                            scale_color_manual(values = c('F' = 'darkorange', 'M' = 'dodgerblue3')) +
-                                            
-                                            # datetime
-                                            annotate('text', x = Inf, y = -Inf, hjust = 1.1,  vjust = -0.5, label = paste0(format(tmp_date, "%B %d %H:00")), size = 5) +
-                                            
-                                            # distance
-                                            annotate('text', x = Inf, y = -Inf, hjust = 1.3,  vjust = -2, 
-                                                     label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair, ' m'), size = 5)
-                                          
-                                          p
-                                          
-                                          # nest
-                                          if(tmp_date < dnIDs[, initiation]){
-                                            p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 2, size = 5, shape = 21)
-                                          } else {
-                                            p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'black', stroke = 2, size = 5, shape = 21)
-                                          }
-                                          
-                                          
-                                          
-                                          
-                                          # interaction bars
-                                          p2 = 
-                                            ggplot(data = dmf[datetime_ > tmp_date - 12*3600 & datetime_ < tmp_date + 12*3600]) +
-                                            
-                                            geom_tile(aes(datetime_, '', fill = interaction), width = 600, show.legend = FALSE) +
-                                            scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
-                                            # geom_point(aes(datetime_, '', color = interaction), shape = '|', size = 10, show.legend = FALSE) +
-                                            geom_vline(aes(xintercept = tmp_date), color = 'black', size = 3, alpha = 0.5) +
-                                            xlab('') + ylab('') +
-                                            scale_x_datetime(limits = c(tmp_date - 12*3600, tmp_date + 12*3600), expand = c(0, 0)) +
-                                            theme_void()
-                                          
-                                          
-                                          p1 + inset_element(p2, left = 0, bottom = 0.95, right = 1, top = 1, align_to = 'full')
-                                          
-                                          
-                                          ggsave(ts[i, path], plot = last_plot(), width = 177, height = 177, units = c('mm'), dpi = 'print')
-                                          
-                                        }
+    # subset data
+    tmp_date = ts[i]$date   # current date
+    ds = dd[datetime_ %between% c(tmp_date - 60*60*3, tmp_date)]
+    
+    # create alpha and size
+    if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
+    if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 1, to = c(0.7, 3)) , by = ID] # size
+    
+    p = bm + 
+      
+      # track
+      geom_path(data = ds, aes(x = lon, y = lat, group = ID), color = 'grey', alpha = ds$a, linewidth = ds$s, lineend = "round") +
+      
+      # interaction
+      geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
+                 alpha = 0.2, size = 15, show.legend = FALSE) +
+      scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = NA)) +
+      
+      # points
+      ggnewscale::new_scale_color() +
+      geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
+                 alpha = 0.1, size = 10, show.legend = FALSE) +
+      geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
+                 alpha = 0.8, size = 5, show.legend = FALSE) +
+      scale_color_manual(values = c('F' = 'darkorange', 'M' = 'dodgerblue3')) +
+      
+      # datetime
+      annotate('text', x = Inf, y = -Inf, hjust = 1.1,  vjust = -0.5, label = paste0(format(tmp_date, "%B %d %H:00")), size = 5) +
+      
+      # distance
+      annotate('text', x = Inf, y = -Inf, hjust = 1.3,  vjust = -2, 
+               label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair, ' m'), size = 5)
+    
+    p
+    
+    # # nest
+    # if(tmp_date < dnIDs[, initiation]){
+    #   p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 2, size = 5, shape = 21)
+    # } else {
+    #   p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'black', stroke = 2, size = 5, shape = 21)
+    # }
+  
+    
+    
+    ggsave(ts[i, path], plot = last_plot(), width = 177, height = 177, units = c('mm'), dpi = 'print')
+    
 }
+
 
 
 
