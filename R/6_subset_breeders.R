@@ -328,8 +328,8 @@ dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TR
 dps = 
 dp[breeding_pair == TRUE & sex1 == 'M', 
    .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
-     datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, split, merge, nestID, 
-     initiation, initiation_rel, at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, 
+     datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, distance_pair, interaction, split, merge, 
+     nestID, initiation, initiation_rel, at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, 
      ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, breeding_pair, f_polyandrous, f_polyandrous_first,
      f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
@@ -439,10 +439,10 @@ d0as[is.na(nestID)]
 # rename order and save
 d0as = d0as[, 
         .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
-          datetime_rel_season, datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, interaction, 
-          split, merge, nestID, initiation, initiation_rel, at_nest1, at_nest2, any_EPY, ID1_any_ep_int, 
-          ID2_any_ep_int, breeding_pair, f_polyandrous, f_polyandrous_first, f_polyandrous_second, 
-          f_renesting_first, f_renesting_second, type = 'randomization')]
+          datetime_rel_season, datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, 
+          interaction, split, merge, nestID, initiation, initiation_rel, at_nest1, at_nest2, any_EPY, 
+          ID1_any_ep_int, ID2_any_ep_int, breeding_pair, f_polyandrous, f_polyandrous_first, 
+          f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'randomization')]
 
 # save data
 fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
