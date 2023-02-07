@@ -31,12 +31,9 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-
 dp = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-dd = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt',  sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-dg = dbq(con, 'select * FROM SEX')
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dn = dn[year_ > 2017]
@@ -48,14 +45,90 @@ DBI::dbDisconnect(con)
 st_transform_DT(dn)
 
 #--------------------------------------------------------------------------------------------------------------
-#' # Select pairs
+#' Connect ID data with pairwise comparison and nest data
 #--------------------------------------------------------------------------------------------------------------
+
+# all pairs with overlap
+du = unique(dp[, .(pairID, year_, ID1, ID2, sex1, sex2, nestID, initiation, initiation_rel)], by = 'nestID')
+
+# merge with nest location
+dID = merge(du, dn[, .(nestID, lat_n = lat, lon_n = lon, egg1, egg2, egg3, egg4)], by = 'nestID', all.x = TRUE)
+
+# merge d with defined interactions
 
 # first and last interaction
 dp[interaction == TRUE, first_int := min(datetime_1), by = nestID]
 dp[, first_int := min(first_int, na.rm = TRUE), by = nestID]
 dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
 dp[, last_int := min(last_int, na.rm = TRUE), by = nestID]
+
+# reshape for merge
+dpID = rbind(dp[, .(ID = ID1, nestID, datetime_ = datetime_1, interaction, first_int, last_int, distance_pair)], 
+             dp[, .(ID = ID2, nestID, datetime_ = datetime_2, interaction, first_int, last_int, distance_pair)])
+dpID[, distance_pair := round(distance_pair, 0)]
+
+# merge with d
+d = merge(d, dpID[, .(ID, datetime_, nestID, interaction, distance_pair, first_int, last_int)], 
+          by = c('ID', 'datetime_'), all.x = TRUE)
+
+# make ID character for plotting
+d[, ID := as.character(ID)]
+
+# plot all pairs to check
+# bm = create_colored_bm(d[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)
+# bm + 
+#   geom_point(data = d[interaction == TRUE], aes(lon, lat, group = ID, colour = ID), show.legend = FALSE)
+
+#--------------------------------------------------------------------------------------------------------------
+#' Animation for specific pair
+#--------------------------------------------------------------------------------------------------------------
+
+# subset pair
+dIDs = dID[nestID == 'R903_19']
+
+# subset all data from this pair
+dmf = d[nestID == dIDs[, nestID]]
+
+# subset period around interactions
+dmf[, first_int := min(first_int, na.rm = TRUE)]
+dmf[, last_int  := max(last_int, na.rm = TRUE)]
+
+# 3 hours before and after
+dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
+
+# create base map
+bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)
+
+bm + 
+  geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = ID), show.legend = FALSE)
+
+
+
+
+
+
+# Set path to folder where it creates the pictures
+tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
+
+
+# subset time series ----
+ts = data.table( date = seq( dd[, (min(datetime_))],
+                             dd[, (max(datetime_))], by = '10 mins') )
+ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')   ]
+
+
+
+# subset for test
+ts = ts[900:1200, ]
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Select pairs
+#--------------------------------------------------------------------------------------------------------------
 
 
 
