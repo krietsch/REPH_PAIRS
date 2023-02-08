@@ -52,7 +52,7 @@ st_transform_DT(dn)
 du = unique(dp[, .(pairID, year_, ID1, ID2, sex1, sex2, nestID, initiation, initiation_rel)], by = 'nestID')
 
 # merge with nest location
-dID = merge(du, dn[, .(nestID, lat_n = lat, lon_n = lon, clutch_size, egg1, egg2, egg3, egg4)], by = 'nestID', all.x = TRUE)
+dID = merge(du, dn[, .(nestID, nest, lat_n = lat, lon_n = lon, clutch_size, egg1, egg2, egg3, egg4)], by = 'nestID', all.x = TRUE)
 
 # merge d with defined interactions
 
@@ -103,10 +103,27 @@ dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
 bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000, sc_location = 'bl', 
                        sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
+# add egg image
+require(magick)
+require(ggpubr)
+
+reph_egg = image_read('./DATA/REPH_EGG.png')
+
+reph_egg = ggplot() +
+  background_image(reph_egg) + 
+  coord_fixed() +
+  theme_void()
+
 # plot all data
 bm + 
   geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
-  scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) 
+  scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
+  inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+  inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
+  inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
+  inset_element(reph_egg, left = 0.93, bottom = 0.68, right = 1, top = 0.73, on_top = TRUE) +
+  plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+
 
 # Set path to folder where it creates the pictures
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
@@ -190,7 +207,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   
     # nest ID
     annotate('text', x = Inf, y = Inf, hjust = 1,  vjust = 3, 
-             label = paste0(dIDs$nestID, '  '), size = 3)
+             label = paste0(dIDs$nest, '  '), size = 3)
   
   
   p
@@ -219,12 +236,40 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     theme(panel.background = element_rect(fill = 'grey70'), plot.margin = unit(rep(0, 4), "lines"))
   
   
-  p1 + 
+  p3 = p1 + 
     inset_element(p2, left = 0, bottom = 0.97, right = 1, top = 1, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
   
   
+  # add eggs
   
+  # egg1 
+  if (tmp_date > dIDs$egg1) p3 + 
+    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+    
+  # egg2
+  if (tmp_date > dIDs$egg2) p3 + 
+    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+    
+  # egg3
+  if (tmp_date > dIDs$egg3) p3 + 
+    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+
+  # egg3
+  if (tmp_date > dIDs$egg4) p3 + 
+    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
+    inset_element(reph_egg, left = 0.93, bottom = 0.68, right = 1, top = 0.73, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  # save images  
   ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
   
 }
