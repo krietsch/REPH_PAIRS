@@ -15,7 +15,7 @@
 # Summary
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'sf', 'knitr', 
           'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork'), 
         require, character.only = TRUE)
 
@@ -38,6 +38,10 @@ dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dn = dn[year_ > 2017]
 dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
+dn[, initiation := as.POSIXct(egg1, tz = 'UTC')]
+dn[, initiation := as.POSIXct(egg2, tz = 'UTC')]
+dn[, initiation := as.POSIXct(egg3, tz = 'UTC')]
+dn[, initiation := as.POSIXct(egg4, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 DBI::dbDisconnect(con)
 
@@ -87,7 +91,7 @@ d[!is.na(distance_pair), distance_pair_label := paste0(distance_pair, ' m  ')]
 #--------------------------------------------------------------------------------------------------------------
 
 # subset pair
-dIDs = dID[nestID == 'R304_18']
+dIDs = dID[nestID == 'R304_18'] # R909_18
 
 # subset all data from this pair
 dmf = d[nestID == dIDs[, nestID]]
@@ -100,7 +104,7 @@ dmf[, last_int  := max(last_int, na.rm = TRUE)]
 dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
 
 # create base map
-bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000, sc_location = 'bl', 
+bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 500, sc_location = 'bl', 
                        sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
 # add egg image
@@ -293,5 +297,4 @@ wd = getwd()
 setwd(tmp_path)
 system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST1.mov")
 setwd(wd)
-
 
