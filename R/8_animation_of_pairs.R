@@ -52,7 +52,7 @@ st_transform_DT(dn)
 du = unique(dp[, .(pairID, year_, ID1, ID2, sex1, sex2, nestID, initiation, initiation_rel)], by = 'nestID')
 
 # merge with nest location
-dID = merge(du, dn[, .(nestID, lat_n = lat, lon_n = lon, egg1, egg2, egg3, egg4)], by = 'nestID', all.x = TRUE)
+dID = merge(du, dn[, .(nestID, lat_n = lat, lon_n = lon, clutch_size, egg1, egg2, egg3, egg4)], by = 'nestID', all.x = TRUE)
 
 # merge d with defined interactions
 
@@ -74,6 +74,9 @@ d = merge(d, dpID[, .(ID, sex, datetime_, nestID, interaction, distance_pair, fi
 # make ID character for plotting
 d[, ID := as.character(ID)]
 
+# distance label
+d[!is.na(distance_pair), distance_pair_label := paste0(distance_pair, ' m  ')]
+
 # plot all pairs to check
 # bm = create_colored_bm(d[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)
 # bm + 
@@ -84,7 +87,7 @@ d[, ID := as.character(ID)]
 #--------------------------------------------------------------------------------------------------------------
 
 # subset pair
-dIDs = dID[nestID == 'R903_19']
+dIDs = dID[nestID == 'R304_18']
 
 # subset all data from this pair
 dmf = d[nestID == dIDs[, nestID]]
@@ -98,7 +101,7 @@ dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
 
 # create base map
 bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000, sc_location = 'bl', 
-                       sc_cex = 1)
+                       sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
 # plot all data
 bm + 
@@ -109,13 +112,30 @@ bm +
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
 
 # subset time series
-ts = data.table( date = seq( dmf[, (min(datetime_))],
-                             dmf[, (max(datetime_))], by = '10 mins') )
+ts = data.table( date = seq( dmf[, (round(min(datetime_), '10 mins'))],
+                             dmf[, (round(max(datetime_), '10 mins'))], 
+                             by = '10 mins') )
 ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')]
+
+# add egg animation
+dI = data.table( datetime_ = seq(round(dIDs$initiation, '10 mins'), round(dIDs$initiation, '10 mins') + 
+                                   60*60*24*dIDs$clutch_size, by = '10 mins') )
+dI[, lat := dIDs$lat_n]
+dI[, lon := dIDs$lon_n]
+
+dI[datetime_ %between% c(dIDs$egg1, dIDs$egg2), egg := 1]
+dI[datetime_ %between% c(dIDs$egg2, dIDs$egg3), egg := 2]
+dI[datetime_ %between% c(dIDs$egg3, dIDs$egg4), egg := 3]
+dI[datetime_ > dIDs$egg4, egg := 4]
+
+dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # size
+
+
+
 
 # subset for test
 # ts = ts[900:1000, ]
-ts = ts[900:905, ]
+# ts = ts[900:905, ]
 
 # register cores
 # registerDoFuture()
@@ -131,7 +151,8 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
                                         
   # subset data
   tmp_date = ts[i]$date   # current date
-  ds = dmf[datetime_ %between% c(tmp_date - 60*60*3, tmp_date)]
+  ds = dmf[datetime_ %between% c(tmp_date - 60*60*24, tmp_date)]
+  dsI = dI[datetime_ %between% c(tmp_date - 60*10, tmp_date)]
   
   # create alpha and size
   if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
@@ -148,50 +169,50 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     
     # interaction
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
-               alpha = 0.2, size = 8, show.legend = FALSE) +
+               alpha = 0.2, size = 2.5, stroke = 3, shape = 21, show.legend = FALSE) +
     scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = 'darkorange', 'NA' = NA)) +
     
     # points
     ggnewscale::new_scale_color() +
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
-               alpha = 0.1, size = 1, show.legend = FALSE) +
-    geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
-               alpha = 0.8, size = 5, show.legend = FALSE) +
+               alpha = 1, size = 2, show.legend = FALSE) +
     scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
     
+    # egg laying animation
+    geom_point(data = dsI, aes(lon, lat), color = 'black', size = dsI$s, stroke = 1, shape = 21) + 
+    
     # datetime
-    annotate('text', x = Inf, y = -Inf, hjust = 1.1,  vjust = -1, label = paste0(format(tmp_date, "%B %d %H:%M")), size = 4) +
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -1, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
     
     # distance
-    annotate('text', x = Inf, y = -Inf, hjust = 1.3,  vjust = -2.5, 
-             label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair, ' m'), size = 4)
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2.5, 
+             label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair_label), size = 3) +
+  
+    # nest ID
+    annotate('text', x = Inf, y = Inf, hjust = 1,  vjust = 3, 
+             label = paste0(dIDs$nestID, '  '), size = 3)
+  
   
   p
-  
-  # # nest
-  # if(tmp_date < dnIDs[, initiation]){
-  #   p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 2, size = 5, shape = 21)
-  # } else {
-  #   p1 = p + geom_point(data = dnIDs, aes(lon_n, lat_n), color = 'black', stroke = 2, size = 5, shape = 21)
-  # }
   
   
   # nest
   if(tmp_date < dIDs[, initiation]){
-    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 2, size = 5, shape = 21)
+    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 1, size = 2.5, shape = 21)
   } else {
-    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'black', stroke = 2, size = 5, shape = 21)
+    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'black', stroke = 1, size = 2.5, shape = 21)
   }
+  
+ 
   
   
   # interaction bars
   p2 = 
     ggplot(data = dmf[datetime_ > tmp_date - 12*3600 & datetime_ < tmp_date + 12*3600]) +
     
-    geom_tile(aes(datetime_, '', fill = interaction), width = 1000, show.legend = FALSE) +
+    geom_tile(aes(datetime_, '', fill = interaction), width = 1200, show.legend = FALSE) +
     scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'darkorange', 'NA' = 'grey50')) +
-    # geom_point(aes(datetime_, '', color = interaction), shape = '|', size = 10, show.legend = FALSE) +
-    geom_vline(aes(xintercept = tmp_date), color = 'black', linewidth = 3, alpha = 0.5) +
+    geom_vline(aes(xintercept = tmp_date), color = 'black', linewidth = 2, alpha = 1) +
     xlab('') + ylab('') +
     scale_x_datetime(limits = c(tmp_date - 12*3600, tmp_date + 12*3600), expand = c(0, 0)) +
     theme_void() +
@@ -204,21 +225,28 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   
   
   
-  ggsave(ts[i, path], plot = last_plot(), width = 208, height = 117, units = c('mm'), dpi = 'print')
+  ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
   
 }
 
 
 
 
+# # make animation for one
+# wd = getwd()
+# setwd(tmp_path)
+# system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
+# setwd(wd)
+
+
+# Set path to folder where it creates the pictures
+tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
 
 
 # make animation for one
 wd = getwd()
 setwd(tmp_path)
-system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
+system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST1.mov")
 setwd(wd)
-
-
 
 
