@@ -38,10 +38,10 @@ dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
 dn = dn[year_ > 2017]
 dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
-dn[, initiation := as.POSIXct(egg1, tz = 'UTC')]
-dn[, initiation := as.POSIXct(egg2, tz = 'UTC')]
-dn[, initiation := as.POSIXct(egg3, tz = 'UTC')]
-dn[, initiation := as.POSIXct(egg4, tz = 'UTC')]
+dn[, egg1 := as.POSIXct(egg1, tz = 'UTC')]
+dn[, egg2 := as.POSIXct(egg2, tz = 'UTC')]
+dn[, egg3 := as.POSIXct(egg3, tz = 'UTC')]
+dn[, egg4 := as.POSIXct(egg4, tz = 'UTC')]
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 DBI::dbDisconnect(con)
 
@@ -199,13 +199,13 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   
   # create alpha and size
   if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
-  if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 1, to = c(0.7, 3)) , by = ID] # size
+  if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 3, to = c(0.3, 0.7)) , by = ID] # size
   
   # nest dot
-  if(tmp_date < dIDs[, initiation]){
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', alpha = 0.5, size = 2.5)
+  if(tmp_date < dIDs$initiation){
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 5)
   } else {
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 2.5)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 5)
   }
 
   
@@ -220,13 +220,14 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     
     # interaction
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
-               alpha = 0.2, size = 2.5, stroke = 3, shape = 21, show.legend = FALSE) +
-    scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = NA, 'NA' = NA)) +
+               size = 2.3, stroke = 1.5, shape = 21, show.legend = FALSE) +
+    scale_color_manual(values = c('TRUE' = alpha('green4', 0.2), 'FALSE' = 'transparent', 'NA' = NA)) +
+    
     
     # points
     ggnewscale::new_scale_color() +
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
-               alpha = 1, size = 2, show.legend = FALSE) +
+               alpha = 1, size = 1.6, show.legend = FALSE) +
     scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
     
     # egg laying animation
@@ -242,16 +243,6 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     # nest ID
     annotate('text', x = -Inf, y = Inf, hjust = 0,  vjust = 4, 
              label = paste0('  ', dIDs$nest), size = 3)
-    
-
-  # nest
-  if(tmp_date < dIDs[, initiation]){
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', alpha = 0.5, stroke = 1, size = 2.5, 
-                        shape = 21)
-  } else {
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', stroke = 1, size = 2.5, shape = 21)
-  }
-  
   
   # interaction bars
   p2 = 
@@ -266,7 +257,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     theme(panel.background = element_rect(fill = 'grey70'), plot.margin = unit(rep(0, 4), "lines"))
   
   
-  p3 = p1 + 
+  p3 = p + 
     inset_element(p2, left = 0, bottom = 0.97, right = 1, top = 1, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
   
@@ -304,6 +295,8 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  ggsave('//ds/grpkempenaers/Hannes/temp/test/test.png', plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
   
   # save images  
   ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
