@@ -16,7 +16,7 @@
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'sf', 'knitr', 
-          'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork'), 
+          'stringr', 'windR', 'ggnewscale', 'doFuture', 'patchwork', 'magick', 'ggpubr'), 
         require, character.only = TRUE)
 
 # Functions
@@ -107,10 +107,33 @@ dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
 bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 500, sc_location = 'bl', 
                        sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
-# add egg image
-require(magick)
-require(ggpubr)
 
+# add male and female symbol as legend
+# library(showtext)
+# female = intToUtf8(9792)
+# male = intToUtf8(9794)
+# 
+# showtext_auto(enable = TRUE, record = TRUE)
+# 
+# ggplot() +
+#   annotate("text", x = 1, y = 1, hjust = 1.5, label = female, size = 80, color = 'indianred3') +
+#   annotate("text", x = 1, y = 1, hjust = 0, label = male, size = 80, color = 'steelblue4') +
+#   theme_bw(base_family = "sans") +
+#   theme_void()
+# 
+# ggsave('./DATA/FM_SYMBOL.png', plot = last_plot(), width = 500, height = 500, units = c('px'), dpi = 'print')
+# 
+# showtext_auto(enable = FALSE, record = TRUE)
+
+# load as png
+fm_symbol = image_read('./DATA/FM_SYMBOL.png')
+
+fm_symbol = ggplot() +
+  background_image(fm_symbol) + 
+  coord_fixed() +
+  theme_void()
+
+# add egg image
 reph_egg = image_read('./DATA/REPH_EGG.png')
 
 reph_egg = ggplot() +
@@ -119,15 +142,14 @@ reph_egg = ggplot() +
   theme_void()
 
 # plot all data
-bm + 
-  geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
-  scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
-  inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
-  inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
-  inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
-  inset_element(reph_egg, left = 0.93, bottom = 0.68, right = 1, top = 0.73, on_top = TRUE) +
-  plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
-
+# bm +
+#   geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
+#   scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
+#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
+#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
+#   plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
 
 # Set path to folder where it creates the pictures
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
@@ -203,28 +225,23 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     geom_point(data = dsI, aes(lon, lat), color = 'black', size = dsI$s, stroke = 1, shape = 21) + 
     
     # datetime
-    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -1, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
     
     # distance
-    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2.5, 
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -3.5, 
              label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair_label), size = 3) +
   
     # nest ID
-    annotate('text', x = Inf, y = Inf, hjust = 1,  vjust = 3, 
-             label = paste0(dIDs$nest, '  '), size = 3)
-  
-  
-  p
-  
-  
+    annotate('text', x = -Inf, y = Inf, hjust = 0,  vjust = 4, 
+             label = paste0('  ', dIDs$nest), size = 3)
+    
+
   # nest
   if(tmp_date < dIDs[, initiation]){
     p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 1, size = 2.5, shape = 21)
   } else {
     p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'black', stroke = 1, size = 2.5, shape = 21)
   }
-  
- 
   
   
   # interaction bars
@@ -245,32 +262,38 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
   
   
+  # add female male symbol
+  p4 = p3 +
+    inset_element(fm_symbol, left = 0, right = 0.077, bottom = 0.7, top = 1.01, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt"))) 
+  
+  
   # add eggs
   
   # egg1 
-  if (tmp_date > dIDs$egg1) p3 + 
-    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
+  if (tmp_date > dIDs$egg1) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
     
   # egg2
-  if (tmp_date > dIDs$egg2) p3 + 
-    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
+  if (tmp_date > dIDs$egg2) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
     
   # egg3
-  if (tmp_date > dIDs$egg3) p3 + 
-    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
+  if (tmp_date > dIDs$egg3) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
 
   # egg3
-  if (tmp_date > dIDs$egg4) p3 + 
-    inset_element(reph_egg, left = 0.93, bottom = 0.86, right = 1, top = 0.91, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.80, right = 1, top = 0.85, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.74, right = 1, top = 0.79, on_top = TRUE) +
-    inset_element(reph_egg, left = 0.93, bottom = 0.68, right = 1, top = 0.73, on_top = TRUE) +
+  if (tmp_date > dIDs$egg4) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
   
   # save images  
