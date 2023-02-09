@@ -109,7 +109,7 @@ dmf[, first_int := min(first_int, na.rm = TRUE)]
 dmf[, last_int  := max(last_int, na.rm = TRUE)]
 
 # 3 hours before and after
-dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int + 3*3600]
+dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int + 12*3600]
 
 # create base map
 bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 250, sc_location = 'bl', 
@@ -182,7 +182,7 @@ dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # siz
 
 # subset for test
 # ts = ts[900:1000, ]
-ts = ts[900:905, ]
+# ts = ts[900:905, ]
 
 # register cores
 # registerDoFuture()
