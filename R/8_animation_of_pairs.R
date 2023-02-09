@@ -201,7 +201,15 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
   if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 1, to = c(0.7, 3)) , by = ID] # size
   
-  p = bm + 
+  # nest dot
+  if(tmp_date < dIDs[, initiation]){
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', alpha = 0.5, size = 2.5)
+  } else {
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 2.5)
+  }
+
+  
+  p = p + 
     
     # track
     geom_path(data = ds, aes(x = lon, y = lat, group = ID, color = sex), alpha = ds$a, linewidth = ds$s, 
@@ -213,7 +221,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     # interaction
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
                alpha = 0.2, size = 2.5, stroke = 3, shape = 21, show.legend = FALSE) +
-    scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = 'darkorange', 'NA' = NA)) +
+    scale_color_manual(values = c('TRUE' = 'green4', 'FALSE' = NA, 'NA' = NA)) +
     
     # points
     ggnewscale::new_scale_color() +
@@ -222,7 +230,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
     
     # egg laying animation
-    geom_point(data = dsI, aes(lon, lat), color = 'black', size = dsI$s, stroke = 1, shape = 21) + 
+    geom_point(data = dsI, aes(lon, lat), color = '#c38452', size = dsI$s, shape = 21) + 
     
     # datetime
     annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
@@ -238,9 +246,10 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
 
   # nest
   if(tmp_date < dIDs[, initiation]){
-    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'grey50', stroke = 1, size = 2.5, shape = 21)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', alpha = 0.5, stroke = 1, size = 2.5, 
+                        shape = 21)
   } else {
-    p1 = p + geom_point(data = dIDs, aes(lon_n, lat_n), color = 'black', stroke = 1, size = 2.5, shape = 21)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', stroke = 1, size = 2.5, shape = 21)
   }
   
   
@@ -249,7 +258,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     ggplot(data = dmf[datetime_ > tmp_date - 12*3600 & datetime_ < tmp_date + 12*3600]) +
     
     geom_tile(aes(datetime_, '', fill = interaction), width = 1200, show.legend = FALSE) +
-    scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'darkorange', 'NA' = 'grey50')) +
+    scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'white', 'NA' = 'grey50')) +
     geom_vline(aes(xintercept = tmp_date), color = 'black', linewidth = 2, alpha = 1) +
     xlab('') + ylab('') +
     scale_x_datetime(limits = c(tmp_date - 12*3600, tmp_date + 12*3600), expand = c(0, 0)) +
