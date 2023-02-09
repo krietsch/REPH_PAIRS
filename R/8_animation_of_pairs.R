@@ -90,8 +90,16 @@ d[!is.na(distance_pair), distance_pair_label := paste0(distance_pair, ' m  ')]
 #' Animation for specific pair
 #--------------------------------------------------------------------------------------------------------------
 
+# create directory for each of these breeding pairs
+dID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION/', nestID)]
+# dID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dID)]
+
 # subset pair
-dIDs = dID[nestID == 'R304_18'] # R909_18
+# dIDs = dID[nestID == 'R304_18'] # THE example
+
+# dIDs = dID[nestID == 'R909_18'] # pair with longest flight
+
+dIDs = dID[nestID == 'R317_19'] 
 
 # subset all data from this pair
 dmf = d[nestID == dIDs[, nestID]]
@@ -104,7 +112,7 @@ dmf[, last_int  := max(last_int, na.rm = TRUE)]
 dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int + 3*3600]
 
 # create base map
-bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 500, sc_location = 'bl', 
+bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 250, sc_location = 'bl', 
                        sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
 
@@ -142,17 +150,13 @@ reph_egg = ggplot() +
   theme_void()
 
 # plot all data
-# bm +
-#   geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
-#   scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
-#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
-#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
-#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
-#   inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
-#   plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+bm +
+  geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
+  scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4'))
+
 
 # Set path to folder where it creates the pictures
-tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
+tmp_path = dIDs$directory
 
 # subset time series
 ts = data.table( date = seq( dmf[, (round(min(datetime_), '10 mins'))],
@@ -178,7 +182,7 @@ dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # siz
 
 # subset for test
 # ts = ts[900:1000, ]
-# ts = ts[900:905, ]
+ts = ts[900:905, ]
 
 # register cores
 # registerDoFuture()
@@ -271,25 +275,25 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   # add eggs
   
   # egg1 
-  if (tmp_date > dIDs$egg1) p4 + 
+  if (!is.na(dIDs$egg1) & tmp_date > dIDs$egg1) p4 + 
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
     
   # egg2
-  if (tmp_date > dIDs$egg2) p4 + 
+  if (!is.na(dIDs$egg2) & tmp_date > dIDs$egg2) p4 + 
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
     
   # egg3
-  if (tmp_date > dIDs$egg3) p4 + 
+  if (!is.na(dIDs$egg3) & tmp_date > dIDs$egg3) p4 + 
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
 
   # egg3
-  if (tmp_date > dIDs$egg4) p4 + 
+  if (!is.na(dIDs$egg4) & tmp_date > dIDs$egg4) p4 + 
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
