@@ -101,7 +101,7 @@ dmf[, first_int := min(first_int, na.rm = TRUE)]
 dmf[, last_int  := max(last_int, na.rm = TRUE)]
 
 # 3 hours before and after
-dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int - 3*3600]
+dmf = dmf[datetime_ > first_int - 3*3600 & datetime_ < last_int + 3*3600]
 
 # create base map
 bm = create_colored_bm(dmf[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 500, sc_location = 'bl', 
@@ -211,6 +211,9 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   
   p = p + 
     
+    # egg laying animation
+    geom_point(data = dsI, aes(lon, lat), color = '#c38452', size = dsI$s, shape = 21) + 
+    
     # track
     geom_path(data = ds, aes(x = lon, y = lat, group = ID, color = sex), alpha = ds$a, linewidth = ds$s, 
               lineend = "round", show.legend = FALSE) +
@@ -229,9 +232,6 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
                alpha = 1, size = 1.6, show.legend = FALSE) +
     scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
-    
-    # egg laying animation
-    geom_point(data = dsI, aes(lon, lat), color = '#c38452', size = dsI$s, shape = 21) + 
     
     # datetime
     annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
@@ -296,8 +296,6 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
     plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
   
-  ggsave('//ds/grpkempenaers/Hannes/temp/test/test.png', plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
-  
   # save images  
   ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
   
@@ -306,20 +304,9 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
 
 
 
-# # make animation for one
-# wd = getwd()
-# setwd(tmp_path)
-# system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
-# setwd(wd)
-
-
-# Set path to folder where it creates the pictures
-tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/test')
-
-
 # make animation for one
 wd = getwd()
 setwd(tmp_path)
-system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST1.mov")
+system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
 setwd(wd)
 
