@@ -2,6 +2,8 @@
 #' Animation for R909_18
 #--------------------------------------------------------------------------------------------------------------
 
+# Example of pair with longest flight together
+
 # Load data
 source('./R/8_animation_data.R')
 
