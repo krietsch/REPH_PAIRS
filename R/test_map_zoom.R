@@ -107,7 +107,8 @@ bm +
 
 
 # Set path to folder where it creates the pictures
-tmp_path = dIDs$directory
+# tmp_path = dIDs$directory
+tmp_path = '//ds/grpkempenaers/Hannes/temp/test'
 
 # subset time series
 ts = data.table( date = seq( dmf[, (round(min(datetime_), '10 mins'))],
@@ -121,6 +122,16 @@ ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')]
 
 
 # both sub maps
+
+# first zoom out 
+zoom_start1  = ts[960]$date
+zoom_length1 = 36 # number of 10 min intervals
+
+# zoom back in 
+zoom_start2  = ts[1052]$date
+zoom_length2 = 36 # number of 10 min intervals
+
+
 dmf1 = dmf[interaction == TRUE & datetime_ < ts[990]$date]
 dmf2 = dmf[interaction == TRUE]
 
@@ -143,6 +154,7 @@ bm2 +
 require(sfext)
 
 # get bounding box 
+buffer = 250
 
 # before movement
 st_d = st_as_sf(dmf1, coords = c('lon','lat'), crs = PROJ)
@@ -159,16 +171,178 @@ bb2 = st_bbox(rs_extent) %>% data.table
 
 dm2 = data.table(x1 = bb2$.[1], x2 = bb2$.[3], y1 = bb2$.[2], y2 = bb2$.[4])
 
+# first zoom out
+z1 = data.table(date = seq(zoom_start1, zoom_start1 + c(zoom_length1 - 1)*600 , by = '10 mins'),
+                x1 = seq(dm1[1]$x1, dm2[1]$x1, length.out = zoom_length1),
+                x2 = seq(dm1[1]$x2, dm2[1]$x2, length.out = zoom_length1),
+                y1 = seq(dm1[1]$y1, dm2[1]$y1, length.out = zoom_length1),
+                y2 = seq(dm1[1]$y2, dm2[1]$y2, length.out = zoom_length1))
 
-di = data.table(x1 = seq(dm1[1]$x1, dm2[1]$x1, length.out = 36),
-                x2 = seq(dm1[1]$x2, dm2[1]$x2, length.out = 36),
-                y1 = seq(dm1[1]$y1, dm2[1]$y1, length.out = 36),
-                y2 = seq(dm1[1]$y2, dm2[1]$y2, length.out = 36))
+# zoom back in 
+z2 = data.table(date = seq(zoom_start2, zoom_start2 + c(zoom_length2 - 1)*600 , by = '10 mins'),
+                x1 = seq(dm2[1]$x1, dm1[1]$x1, length.out = zoom_length1),
+                x2 = seq(dm2[1]$x2, dm1[1]$x2, length.out = zoom_length1),
+                y1 = seq(dm2[1]$y1, dm1[1]$y1, length.out = zoom_length1),
+                y2 = seq(dm2[1]$y2, dm1[1]$y2, length.out = zoom_length1))
+
+z = rbind(z1, z2)
+
+# merge with ts
+ts = merge(ts, z, by = 'date', all.x = TRUE)
+anyDuplicated(ts$date)
+
+# fill stationary periods
+
+# stationary before first zoom
+ts[date < z1[, min(date)], c('x1', 'x2', 'y1', 'y2') := dm1[, .(x1, x2, y1, y2)]]
+
+# stationary after first zoom (zoomed out)
+ts[date %between% c(z1[, max(date)], z2[, min(date)]), c('x1', 'x2', 'y1', 'y2') := dm2[, .(x1, x2, y1, y2)]]
+
+# stationary after first zoom (zoomed back in)
+ts[date > z2[, max(date)], c('x1', 'x2', 'y1', 'y2') := dm1[, .(x1, x2, y1, y2)]]
+
+
+ts[is.na(x1)]
+
+ 
+
+
+# tmp_path = '//ds/grpkempenaers/Hannes/temp/test'
+# di[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')]
+
+
+
+
+# add egg animation
+dI = data.table( datetime_ = seq(round(dIDs$initiation, '10 mins'), round(dIDs$initiation, '10 mins') + 
+                                   60*60*24*dIDs$clutch_size, by = '10 mins') )
+dI[, lat := dIDs$lat_n]
+dI[, lon := dIDs$lon_n]
+
+dI[datetime_ %between% c(dIDs$egg1, dIDs$egg2), egg := 1]
+dI[datetime_ %between% c(dIDs$egg2, dIDs$egg3), egg := 2]
+dI[datetime_ %between% c(dIDs$egg3, dIDs$egg4), egg := 3]
+dI[datetime_ > dIDs$egg4, egg := 4]
+
+dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # size
+
+
+
+# subset for test
+ts = ts[900:1150, ]
+# ts = ts[900:905, ]
+
+# register cores
+# registerDoFuture()
+# plan(multisession)
+
+setorder(dmf, datetime_)
+
+
+
+# loop for all plots
+foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr', 
+                                      'data.table', 'windR', 'ggnewscale', 'patchwork') ) %dopar% {
+                                        
+  # create base map
+  bm = 
+    ggplot() +
+    geom_sf(data = osm_land, fill = '#faf5ef') + #f6eee2  #f8f2e9
+    geom_sf(data = osm_lakes[osm_lakes$fclass == 'wetland', ], fill = '#faf5ef', alpha = 0.6, colour = '#faf5ef') +
+    geom_sf(data = osm_lakes[osm_lakes$fclass == 'water', ], fill = '#f3fafd', colour = 'grey80') + # #D7E7FF
+    geom_sf(data = osm_roads, color = 'grey70') +
+    geom_sf(data = osm_buildings, color = 'grey30') +
+    coord_sf(expand = FALSE, xlim = c(ts[i]$x1, ts[i]$x2), ylim = c(ts[i]$y1, ts[i]$y2)) +
+    ggspatial::annotation_scale(aes(location = 'bl'), text_cex = 0.7, height = unit(0.1, "cm"),
+                                pad_x = unit(0.25, "cm"), pad_y = unit(0.5, "cm")) +
+    theme(panel.grid.major = element_line(colour = "transparent"),
+          panel.grid.minor = element_line(colour = "transparent"),
+          panel.background = element_rect(fill = '#D7E7FF'),
+          plot.background = element_rect(fill = "transparent", colour = NA),
+          panel.border = element_rect(fill = NA, colour = "black"),
+          axis.text.x = element_blank(), axis.text.y = element_blank(),
+          axis.ticks.x = element_blank(), axis.ticks.y = element_blank(),
+          axis.title = element_blank(), plot.margin = unit(rep(0, 4), "lines"))
+                                        
+  # subset data
+  tmp_date = ts[i]$date   # current date
+  ds = dmf[datetime_ %between% c(tmp_date - 60*60*24, tmp_date)]
+  dsI = dI[datetime_ %between% c(tmp_date - 60*10, tmp_date)]
+  
+  # create alpha and size
+  if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
+  if (nrow(ds) > 0) ds[, s:= sizeAlong( datetime_, head = 3, to = c(0.3, 0.7)) , by = ID] # size
+  
+  # nest dot
+  if(tmp_date < dIDs$initiation){
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 5)
+  } else {
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 5)
+  }
+  
+  
+  p = p + 
+    
+    # egg laying animation
+    geom_point(data = dsI, aes(lon, lat), color = '#c38452', size = dsI$s, shape = 21) + 
+    
+    # track
+    geom_path(data = ds, aes(x = lon, y = lat, group = ID, color = sex), alpha = ds$a, linewidth = ds$s, 
+              lineend = "round", show.legend = FALSE) +
+    scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
+    
+    ggnewscale::new_scale_color() +
+    
+    # interaction
+    geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = interaction), 
+               size = 2.3, stroke = 1.5, shape = 21, show.legend = FALSE) +
+    scale_color_manual(values = c('TRUE' = alpha('green4', 0.2), 'FALSE' = 'transparent', 'NA' = NA)) +
+    
+    
+    # points
+    ggnewscale::new_scale_color() +
+    geom_point(data = setkey(setDT(ds), ID)[, .SD[which.max(datetime_)], ID], aes(x = lon, y = lat, color = sex), 
+               alpha = 1, size = 1.6, show.legend = FALSE) +
+    scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4')) +
+    
+    # datetime
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -2, label = paste0(format(tmp_date, "%Y-%m-%d %H:%M  ")), size = 3) +
+    
+    # distance
+    annotate('text', x = Inf, y = -Inf, hjust = 1,  vjust = -3.5, 
+             label = paste0(setkey(setDT(ds), ID)[, .SD[which.max(datetime_)]]$distance_pair_label), size = 3) +
+    
+    # nest ID
+    annotate('text', x = -Inf, y = Inf, hjust = 0,  vjust = 4, 
+             label = paste0('  ', dIDs$nest), size = 3)
+  
+
+  
+  # save images  
+  ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
+  
+}
+
+
 
 
 tmp_path = '//ds/grpkempenaers/Hannes/temp/test'
 
-di[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')]
+# make animation for one
+wd = getwd()
+setwd(tmp_path)
+system("ffmpeg -framerate 8 -pattern_type glob -i '*.png' -y -c:v libx264 -profile:v high -crf 1 -pix_fmt yuv420p PAIR_NEST.mov")
+setwd(wd)
+
+
+
+
+
+
+
+
+
 
 
 foreach(i = 1:nrow(di), .packages = c('ggplot2', 'stringr', 'data.table', 'windR', 'ggnewscale', 'patchwork') ) %dopar% {
