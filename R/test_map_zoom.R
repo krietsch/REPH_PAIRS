@@ -105,6 +105,40 @@ bm +
   geom_point(data = dmf[interaction == TRUE], aes(lon, lat, group = ID, colour = sex), show.legend = FALSE) +
   scale_color_manual(values = c('F' = 'indianred3', 'M' = 'steelblue4'))
 
+# add male and female symbol as legend
+# library(showtext)
+# female = intToUtf8(9792)
+# male = intToUtf8(9794)
+# 
+# showtext_auto(enable = TRUE, record = TRUE)
+# 
+# ggplot() +
+#   annotate("text", x = 1, y = 1, hjust = 1.5, label = female, size = 80, color = 'indianred3') +
+#   annotate("text", x = 1, y = 1, hjust = 0, label = male, size = 80, color = 'steelblue4') +
+#   theme_bw(base_family = "sans") +
+#   theme_void()
+# 
+# ggsave('./DATA/FM_SYMBOL.png', plot = last_plot(), width = 500, height = 500, units = c('px'), dpi = 'print')
+# 
+# showtext_auto(enable = FALSE, record = TRUE)
+
+# load as png
+fm_symbol = image_read('./DATA/FM_SYMBOL.png')
+
+fm_symbol = ggplot() +
+  background_image(fm_symbol) + 
+  coord_fixed() +
+  theme_void()
+
+# add egg image
+reph_egg = image_read('./DATA/REPH_EGG.png')
+
+reph_egg = ggplot() +
+  background_image(reph_egg) + 
+  coord_fixed() +
+  theme_void()
+
+
 
 # Set path to folder where it creates the pictures
 # tmp_path = dIDs$directory
@@ -122,24 +156,14 @@ ts[, path := paste0(tmp_path, '/', str_pad(1:.N, 4, 'left', pad = '0'), '.png')]
 
 
 # both sub maps
-
-# first zoom out 
-zoom_start1  = ts[960]$date
-zoom_length1 = 36 # number of 10 min intervals
-
-# zoom back in 
-zoom_start2  = ts[1052]$date
-zoom_length2 = 36 # number of 10 min intervals
-
-
-dmf1 = dmf[interaction == TRUE & datetime_ < ts[990]$date]
+dmf1 = dmf[datetime_ < ts[990]$date | datetime_ > ts[1080]$date]
 dmf2 = dmf[interaction == TRUE]
 
 
-bm1 = create_colored_bm(dmf1, lat = 'lat', lon = 'lon', buffer = 250, sc_location = 'bl', 
+bm1 = create_colored_bm(dmf1, lat = 'lat', lon = 'lon', buffer = 1000, sc_location = 'bl', 
                         sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
-bm2 = create_colored_bm(dmf2, lat = 'lat', lon = 'lon', buffer = 250, sc_location = 'bl', 
+bm2 = create_colored_bm(dmf2, lat = 'lat', lon = 'lon', buffer = 5000, sc_location = 'bl', 
                         sc_cex = 0.7, sc_height = unit(0.1, "cm"))
 
 bm1 +
@@ -154,22 +178,32 @@ bm2 +
 require(sfext)
 
 # get bounding box 
-buffer = 250
+buffer1 = 1000
+buffer2 = 5000
 
 # before movement
 st_d = st_as_sf(dmf1, coords = c('lon','lat'), crs = PROJ)
-rs_extent = st_d %>% st_bbox(crs = PROJ) %>% st_as_sfc %>% st_buffer(buffer) %>% st_bbox_ext(asp = '16:9', crs = PROJ) %>% st_as_sfc %>% st_geometry
+rs_extent = st_d %>% st_bbox(crs = PROJ) %>% st_as_sfc %>% st_buffer(buffer1) %>% st_bbox_ext(asp = '16:9', crs = PROJ) %>% st_as_sfc %>% st_geometry
 rs_extent = st_transform(rs_extent, crs = st_crs(osm_land))
 bb1 = st_bbox(rs_extent) %>% data.table
 
 dm1 = data.table(x1 = bb1$.[1], x2 = bb1$.[3], y1 = bb1$.[2], y2 = bb1$.[4])
 
 st_d = st_as_sf(dmf2, coords = c('lon','lat'), crs = PROJ)
-rs_extent = st_d %>% st_bbox(crs = PROJ) %>% st_as_sfc %>% st_buffer(buffer) %>% st_bbox_ext(asp = '16:9', crs = PROJ) %>% st_as_sfc %>% st_geometry
+rs_extent = st_d %>% st_bbox(crs = PROJ) %>% st_as_sfc %>% st_buffer(buffer2) %>% st_bbox_ext(asp = '16:9', crs = PROJ) %>% st_as_sfc %>% st_geometry
 rs_extent = st_transform(rs_extent, crs = st_crs(osm_land))
 bb2 = st_bbox(rs_extent) %>% data.table
 
 dm2 = data.table(x1 = bb2$.[1], x2 = bb2$.[3], y1 = bb2$.[2], y2 = bb2$.[4])
+
+
+# first zoom out 
+zoom_start1  = ts[960]$date
+zoom_length1 = 36 # number of 10 min intervals
+
+# zoom back in 
+zoom_start2  = ts[1052]$date
+zoom_length2 = 36 # number of 10 min intervals
 
 # first zoom out
 z1 = data.table(date = seq(zoom_start1, zoom_start1 + c(zoom_length1 - 1)*600 , by = '10 mins'),
@@ -225,12 +259,12 @@ dI[datetime_ %between% c(dIDs$egg2, dIDs$egg3), egg := 2]
 dI[datetime_ %between% c(dIDs$egg3, dIDs$egg4), egg := 3]
 dI[datetime_ > dIDs$egg4, egg := 4]
 
-dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # size
+dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(1.6, 20))), by = egg] # size
 
 
 
 # subset for test
-ts = ts[900:1150, ]
+# ts = ts[900:1150, ]
 # ts = ts[900:905, ]
 
 # register cores
@@ -276,9 +310,9 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   
   # nest dot
   if(tmp_date < dIDs$initiation){
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 5)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 1.6)
   } else {
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 5)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 1.6)
   }
   
   
@@ -318,6 +352,59 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
              label = paste0('  ', dIDs$nest), size = 3)
   
 
+  # interaction bars
+  p2 = 
+    ggplot(data = dmf[datetime_ > tmp_date - 12*3600 & datetime_ < tmp_date + 12*3600]) +
+    
+    geom_tile(aes(datetime_, '', fill = interaction), width = 1200, show.legend = FALSE) +
+    scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'white', 'NA' = 'grey50')) +
+    geom_vline(aes(xintercept = tmp_date), color = 'black', linewidth = 2, alpha = 1) +
+    xlab('') + ylab('') +
+    scale_x_datetime(limits = c(tmp_date - 12*3600, tmp_date + 12*3600), expand = c(0, 0)) +
+    theme_void() +
+    theme(panel.background = element_rect(fill = 'grey70'), plot.margin = unit(rep(0, 4), "lines"))
+  
+  
+  p3 = p + 
+    inset_element(p2, left = 0, bottom = 0.97, right = 1, top = 1, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  
+  # add female male symbol
+  p4 = p3 +
+    inset_element(fm_symbol, left = 0, right = 0.077, bottom = 0.7, top = 1.01, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt"))) 
+  
+  
+  # add eggs
+  
+  # egg1 
+  if (!is.na(dIDs$egg1) & tmp_date > dIDs$egg1) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  # egg2
+  if (!is.na(dIDs$egg2) & tmp_date > dIDs$egg2) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  # egg3
+  if (!is.na(dIDs$egg3) & tmp_date > dIDs$egg3) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  # egg3
+  if (!is.na(dIDs$egg4) & tmp_date > dIDs$egg4) p4 + 
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.76, top = 0.81, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.70, top = 0.75, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.64, top = 0.69, on_top = TRUE) +
+    inset_element(reph_egg, left = 0, right = 0.07, bottom = 0.58, top = 0.63, on_top = TRUE) +
+    plot_annotation(theme = theme(plot.margin = margin(t = 0, r = 0, b = -3, l = -3, unit = "pt")))
+  
+  
   
   # save images  
   ggsave(ts[i, path], plot = last_plot(), width = 1920, height = 1080, units = c('px'), dpi = 'print')
