@@ -361,7 +361,7 @@ dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 dx[, year_ := as.character(year_)]
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+             family = binomial, data = dx, REML = FALSE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -372,6 +372,39 @@ summary(m)
 # create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
+
+
+# ##### with time and bout
+# require(windR)
+# 
+# 
+# dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+# dx[, year_ := as.character(year_)]
+# 
+# 
+# setorder(dx, pairID, nestID, datetime_1)
+# 
+# 
+# 
+# dx[, int_bout := bCounter(interaction), by = nestID]
+# dx[, int_bout := bCounter(interaction)]
+# 
+# dx[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
+# dx[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
+# 
+# m2 <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + 
+#              scale(sin_time) + scale(cos_time) + (int_bout + datetime_rel_pair0 | nestID),
+#              family = binomial, data = dx, REML = FALSE,
+#              control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(m2))
+# summary(m2)
+# 
+# anova(m, m2)
+
+
 
 
 setnames(x, c('estimate'))
@@ -984,6 +1017,53 @@ pb =
 pb
 
 
+
+
+
+
+
+
+################################################################################################################
+
+ 
+# before clutch initiation fitted Gaussian 
+dx = dm[split == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+             family = gaussian, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+
+
+plot(allEffects(m))
+summary(m)
+
+0.031980 / (0.214960 + 0.031980)
+
+
+dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dx[, early := ifelse(initiation_rel <= -2,  TRUE, FALSE)]
+dx[, ID_splitting := ifelse(ID_splitting == 'ID1', 0, 1)] # males = 0
+
+m <- glmmTMB(ID_splitting ~ scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+             family = gaussian, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+
+
+plot(allEffects(m))
+summary(m)
+
+0.029334 / (0.231781 + 0.029334)
+
+
+################################################################################################################
 
 #  during egg-laying
 dx = dm[split == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
