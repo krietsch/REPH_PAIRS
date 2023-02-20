@@ -369,6 +369,32 @@ m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2)
 plot(allEffects(m))
 summary(m)
 
+
+require(nlme)
+m = lme(interaction ~ poly(datetime_rel_pair0, 2) +  poly(initiation_rel, 2) + scale(sin_time) + scale(cos_time), 
+        random = (~1 + datetime_rel_pair0 | nestID), data = dx)   
+
+plot(ACF(m,resType = "normalized"), alpha = 0.01)
+
+
+res <- resid(m)
+plot(fitted(m), res)
+
+# fm1 = update(m, correlation = corARMA(  form = ~1 | nestID, p = 2, q = 2) )
+
+fm2 = update(m, correlation = corAR1(  form = ~1 | nestID) )
+
+MuMIn::model.sel(m, fm2)
+plot(ACF(fm2,resType="normalized") ,alpha=0.01)
+
+
+res <- resid(fm2)
+plot(fitted(fm2), res)
+
+plot(allEffects(fm2))
+summary(fm2)
+
+
 # create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
