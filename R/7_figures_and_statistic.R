@@ -60,15 +60,19 @@ pn = fread("parname;                                                          pa
             (Intercept);                                                      intercept  
             any_EPYTRUE;                                                      EPP (yes)
             sexM;                                                             sex (male)
-            scale(initiation_rel);                                            clutch initiation relative to season
-            poly(initiation_rel, 2)1;                                         clutch initiation relative to season (linear)
-            poly(initiation_rel, 2)2;                                         clutch initiation relative to season (quadratic)
-            scale(datetime_rel_pair0);                                        clutch initiation relative to first egg
-            poly(datetime_rel_pair0, 2)1;                                     clutch initiation relative to first egg (linear)
-            poly(datetime_rel_pair0, 2)2;                                     clutch initiation relative to first egg (quadratic)
+            scale(initiation_rel);                                            clutch initiation date
+            poly(initiation_rel, 2)1;                                         clutch initiation date (linear)
+            poly(initiation_rel, 2)2;                                         clutch initiation date (quadratic)
+            scale(datetime_rel_pair0);                                        day relative to clutch initiation 
+            poly(datetime_rel_pair0, 2)1;                                     day relative to clutch initiation  (linear)
+            poly(datetime_rel_pair0, 2)2;                                     day relative to clutch initiation  (quadratic)
             year_2019;                                                        year (2019)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
             typerandomization;                                                data type (random pairs)
+            poly(datetime_rel_pair0, 2)1:typerandomization;                   day relative to clutch initiation (linear):data type (random pairs)
+            poly(datetime_rel_pair0, 2)2:typerandomization;                   day relative to clutch initiation (quadratic):data type (random pairs)
+            typerandomization:poly(initiation_rel, 2)1;                       clutch initiation date (linear):data type (random pairs)
+            typerandomization:poly(initiation_rel, 2)2;                       clutch initiation date (quadratic):data type (random pairs)
             sd__(Intercept);                                                  random intercept
             r2marg;                                                           R² marginal
             r2cond;                                                           R² conditional
@@ -370,67 +374,9 @@ plot(allEffects(m))
 summary(m)
 
 
-require(nlme)
-m = lme(interaction ~ poly(datetime_rel_pair0, 2) +  poly(initiation_rel, 2) + scale(sin_time) + scale(cos_time), 
-        random = (~1 + datetime_rel_pair0 | nestID), data = dx)   
-
-plot(ACF(m,resType = "normalized"), alpha = 0.01)
-
-
-res <- resid(m)
-plot(fitted(m), res)
-
-# fm1 = update(m, correlation = corARMA(  form = ~1 | nestID, p = 2, q = 2) )
-
-fm2 = update(m, correlation = corAR1(  form = ~1 | nestID) )
-
-MuMIn::model.sel(m, fm2)
-plot(ACF(fm2,resType="normalized") ,alpha=0.01)
-
-
-res <- resid(fm2)
-plot(fitted(fm2), res)
-
-plot(allEffects(fm2))
-summary(fm2)
-
-
 # create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
-
-
-##### with time and bout
-require(windR)
-
-
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-dx[, year_ := as.character(year_)]
-
-
-setorder(dx, pairID, nestID, datetime_1)
-
-
-
-dx[, int_bout := bCounter(interaction), by = nestID]
-dx[, int_bout := bCounter(interaction)]
-
-dx[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
-dx[, cos_time := cos(gettime(datetime_1, "radian")) |> as.numeric()]
-
-m2 <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) +
-             scale(sin_time) + scale(cos_time) + (int_bout + datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = FALSE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m2))
-summary(m2)
-
-anova(m, m2)
-
-
 
 
 setnames(x, c('estimate'))
@@ -650,6 +596,17 @@ plot(allEffects(m))
 summary(m)
 
 
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
 # create clean summary table -----
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table()
@@ -683,6 +640,16 @@ dx = dmx[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 
 
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
              family = binomial, data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
@@ -732,6 +699,16 @@ m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2)
 
 plot(allEffects(m))
 summary(m)
+
+m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
+             family = binomial, data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
 
 
 # create clean summary table -----
@@ -2442,7 +2419,7 @@ p1 + p2 + p3 + p4 +
 
 
 # save word file
-print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS_.docx")
 
 
 
