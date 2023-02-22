@@ -11,7 +11,7 @@ dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', head
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/9_statistic_autocorrelation.R', output_dir = './OUTPUTS/R_COMPILED')
 
-
+setorder(dp, pairID, nestID, datetime_1)
 
 # time of the day 
 dp[, sin_time := sin(gettime(datetime_1, "radian")) |> as.numeric()]
@@ -20,13 +20,14 @@ dp[, timef := factor(round(as.numeric(scale(datetime_1)), 3))]
 
 # subset data before clutch initiation
 dx = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+# dx = dp[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 dx[, year_ := as.character(year_)]
 
 
 # model with time but without autocorrelation correction
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + 
                scale(sin_time) + scale(cos_time)  + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+             family = binomial, data = dx, REML = FALSE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -39,7 +40,7 @@ summary(m)
 # same model with autocorrelation correction
 m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + 
                scale(sin_time) + scale(cos_time) + ar1(timef + 0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+             family = binomial, data = dx, REML = FALSE,
              control = glmmTMBControl(parallel = 15)
 )
 

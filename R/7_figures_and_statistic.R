@@ -64,8 +64,8 @@ pn = fread("parname;                                                          pa
             poly(initiation_rel, 2)1;                                         clutch initiation date (linear)
             poly(initiation_rel, 2)2;                                         clutch initiation date (quadratic)
             scale(datetime_rel_pair0);                                        day relative to clutch initiation 
-            poly(datetime_rel_pair0, 2)1;                                     day relative to clutch initiation  (linear)
-            poly(datetime_rel_pair0, 2)2;                                     day relative to clutch initiation  (quadratic)
+            poly(datetime_rel_pair0, 2)1;                                     day relative to clutch initiation (linear)
+            poly(datetime_rel_pair0, 2)2;                                     day relative to clutch initiation (quadratic)
             year_2019;                                                        year (2019)
             f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
             typerandomization;                                                data type (random pairs)
@@ -597,14 +597,14 @@ summary(m)
 
 
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
+# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
+#              family = binomial, data = dx, REML = TRUE,
+#              control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(m))
+# summary(m)
 
 
 # create clean summary table -----
@@ -649,14 +649,14 @@ plot(allEffects(m))
 summary(m)
 
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
+# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
+#              family = binomial, data = dx, REML = TRUE,
+#              control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(m))
+# summary(m)
 
 
 # create clean summary table -----
@@ -700,14 +700,14 @@ m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2)
 plot(allEffects(m))
 summary(m)
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
+# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
+#              family = binomial, data = dx, REML = TRUE,
+#              control = glmmTMBControl(parallel = 15)
+# )
+# 
+# 
+# plot(allEffects(m))
+# summary(m)
 
 
 
@@ -2419,7 +2419,7 @@ p1 + p2 + p3 + p4 +
 
 
 # save word file
-print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS_.docx")
+print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
 
 
