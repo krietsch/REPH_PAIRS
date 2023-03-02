@@ -52,6 +52,8 @@ m <- glmmTMB(interaction ~ poly(datetime_rel_pair, 2) + poly(initiation_rel, 2) 
 summary(m)
 
 
+plot(acf(resid(m), type = 'partial'))
+
 res <- simulateResiduals(m)
 res <- recalculateResiduals(res, group = dx$time)
 testTemporalAutocorrelation(res, time = unique(dx$time))
@@ -191,6 +193,21 @@ m <- glmmTMB(interaction_per_day ~ poly(datetime_rel_pair0, 2) + poly(initiation
 summary(m)
 
 
+plot(acf(resid(m), type = 'partial'))
+
+
+
+res <- simulateResiduals(m)
+res <- recalculateResiduals(res, group = dx$datetime_rel_pair0)
+testTemporalAutocorrelation(res, time = unique(dx$datetime_rel_pair0))
+
+testDispersion(res)
+
+
+
+
+
+
 
 # extract effect from model for plot
 e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
@@ -229,6 +246,78 @@ p1 + p2 + p3 +
 
 
 ggsave('./OUTPUTS/FIGURES/season_effect_day-5_to_-1.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+# mean for each day
+
+# data for points 
+dms = dp[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+dms = dms[, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
+du[, .(min(N_ini), max(N_ini))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+
+dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N_ini]
+
+
+m <- lm(int_prop ~  poly(initiation_rel, 2), data = du)
+
+summary(m)
+
+plot(allEffects(m))
+
+
+
+
+# extract effect from model for plot
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+
+p4 = 
+  ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day -5 to -1 (fitted on mean per day gaussian)'), vjust = 1, hjust = 0, size = 3.3) +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.1), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0.05, 0.05))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
+
+p4
+
+
+# merge plots
+p1 + p2 + p3 + p4 +
+  plot_layout(nrow = 2) +
+  plot_annotation(tag_levels = 'a')
+
+
+ggsave('./OUTPUTS/FIGURES/season_effect_day-5_to_-1.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------------------------
