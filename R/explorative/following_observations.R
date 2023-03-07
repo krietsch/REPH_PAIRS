@@ -163,6 +163,38 @@ unique(d[N_ind_int > 2 & sex == 'F' & aggres %like% '1' & any_male_0 == TRUE], b
 25/35 * 100 # percent of female aggression against females
 10/35 * 100 # percent of female aggression against males
 
+
+#--------------------------------------------------------------------------------------------------------------
+#' # Copulations initiator
+#--------------------------------------------------------------------------------------------------------------
+
+ds = d[!is.na(cop)]
+
+# initiators
+ds[, initiator := like(cop, '1')]
+
+ds[, .(cop, initiator)]
+
+ds |> nrow()
+ds[initiator == TRUE] |> nrow()
+ds[sex == 'M' & initiator == TRUE] |> nrow()
+ds[sex == 'F' & initiator == TRUE] |> nrow()
+
+44/61 * 100
+17/61 * 100
+
+ds$cop
+
+
+# males 
+18/146
+# females
+15/146
+
+
+
+
+
 #--------------------------------------------------------------------------------------------------------------
 #' # Following behaviour
 #--------------------------------------------------------------------------------------------------------------
