@@ -1,0 +1,323 @@
+---
+title: "reph mate guarding"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    self-contained: true
+    toc: true
+    fig-height: 6
+execute:
+  warning: false
+---
+
+## DATA, SETTINGS & PACKAGES
+
+```{r, settings_data}
+#| echo: true
+
+  sapply(c(
+    "data.table", 
+    "glue", 
+    "lubridate",
+    "glmmTMB", 
+    "ggplot2",
+    "DHARMa",
+    "performance",
+    "effects"
+  ),
+  require,
+  character.only = TRUE
+  )
+
+  dt2hh <- function(x) {
+    h <- as.POSIXlt(x)
+    h$hour + h$min / 60 + h$sec / 3600
+    }
+
+  hh2rad <- function(x) {
+    x * pi / 12
+    }
+
+# DATA
+  dp <- fread( here::here("DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt"),
+    nThread = 20, tz = "UTC")
+  setorder(dp, pairID, datetime_1)
+
+  dp[, datetime_round := round_date(datetime_1, unit = "7560 aseconds")] # 2.1 h
+
+  dp[, period := fcase(
+    datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, "[-5,-1]", 
+    datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3,   "[0,3]", 
+    datetime_rel_pair0 >= 4 & datetime_rel_pair0 <= 10,  "[4,10]"
+  )]
+
+  X = dp[!is.na(period), .(prop_interactions = mean(interaction), 
+            datetime_rel_pair  = mean(datetime_rel_pair), 
+            datetime_rel_pair0 = min(datetime_rel_pair0),
+            initiation_rel = mean(initiation_rel)
+            
+            ), 
+        by = .(nestID, year_, date_,period, datetime_round)]
+
+  X[, HH := dt2hh(datetime_round)]
+
+  # beta models only accept proportion in the (0,1) interval.
+  X[prop_interactions == 1, prop_interactions := 0.9999]
+  X[prop_interactions == 0, prop_interactions := 0.0001]
+
+  # mean by nestID for initiation_rel plot
+  xp = dp[, .(prop_interactions = mean(interaction), .N), .(nestID, initiation_rel0, period)]
+
+```
+
+
+
+## Period `[-5,-1]`
+
+### Beta glmm
+
+```{r}
+  dx <- X[period == "[-5,-1]"]
+  setorder(dx, nestID, datetime_rel_pair)
+  dx[, time := 1:.N, .(date_, nestID)]
+
+  fm <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+      family = beta_family(link="logit"), 
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  summary(fm)
+
+```
+
+### Model checks
+
+
+
+```{r}
+posterior_predictive_check(fm)
+
+simulateResiduals(fm) |>
+recalculateResiduals(group = dx$time) |>
+testTemporalAutocorrelation(time = unique(dx$time))
+
+acf(resid(fm), type = 'partial')
+
+```
+
+Do we really need a `beta` model? We can try fit a Gaussian model and see if it fits the data as good. 
+
+```{r}
+  fmg <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  posterior_predictive_check(fmg)
+
+```
+
+The plot above suggest that the gaussian model is a poor choice for our data. 
+
+### Effect plots
+
+Relative date effects 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(datetime_rel_pair,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = datetime_rel_pair)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) 
+
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(initiation_rel,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[-5,-1]"], aes(x = initiation_rel0, y = prop_interactions, size = N), shape = 21) 
+  
+    ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[-5,-1]", .(prop_interactions = median(prop_interactions)), initiation_rel0], aes(y = prop_interactions, x = initiation_rel0), shape = 21) 
+  
+
+```
+
+
+## DATA, SETTINGS & PACKAGES
+
+```{r}
+
+  sapply(c(
+    "data.table", 
+    "glue", 
+    "lubridate",
+    "glmmTMB", 
+    "ggplot2",
+    "DHARMa",
+    "performance",
+    "effects"
+  ),
+  require,
+  character.only = TRUE
+  )
+
+  dt2hh <- function(x) {
+    h <- as.POSIXlt(x)
+    h$hour + h$min / 60 + h$sec / 3600
+    }
+
+  hh2rad <- function(x) {
+    x * pi / 12
+    }
+
+# DATA
+  dp <- fread( here::here("DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt"),
+    nThread = 20, tz = "UTC")
+  setorder(dp, pairID, datetime_1)
+
+  dp[, datetime_round := round_date(datetime_1, unit = "3 hours")]
+
+  dp[, period := fcase(
+    datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, "[-5,-1]", 
+    datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3,   "[0,3]", 
+    datetime_rel_pair0 >= 4 & datetime_rel_pair0 <= 10,  "[4,10]"
+  )]
+
+  X = dp[!is.na(period), .(prop_interactions = mean(interaction), 
+            datetime_rel_pair  = mean(datetime_rel_pair), 
+            datetime_rel_pair0 = min(datetime_rel_pair0),
+            initiation_rel = mean(initiation_rel)
+            
+            ), 
+        by = .(nestID, year_, date_,period, datetime_round)]
+
+  X[, HH := dt2hh(datetime_round)]
+
+  # beta models only accept proportion in the (0,1) interval.
+  X[prop_interactions == 1, prop_interactions := 0.9999]
+  X[prop_interactions == 0, prop_interactions := 0.0001]
+
+  # mean by nestID for initiation_rel plot
+  xp = dp[, .(prop_interactions = mean(interaction), .N), .(nestID, initiation_rel, period)]
+
+```
+
+### Beta glmm
+
+```{r}
+  dx <- X[period == "[-5,-1]"]
+  setorder(dx, nestID, datetime_rel_pair)
+  dx[, time := 1:.N, .(date_, nestID)]
+
+  fm <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+      family = beta_family(link="logit"), 
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  summary(fm)
+
+```
+
+### Model checks
+
+
+
+```{r}
+posterior_predictive_check(fm)
+
+simulateResiduals(fm) |>
+recalculateResiduals(group = dx$time) |>
+testTemporalAutocorrelation(time = unique(dx$time))
+
+acf(resid(fm), type = 'partial')
+
+```
+
+Do we really need a `beta` model? We can try fit a Gaussian model and see if it fits the data as good. 
+
+```{r}
+  fmg <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  posterior_predictive_check(fmg)
+
+```
+
+The plot above suggest that the gaussian model is a poor choice for our data. 
+
+### Effect plots
+
+Relative date effects 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(datetime_rel_pair,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = datetime_rel_pair)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) 
+
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(initiation_rel,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[-5,-1]"], aes(y = prop_interactions, size = N), shape = 21) 
+
+```
+
+

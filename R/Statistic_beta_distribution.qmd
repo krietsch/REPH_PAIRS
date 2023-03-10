@@ -1,0 +1,401 @@
+---
+title: "reph mate guarding"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    self-contained: true
+    toc: true
+    fig-height: 6
+execute:
+  warning: false
+---
+
+## DATA, SETTINGS & PACKAGES
+
+```{r, settings_data}
+#| echo: true
+
+  sapply(c(
+    "data.table", 
+    "glue", 
+    "lubridate",
+    "glmmTMB", 
+    "ggplot2",
+    "DHARMa",
+    "performance",
+    "effects"
+  ),
+  require,
+  character.only = TRUE
+  )
+
+  dt2hh <- function(x) {
+    h <- as.POSIXlt(x)
+    h$hour + h$min / 60 + h$sec / 3600
+    }
+
+  hh2rad <- function(x) {
+    x * pi / 12
+    }
+
+# DATA
+  dp <- fread( here::here("DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt"),
+    nThread = 20, tz = "UTC")
+  setorder(dp, pairID, datetime_1)
+
+  dp[, datetime_round := round_date(datetime_1, unit = "3 hours")]
+
+  dp[, period := fcase(
+    datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, "[-5,-1]", 
+    datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3,   "[0,3]", 
+    datetime_rel_pair0 >= 4 & datetime_rel_pair0 <= 10,  "[4,10]"
+  )]
+
+  X = dp[!is.na(period), .(prop_interactions = mean(interaction), 
+            datetime_rel_pair  = mean(datetime_rel_pair), 
+            datetime_rel_pair0 = min(datetime_rel_pair0),
+            initiation_rel = mean(initiation_rel0)
+            
+            ), 
+        by = .(nestID, year_, date_,period, datetime_round)]
+
+  X[, HH := dt2hh(datetime_round)]
+
+  # beta models only accept proportion in the (0,1) interval.
+  X[prop_interactions == 1, prop_interactions := 0.9999]
+  X[prop_interactions == 0, prop_interactions := 0.0001]
+
+  # mean by nestID for initiation_rel plot
+  xp = dp[, .(prop_interactions = mean(interaction), .N), .(nestID, initiation_rel, period)]
+
+```
+
+## METHODS
+
+By utilizing the interaction at lag1  as an autocovariate, we discovered that temporal autocorrelation occurs mostly at lag1 and lag2. 
+Therefore data aggregation (e.g. combining the 10 mins blocks into 3 hours blocks) should take care of the AC in the model.
+We aggregate the raw interaction data (1/0) into proportions. 
+
+We'll use [DHARMa](https://cran.r-project.org/web/packages/DHARMa/vignettes/DHARMa.html) by  Florian Hartig and [performance](https://easystats.github.io/performance/index.html) by Daniel Lüdecke for model fitting evaluation. 
+
+The histograms below suggest a Gaussian model will probably perform poorly but a beta distribution glmm would work well. Indeed, when looking at posterior predictive plots we see that the lines predicted by the `beta` models follow the observed data reasonably well while the lines predicted from a Gaussian model don't. 
+
+__TODO__ @Hannes: `initiation_rel` should not be rounded by day. 
+
+```{r}
+ggplot(X, aes(x = prop_interactions)) + 
+facet_wrap(~period, ncol = 1, scale = "free") + 
+geom_histogram()
+
+
+```
+
+
+## Period `[-5,-1]`
+
+### Beta glmm
+
+```{r}
+  dx <- X[period == "[-5,-1]"]
+  setorder(dx, nestID, datetime_rel_pair)
+  dx[, time := 1:.N, .(date_, nestID)]
+
+  fm <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+      family = beta_family(link="logit"), 
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  summary(fm)
+
+```
+
+### Model checks
+
+
+
+```{r}
+posterior_predictive_check(fm)
+
+simulateResiduals(fm) |>
+recalculateResiduals(group = dx$time) |>
+testTemporalAutocorrelation(time = unique(dx$time))
+
+```
+
+Do we really need a `beta` model? We can try fit a Gaussian model and see if it fits the data as good. 
+
+```{r}
+  fmg <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID) 
+      ,
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  posterior_predictive_check(fmg)
+
+```
+
+The plot above suggest that the gaussian model is a poor choice for our data. 
+
+### Effect plots
+
+Relative date effects 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(datetime_rel_pair,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = datetime_rel_pair)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) 
+
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(initiation_rel,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[-5,-1]"], aes(y = prop_interactions, size = N), shape = 21) 
+
+```
+
+Circadian effects back-transformed to time of day from the trigonometric scale. 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"sin(hh2rad(HH))"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = HH)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 1) +
+     scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+    xlab("Hour") + 
+    ylab("% interactions")
+```
+
+
+
+
+
+
+## Period `[0,3]`
+### Beta glmm
+
+```{r}
+  dx <- X[period == "[0,3]"]
+  setorder(dx, nestID, datetime_rel_pair)
+  dx[, time := 1:.N, .(date_, nestID)]
+
+
+  fm <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair + I(datetime_rel_pair^2) | nestID)
+      ,
+      family = beta_family(link="logit"), 
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  summary(fm)
+
+
+```
+### Model checks
+
+
+
+```{r}
+check_collinearity(fm) 
+posterior_predictive_check(fm)
+simulateResiduals(fm) |>
+recalculateResiduals(group = dx$time) |>
+testTemporalAutocorrelation(time = unique(dx$time))
+
+```
+
+
+
+### Effect plots
+
+Relative date effects 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(datetime_rel_pair,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = datetime_rel_pair)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2)
+
+
+
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(initiation_rel,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[0,3]"], aes(y = prop_interactions, size = N), shape = 21)
+
+
+
+
+```
+
+
+Circadian effects back-transformed to time of day from the trigonometric scale. 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"sin(hh2rad(HH))"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = HH)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 1) +
+    scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+    xlab("Hour") + 
+    ylab("% interactions")
+
+
+
+```
+
+## Period `[4,10]`
+
+### Beta glmm
+
+```{r}
+  dx <- X[period == "[4,10]"]
+  setorder(dx, nestID, datetime_rel_pair)
+  dx[, time := 1:.N, .(date_, nestID)]
+
+
+  fm <- glmmTMB(
+    prop_interactions ~
+      sin(hh2rad(HH)) + 
+      cos(hh2rad(HH)) + 
+      poly(initiation_rel, 2) + 
+      poly(datetime_rel_pair, 2) +
+      (1 + datetime_rel_pair  | nestID)
+      ,
+      family = beta_family(link="logit"), 
+    data = dx,
+    control = glmmTMBControl(parallel = 30)
+  )
+
+  summary(fm)
+
+
+
+
+
+```
+### Model checks
+
+
+
+```{r}
+check_collinearity(fm) 
+posterior_predictive_check(fm)
+simulateResiduals(fm) |>
+recalculateResiduals(group = dx$time) |>
+testTemporalAutocorrelation(time = unique(dx$time))
+
+```
+
+### Effect plots
+
+Relative date effects 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(datetime_rel_pair,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = datetime_rel_pair)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) 
+
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"poly(initiation_rel,2)"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = initiation_rel)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 2) + 
+    geom_point(data = xp[period == "[4,10]"], aes(y = prop_interactions, size = N), shape = 21)
+
+```
+
+Circadian effects back-transformed to time of day from the trigonometric scale. 
+```{r}
+  EE <- allEffects(fm, xlevels = 100)
+
+  e <- EE$"sin(hh2rad(HH))"
+  ed <- e |>
+    data.frame() |>
+    setDT()
+
+  ggplot(ed, aes(y = fit, x = HH)) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+    geom_line(linewidth = 1) +
+    xlab("Hour") + 
+    ylab("% interactions")
+
+
+```
+
+## CONCLUSIONS
+ * the easiest way to remove AC from the data is by aggregation.  
+ * data aggregation from binary (interaction 1/0) to proportions leads to an unusual distribution of the response variable.
+ * proportion data can be modelled by a glmm with beta distribution. 
+ * a glmm with beta distribution fits our data better than a Gaussian model as shown by both posterior predictive checks and the fit between the predicted line and the raw data.

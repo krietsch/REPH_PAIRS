@@ -243,7 +243,8 @@ dp = merge(dp, di, by = 'year_', all.x = TRUE)
 dp[, datetime_rel_season := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 # relative initiation date
-dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+dp[, initiation_rel0 := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
+dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 2)]
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -329,7 +330,7 @@ dps =
 dp[breeding_pair == TRUE & sex1 == 'M', 
    .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
      datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, distance_pair, interaction, split, merge, 
-     nestID, initiation, initiation_rel, at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, 
+     nestID, initiation, initiation_rel0, initiation_rel, at_nest1, at_nest2, female_clutch, any_EPY, ID1_any_ep_int, 
      ID2_any_ep_int, ID1_any_same_int, ID2_any_same_int, breeding_pair, f_polyandrous, f_polyandrous_first,
      f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
