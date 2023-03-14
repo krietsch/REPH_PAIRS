@@ -2318,12 +2318,13 @@ du[, .(min(N), max(N))]
 
 
 # polyandrous females single plots
+require(ggh4x)
 
 p1 = 
   ggplot() +
   geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-14'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_rect(aes(xmin = as.Date('2019-06-20'), xmax = as.Date('2019-06-23'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
-  geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c(bquote("1"^st~ mate), bquote("2"^nd~ mate))) +
   geom_point(data = du[ID2 == 273145121], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
@@ -2331,10 +2332,11 @@ p1 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '3 day', date_labels = '%d %b', limits = c(as.Date('2019-06-11'), as.Date('2019-07-01'))) +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', limits = c(as.Date('2019-06-11'), as.Date('2019-07-01')),
+               guide = "axis_minor" ) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.9, 0.88), legend.background = element_blank(), plot.margin = margin_, 
-        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank(), ggh4x.axis.ticks.length.minor = rel(1)) +
   guides(size = "none") +
   ylab('Proportion of time together') +
   xlab('')
@@ -2346,7 +2348,8 @@ p2 =
   ggplot() +
   geom_rect(aes(xmin = as.Date('2019-06-09'), xmax = as.Date('2019-06-12'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_rect(aes(xmin = as.Date('2019-06-18'), xmax = as.Date('2019-06-21'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
-  geom_path(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  geom_path(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], 
+            aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
@@ -2354,7 +2357,7 @@ p2 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d %b',guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
@@ -2366,7 +2369,8 @@ p3 =
   ggplot() +
   geom_rect(aes(xmin = as.Date('2019-06-11'), xmax = as.Date('2019-06-13'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-16'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
-  geom_path(data = du[ID2 == 273145036], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  geom_path(data = du[ID2 == 273145036], 
+            aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145036], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
@@ -2374,7 +2378,7 @@ p3 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
@@ -2385,7 +2389,8 @@ p4 =
   ggplot() +
   geom_rect(aes(xmin = as.Date('2019-06-06'), xmax = as.Date('2019-06-09'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
   geom_rect(aes(xmin = as.Date('2019-06-15'), xmax = as.Date('2019-06-18'), ymin = -0.07, ymax = 1.07), fill = egg_laying_color) +
-  geom_path(data = du[ID2 == 273145109], aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), size = 1) +
+  geom_path(data = du[ID2 == 273145109], 
+            aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145109], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
@@ -2393,7 +2398,7 @@ p4 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '3 day', date_labels = '%d %b') +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
@@ -2407,7 +2412,7 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 
