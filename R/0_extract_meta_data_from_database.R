@@ -1,6 +1,5 @@
 #==============================================================================================================
-# Data and code from "Krietsch et al. (2021) Extra-pair paternity in a sequentially polyandrous shorebird: 
-# limited evidence for the sperm-storage hypothesis. 
+# Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
 # Contributor: Johannes Krietsch
 # ❗This script is provided as reference only. It contains links to the internal database of the Max Planck 
 # Institute for Ornithology, from which it pulls the data and exports all the collected data to ./DATA
@@ -9,8 +8,7 @@
 ### Summary
 # CAPTURES
 # NESTS
-# RESIGHTINGS
-# PATERNITY
+# OBSERVATIONS
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'ggplot2'),
@@ -30,13 +28,13 @@ dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
 # subset years relevant for this study 
-d = d[year_ %in% c(2003:2006, 2014, 2017:2019)]
+d = d[year_ %in% c(2017:2019)]
 
 # Change projection
 d[, lat_dec := lat]
 d[, lon_dec := lon]
 
-ds = d[is.na(lon)] # seperate data without position
+ds = d[is.na(lon)] # separate data without position
 d = d[!is.na(lon)]
 st_transform_DT(d)
 
@@ -85,8 +83,12 @@ bm = create_bm(d, buffer = 500)
 bm +
   geom_point(data = d, aes(lon, lat, color = data_type))
 
+# subset birds from MPI study
+d = d[external == 0]
+
 # subset data relevant for this study
-d = d[, .(external, data_type, year_, ID, UL, UR, LL, LR, sex = sex_observed, lat = lat_dec, lon = lon_dec, caught_time, dead)]
+d = d[, .(year_, ID, UL, UR, LL, LR, gps_tagID = gps_tag, sex = sex_observed, 
+          lat = lat_dec, lon = lon_dec, caught_time, dead)]
 
 # check data
 summary(d)
@@ -106,13 +108,13 @@ dp = dbq(con, 'select * FROM PATERNITY')
 DBI::dbDisconnect(con)
 
 # subset years relevant for this study 
-d = d[year_ %in% c(2003:2006, 2014, 2017:2019)]
+d = d[year_ %in% c(2017:2019)]
 
 # Change projection
 d[, lat_dec := lat]
 d[, lon_dec := lon]
 
-ds = d[is.na(lon)] # seperate data without position
+ds = d[is.na(lon)] # separate data without position
 d = d[!is.na(lon)]
 st_transform_DT(d)
 
@@ -266,9 +268,8 @@ d[is.na(initiation_method), initiation_method := 'none']
 d[study_site == TRUE & initiation_method == 'none', .(year_, nest)]
 
 # subset data relevant for this study
-d = d[, .(external, data_type, year_, nestID, male_id, female_id, male_assigned, female_assigned, found_datetime, 
-          clutch_size, collected_datetime, initiation, initiation_method, est_hatching_datetime, hatching_datetime, 
-          chicks_back, last_checked_datetime, nest_state, nest_state_date, lat = lat_dec, lon = lon_dec, 
+d = d[, .(year_, nestID, male_id, female_id, male_assigned, female_assigned, found_datetime, 
+          clutch_size, initiation, initiation_method, nest_state, nest_state_date, lat = lat_dec, lon = lon_dec, 
           parentage, anyEPY, N_parentage, N_EPY, female_clutch, N_female_clutch, polyandrous, polyandry_study_site, 
           male_clutch, N_male_clutch, renesting_male, renesting_study_site)]
 
@@ -573,47 +574,5 @@ sapply(ds, function(x) sum(is.na(x)))
 # save data
 write.table(ds, './DATA/OBSERVATIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
-
-# #--------------------------------------------------------------------------------------------------------------
-# # PATERNITY
-# #--------------------------------------------------------------------------------------------------------------
-# 
-# # Database
-# con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-# d = dbq(con, 'select * FROM PATERNITY')
-# de = dbq(con, 'select * FROM EGGS')
-# DBI::dbDisconnect(con)
-# 
-# # nestID
-# d[, nestID := paste0(nest, '_', substr(year_, 3,4 ))]
-# de[, nestID := paste0(nest, '_', substr(year_, 3,4 ))]
-# 
-# # subset nests with paternity data for at least one offspring
-# d[!is.na(EPY), parentage := 1]
-# d[, offspring_sampled := sum(parentage, na.rm = TRUE), by = nestID]
-# d = d[offspring_sampled > 0]
-# 
-# # assign developed/undeveloped eggs and fate
-# d = merge(d, de[, .(ID, fate, undeveloped)], by.x = 'IDchick', by.y = 'ID', all.x = TRUE)
-# d = unique(d, by = 'IDchick')
-# d[, IDchick_num := as.numeric(IDchick)]
-# d[is.na(fate) & !is.na(IDchick_num), fate := 'h'] # all with ID hatched
-# d[is.na(fate) & nest %like% 'REPH', fate := 'u'] # external collected eggs
-# d[is.na(fate), fate := 'h'] # unbanded chicks found in field
-# 
-# d[is.na(undeveloped) & !is.na(EPY), undeveloped := 0]
-# d[undeveloped == 1]$nestID %>% unique %>% length
-# d[is.na(undeveloped), undeveloped := 0]
-# 
-# # select columns of interest
-# d = d[, .(year_, nestID, IDchick, IDmother, IDfather, EPY, fate, undeveloped, comment)]
-# 
-# # check data
-# summary(d)
-# sapply(d, function(x) sum(is.na(x)))
-# 
-# # save data
-# write.table(d, './DATA/PATERNITY.txt', quote = TRUE, sep = '\t', row.names = FALSE)
-# 
 
 
