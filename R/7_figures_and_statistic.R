@@ -8,7 +8,7 @@
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
           'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects', 'broomExtra',
-          'flextable', 'officer', 'dplyr', 'performance'), 
+          'flextable', 'officer', 'dplyr', 'performance', 'ggh4x'), 
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -1237,12 +1237,33 @@ dms = dm[split == TRUE]
 
 # merge male and female data for plot
 dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex1, 
-                                     split_distance = distance1_before)]
+                                     split_distance = distance1_before, stay_distance = distance2_before)]
 dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex2, 
-                                     split_distance = distance2_before)]
+                                     split_distance = distance2_before, stay_distance = distance1_before)]
 
 dms = rbindlist(list(dms_m, dms_f))
 
+
+ggplot(data = dms) +
+  geom_histogram(aes(x = stay_distance))
+  
+dms[, median(stay_distance)]
+
+dms[stay_distance < 30] |> nrow() / nrow(dms) * 100
+
+
+dms[, delta_split := split_distance - stay_distance]
+
+dms[stay_distance > 30, median(delta_split)]
+dms[stay_distance > 30, min(delta_split)]
+
+dms[, median(delta_split)]
+
+dms[, min(split_distance)]
+
+
+ggplot(data = dms[stay_distance > 30]) +
+  geom_histogram(aes(x = delta_split))
 
 
 # pairwise sample size
@@ -2318,7 +2339,6 @@ du[, .(min(N), max(N))]
 
 
 # polyandrous females single plots
-require(ggh4x)
 
 p1 = 
   ggplot() +
