@@ -95,7 +95,7 @@ summary(d)
 sapply(d, function(x) sum(is.na(x)))
 
 # save data
-write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # NESTS
@@ -105,6 +105,7 @@ write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALS
 con = dbcon('jkrietsch', db = 'REPHatBARROW')  
 d = dbq(con, 'select * FROM NESTS')
 dp = dbq(con, 'select * FROM PATERNITY')
+dt = dbq(con, 'select * FROM NANO_TAGS')
 DBI::dbDisconnect(con)
 
 # subset years relevant for this study 
@@ -123,7 +124,6 @@ setnames(d, 'poly_overlap', 'study_site')
 
 # merge with data without position
 ds[, study_site := FALSE]
-d[male_id == 175189876, study_site := FALSE] # exclude one male from 2006 (not intensive study)
 d = rbind(d, ds)
 
 # nestID
@@ -244,34 +244,36 @@ d = merge(d, dr, by = 'male_id_year', all.x = TRUE)
 d[is.na(renesting_male), renesting_male := FALSE]
 d[is.na(renesting_study_site), renesting_study_site := FALSE]
 
-# incubation period in incubator
-d[, found_incomplete := initial_clutch_size < clutch_size]
-d[, inc_period := difftime(hatching_datetime, c(initiation + clutch_size * 3600*24 - 3600*24), units = 'days') %>% as.numeric]
+# start and end of the data
+dt[, start := min(datetime_), by = ID]
+dt[, end   := max(datetime_), by = ID]
+dID = unique(dt, by = 'ID')
 
-ds = d[!is.na(inc_period) & found_incomplete == TRUE]
-mean(ds[external == 0]$inc_period, na.rm = TRUE) # 17.2 days is based on eggs
-nrow(ds[external == 0]) 
+# check if data overlap
+d = merge(d, dID[, .(year_, male_id = ID, start_m = start, end_m = end)], by = c('male_id', 'year_'), all.x = TRUE)
+d = merge(d, dID[, .(year_, female_id = ID, start_f = start, end_f = end)], by = c('female_id', 'year_'), all.x = TRUE)
 
-# not in incubator
-mean(ds[external == 1]$inc_period, na.rm = TRUE)
-nrow(ds[external == 1])
-mean(ds[external == 1 & inc_period < 25]$inc_period, na.rm = TRUE) # excluding outliers
+# subset nests from MPIO study or with any bird tagged
+d[, m_tagged := !is.na(start_m), by = nestID]
+d[, f_tagged := !is.na(start_f), by = nestID]
+d[, any_tagged := any(!is.na(start_m), !is.na(start_f)), by = nestID]
+d[, both_tagged := !is.na(start_m) & !is.na(start_f), by = nestID]
 
-# initiation date methods
-d[found_incomplete == TRUE, initiation_method := 'found_incomplete']
-d[is.na(initiation_method) & !is.na(hatching_datetime), initiation_method := 'hatching_datetime']
-d[is.na(initiation_method) & !is.na(est_hatching_datetime), initiation_method := 'est_hatching_datetime']
-d[is.na(initiation_method) & !is.na(initiation), initiation_method := 'est_hatching_datetime']
-d[is.na(initiation_method), initiation_method := 'none']
+d = d[external == 0 | any_tagged == TRUE]
+
+# check
+bm = create_bm(d, buffer = 500)
+bm +
+  geom_point(data = d, aes(lon, lat, color = data_type))
 
 # check NA
 d[study_site == TRUE & initiation_method == 'none', .(year_, nest)]
 
 # subset data relevant for this study
-d = d[, .(year_, nestID, male_id, female_id, male_assigned, female_assigned, found_datetime, 
-          clutch_size, initiation, initiation_method, nest_state, nest_state_date, lat = lat_dec, lon = lon_dec, 
-          parentage, anyEPY, N_parentage, N_EPY, female_clutch, N_female_clutch, polyandrous, polyandry_study_site, 
-          male_clutch, N_male_clutch, renesting_male, renesting_study_site)]
+d = d[, .(data_type, year_, nestID, male_id, female_id, male_assigned, female_assigned, found_datetime, 
+          clutch_size, initiation, initiation_method, egg1, egg2, egg3, egg4, hatching_datetime, nest_state, 
+          nest_state_date, lat = lat_dec, lon = lon_dec, parentage, anyEPY, N_parentage, N_EPY, female_clutch, 
+          N_female_clutch, polyandrous, male_clutch, N_male_clutch, renesting_male, m_tagged, f_tagged)]
 
 # check data
 summary(d)
