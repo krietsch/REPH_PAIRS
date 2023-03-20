@@ -6,6 +6,8 @@
 #==============================================================================================================
 
 ### Summary
+# NANO_TAGS_TEST data
+# NANO_TAGS data
 # CAPTURES
 # NESTS
 # OBSERVATIONS
@@ -16,6 +18,62 @@ sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'ggplot2'),
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+
+#--------------------------------------------------------------------------------------------------------------
+# NANO_TAGS_TEST data
+#--------------------------------------------------------------------------------------------------------------
+
+# All test data from Nano tags on the roof
+
+# Database
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+d = dbq(con, 'select * FROM NANO_TAGS')
+d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
+d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
+g = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
+               lat, lon FROM FIELD_2018_REPHatBARROW.GPS_POINTS")
+DBI::dbDisconnect(con)
+
+# table with tagID and GPS waypoints
+dl = data.table(gps_id = rep(2, 10),
+                gps_point = rep(85:89, each = 2),
+                tagID = 91:100)
+
+dl = merge(dl, g, by = c('gps_point', 'gps_id') )
+
+# merge actual location with all points
+d = merge(d, dl[, .(tagID, lat_wp = lat, lon_wp = lon)], by = 'tagID', all.x = TRUE)
+
+# subset data relevant for this study
+d = d[, .(year_, tagID, datetime_, lat, lon, lat_wp, lon_wp)]
+
+# check data
+summary(d)
+sapply(d, function(x) sum(is.na(x)))
+
+# save data
+write.table(d, './DATA/NANO_TAGS_TEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+#--------------------------------------------------------------------------------------------------------------
+# NANO_TAGS data
+#--------------------------------------------------------------------------------------------------------------
+
+# Database
+con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+d = dbq(con, 'select * FROM NANO_TAGS')
+d = d[ID != 999] # exclude test data
+d[is.na(lon)] # check that no NA
+d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
+DBI::dbDisconnect(con)
+
+# subset relevant data
+d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
+
+# set order
+setorder(d, ID, tagID, datetime_)
+
+# save data
+fwrite(d, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # CAPTURES
@@ -95,7 +153,7 @@ summary(d)
 sapply(d, function(x) sum(is.na(x)))
 
 # save data
-# write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # NESTS
