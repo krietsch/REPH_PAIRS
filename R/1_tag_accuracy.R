@@ -8,6 +8,19 @@
 #'      highlight: tango
 #' ---
 
+
+#==============================================================================================================
+# Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+# Contributor: Johannes Krietsch
+#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
+#' the presented results and figures presented in this study.  
+#' The order follows the appearance in the manuscript (as much as possible).  
+#' Data were extracted from our database (see script) and are in the DATA folder.  
+#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
+#' Each section in the summary below can be run independently.  
+#==============================================================================================================
+
+
 #==============================================================================================================
 # Analyse the accuracy of the tags
 #==============================================================================================================
@@ -17,8 +30,7 @@
 # 2. Tag accuracy based on incubation data
 
 # Packages
-sapply( c('data.table', 'sdb', 'anytime', 'foreach', 'wadeR', 'sdbvis', 'auksRuak', 'ggplot2', 'windR', 
-          'sf', 'knitr', 'patchwork'),
+sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'ggplot2', 'knitr', 'patchwork', 'auksRuak', 'anytime'),
         require, character.only = TRUE)
 
 # Functions
@@ -36,26 +48,13 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 #--------------------------------------------------------------------------------------------------------------
 
 # Data
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
-g = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
-               lat, lon FROM FIELD_2018_REPHatBARROW.GPS_POINTS")
-DBI::dbDisconnect(con)
+d = fread('./DATA/NANO_TAGS_TEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
-# table with tagID and GPS waypoints
-dl = data.table(gps_id = rep(2, 10),
-                gps_point = rep(85:89, each = 2),
-                tagID = 91:100)
-
-dl = merge(dl, g, by = c('gps_point', 'gps_id') )
-
-# transform in equal area projection
-st_transform_DT(dl)
-st_transform_DT(d)
-
-# merge actual location with all points
-d = merge(d, dl[, .(tagID, lat_wp = lat, lon_wp = lon)], by = 'tagID', all.x = TRUE)
+# change projection
+setnames(d, c('lat', 'lon'), c('lat1', 'lon1'))
+st_transform_DT(d, lat = 'lat1', lon = 'lon1')
+st_transform_DT(d, lat = 'lat_wp', lon = 'lon_wp')
+setnames(d, c('lat1', 'lon1'), c('lat', 'lon'))
 
 # summary
 d %>% nrow
@@ -90,7 +89,7 @@ d[, max(dist_each_m)]
 
 pa = 
 ggplot(data = d[dist_each_m < 50]) +
-  geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50', size = 0.1) +
+  geom_histogram(aes(dist_each_m), bins = 60, fill = 'grey85', color = 'grey50', linewidth = 0.1) +
   geom_vline(xintercept = median_, color = 'black', linetype = 'dashed') +
   geom_vline(xintercept = q95, color = 'black', linetype = 'dotted') +
   geom_text(aes(median_, Inf, label = paste0(median_, '.0 m')), vjust = 1, hjust = -0.1, 
@@ -113,7 +112,7 @@ bm +
   geom_point(data = d, aes(lon_wp, lat_wp), color = 'dodgerblue4', size = 1)
 
 # median vs. GPS waypoint 
-ds = d1[, .(tagID, year_,  ID, lat_m, lon_m, lat_wp, lon_wp )]
+ds = d1[, .(tagID, year_, lat_m, lon_m, lat_wp, lon_wp )]
 bm = create_bm(ds, lat = 'lat_m', lon = 'lon_m', buffer = 5)
 bm +
   geom_point(data = ds, aes(lon_m, lat_m), color = 'firebrick3', size = 2, alpha = 0.5) +
@@ -124,16 +123,13 @@ bm +
 #--------------------------------------------------------------------------------------------------------------
 
 # Data
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-dn = dbq(con, 'select * FROM NESTS')
-DBI::dbDisconnect(con)
+d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
-d[, datetime_ := anytime(datetime_)]
+
+d[, datetime_ := as.POSIXct(as.character(datetime_))]
 d = d[tagID == 92]
 d = d[datetime_ > as.POSIXct('2018-06-20 12:22:00')]
-
-dn[, nestID := paste0(nest, '_', substr(year_, 3,4 ))]
 
 # change projection
 st_transform_DT(d)
@@ -195,20 +191,19 @@ d[inc_t == 1] |> nrow()
 
 # exclude distance over 50 m for plot
 d[inc_t == 1 & dist > 50] %>% nrow / d[inc_t == 1] %>% nrow * 100
-
 d[inc_t == 1 & dist > 50] %>% nrow # N
 d[inc_t == 1, max(dist)]
 
 
 pb = 
-ggplot(data = d[inc_t == 1 & dist < 50]) +
+  ggplot(data = d[inc_t == 1 & dist < 50]) +
   geom_histogram(aes(dist), bins = 60, fill = 'grey85', color = 'grey50', size = 0.1) +
   geom_vline(xintercept = median_, color = 'black', linetype = 'dashed') +
   geom_vline(xintercept = q95_, color = 'black', linetype = 'dotted') +
-  geom_text(aes(median_, Inf, label = paste0(median_, '.0 m')), vjust = 1, hjust = -0.1, 
-            size = 3, color = 'black') +
-  geom_text(aes(q95_, Inf, label = paste0(q95_, ' m')), vjust = 1, hjust = -0.1, 
-            size = 3, color = 'black') +
+  geom_text(aes(median_, Inf, label = paste0(median_, '.0 m')), vjust = 1, hjust = -0.1, size = 3, 
+            color = 'black') +
+  geom_text(aes(q95_, Inf, label = paste0(q95_, ' m')), vjust = 1, hjust = -0.1, size = 3, 
+            color = 'black') +
   scale_x_continuous(limits = c(0, 50), expand = expansion(add = c(0, 0))) +
   scale_y_continuous(expand = expansion(add = c(0, 0))) +
   theme_classic(base_size = 10) +
@@ -224,7 +219,7 @@ bm +
   geom_point(data = n, aes(lon, lat), color = 'black', size = 3) +
   scale_colour_manual(values = c('dodgerblue4', 'firebrick3'), labels = c('off nest', 'on nest'), 
                       name = c('T>30°C'))
-  
+
 
 # merge plots
 library(grid)
