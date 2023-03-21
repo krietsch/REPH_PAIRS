@@ -18,7 +18,7 @@
 # 3. Check altitudes
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'knitr'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'doFuture', 'knitr'), 
         require, character.only = TRUE)
 
 # Functions
@@ -32,29 +32,28 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-dg = dbq(con, 'select * FROM SEX')
-DBI::dbDisconnect(con)
+d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+d = d[filtered == TRUE]
+d[, datetime_ := as.POSIXct(as.character(datetime_), tz = 'UTC')]
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Subset ID's with overlapping data
 #--------------------------------------------------------------------------------------------------------------
 
 # start and end of the data
-d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
 d[, ID_year := paste0(ID, '_', year_)]
 d[, start := min(datetime_), by = ID_year]
 d[, end   := max(datetime_), by = ID_year]
-dID = unique(d[, .(ID_year, year_, ID, start, end)], by = 'ID_year')
+dID = unique(d[, .(ID_year, year_, ID, sex, start, end)], by = 'ID_year')
 
 # all pairwise combinations
 dpu = CJ(ID_year1 = dID[, ID_year], ID_year2 = dID[, ID_year], unique = TRUE)
 
 # merge with start and end
-dpu = merge(dpu, dID[, .(ID_year1 = ID_year, year_1 = year_, ID1 = ID, start1 = start, end1 = end)], by = 'ID_year1')
-dpu = merge(dpu, dID[, .(ID_year2 = ID_year, year_2 = year_, ID2 = ID, start2 = start, end2 = end)], by = 'ID_year2')
+dpu = merge(dpu, dID[, .(ID_year1 = ID_year, year_1 = year_, ID1 = ID, sex1 = sex, start1 = start, end1 = end)], 
+            by = 'ID_year1')
+dpu = merge(dpu, dID[, .(ID_year2 = ID_year, year_2 = year_, ID2 = ID, sex2 = sex, start2 = start, end2 = end)], 
+            by = 'ID_year2')
 
 # overlapping intervals
 dpu[, overlap := DescTools::Overlap(c(start1, end1), c(start2, end2)), by = 1:nrow(dpu)]
@@ -66,9 +65,8 @@ dpu = dpu[ID_year1 != ID_year2] # exclude within-individual data
 #--------------------------------------------------------------------------------------------------------------
 
 # register cores
-require(doFuture)
 registerDoFuture()
-plan(multiprocess)
+plan(multisession)
 
 # loop for all pairwise closest data
 dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %dopar% {
@@ -76,8 +74,12 @@ dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %
   # subset pair
   dpus = dpu[i, ]
   
-  d1 = d[year_ == dpus[1, year_1]  & ID == dpus[1, ID1], .(ID1 = ID, datetime_ = datetime_, lat1 = lat, lon1 = lon, gps_speed1 = gps_speed, altitude1 = altitude)]
-  d2 = d[year_ == dpus[1, year_2]  & ID == dpus[1, ID2], .(ID2 = ID, datetime_ = datetime_, lat2 = lat, lon2 = lon, gps_speed2 = gps_speed, altitude2 = altitude)]
+  d1 = d[year_ == dpus[1, year_1]  & ID == dpus[1, ID1], 
+         .(ID1 = ID, sex1 = sex, datetime_ = datetime_, lat1 = lat, lon1 = lon, gps_speed1 = gps_speed, 
+           altitude1 = altitude)]
+  d2 = d[year_ == dpus[1, year_2]  & ID == dpus[1, ID2], 
+         .(ID2 = ID, sex2 = sex, datetime_ = datetime_, lat2 = lat, lon2 = lon, gps_speed2 = gps_speed, 
+           altitude2 = altitude)]
   
   setkeyv(d1, 'datetime_')
   setkeyv(d2, 'datetime_')
@@ -93,8 +95,10 @@ dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %
   dt[, time_btw_min := NULL]
   
   # merge with other data
-  dt = merge(dt, d1[, .(datetime_1 = datetime_, lat1, lon1, gps_speed1, altitude1)], by = 'datetime_1', all.x = TRUE)
-  dt = merge(dt, d2[, .(datetime_2 = datetime_, lat2, lon2, gps_speed2, altitude2)], by = 'datetime_2', all.x = TRUE)
+  dt = merge(dt, d1[, .(datetime_1 = datetime_, sex1, lat1, lon1, gps_speed1, altitude1)], 
+             by = 'datetime_1', all.x = TRUE)
+  dt = merge(dt, d2[, .(datetime_2 = datetime_, sex2, lat2, lon2, gps_speed2, altitude2)], 
+             by = 'datetime_2', all.x = TRUE)
 
   # calculate distance
   dt[, distance_pair := sqrt(sum((c(lon1, lat1) - c(lon2, lat2))^2)) , by = 1:nrow(dt)]
@@ -105,12 +109,6 @@ dp = foreach(i = 1:nrow(dpu), .combine = 'rbind', .packages = c('data.table')) %
 
 # remove rows with time difference bigger 10 min
 dp = dp[time_btw < 10]
-
-# merge with sex
-dg[, ID := as.numeric(ID)]
-dg = dg[!is.na(ID)]
-dp = merge(dp, dg[, .(ID1 = ID, sex1 = sex)], by = 'ID1', all.x = TRUE)
-dp = merge(dp, dg[, .(ID2 = ID, sex2 = sex)], by = 'ID2', all.x = TRUE)
 
 # set colour order
 setcolorder(dp, c('ID1', 'ID2', 'sex1', 'sex2', 'datetime_1', 'datetime_2', 'time_btw', 'lat1', 'lon1', 'lat2', 'lon2', 
@@ -131,4 +129,5 @@ anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
 fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
-
+# version information
+sessionInfo()
