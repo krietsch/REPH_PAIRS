@@ -1,9 +1,14 @@
 #==============================================================================================================
-# Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-# Contributor: Johannes Krietsch
-# ❗This script is provided as reference only. It contains links to the internal database of the Max Planck 
-# Institute for Ornithology, from which it pulls the data and exports all the collected data to ./DATA
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch
+#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
+#' the presented results and figures presented in this study.  
+#' The order follows the appearance in the manuscript (as much as possible).  
+#' Data were extracted from our database (see script) and are in the DATA folder.  
+#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
+#' Each section in the summary below can be run independently.  
 #==============================================================================================================
+
 
 ### Summary
 # NANO_TAGS_TEST data
@@ -16,61 +21,27 @@ sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'viridis', 'ggplot2
 # Functions
 source('./R/0_functions.R')
 
+# Lines to run to create html output
+opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+# rmarkdown::render('./R/2_filter_GPS_data.R', output_dir = './OUTPUTS/R_COMPILED')
+
+
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
-#--------------------------------------------------------------------------------------------------------------
-# NANO_TAGS_TEST data
-#--------------------------------------------------------------------------------------------------------------
+# Change projection to equal area
+st_transform_DT(d)
 
-# All test data from Nano tags on the roof
-
-# Database
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-d = d[ID == 999] # ID = 999 are the test data, tags where on the BASC building 
-d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
-g = dbq(con, "SELECT gps_id, gps_point, datetime_ gps_time, 
-               lat, lon FROM FIELD_2018_REPHatBARROW.GPS_POINTS")
-DBI::dbDisconnect(con)
-
-# table with tagID and GPS waypoints
-dl = data.table(gps_id = rep(2, 10),
-                gps_point = rep(85:89, each = 2),
-                tagID = 91:100)
-
-dl = merge(dl, g, by = c('gps_point', 'gps_id') )
-
-# merge actual location with all points
-d = merge(d, dl[, .(tagID, lat_wp = lat, lon_wp = lon)], by = 'tagID', all.x = TRUE)
-
-# subset data relevant for this study
-d = d[, .(year_, tagID, datetime_, lat, lon, lat_wp, lon_wp)]
-
-# check data
-summary(d)
-sapply(d, function(x) sum(is.na(x)))
-
-# save data
-write.table(d, './DATA/NANO_TAGS_TEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
-
-
-# setnames(d, c('lat', 'lon'), c('lat1', 'lon1'))
-# 
-# st_transform_DT(d, lat = 'lat1', lon = 'lon1')
-# st_transform_DT(d, lat = 'lat_wp', lon = 'lon_wp')
+# 821 were filtered NA or duplicates
+821 / (d %>% nrow + 821) * 100
 
 #--------------------------------------------------------------------------------------------------------------
 # NANO_TAGS data
 #--------------------------------------------------------------------------------------------------------------
 
-# Database
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-d = dbq(con, 'select * FROM NANO_TAGS')
-d = d[ID != 999] # exclude test data
-d[is.na(lon)] # check that no NA
-d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
-DBI::dbDisconnect(con)
+# Data
+d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+d[, datetime_ := as.POSIXct(as.character(datetime_), tz = 'UTC')]
 
 # Change projection to equal area
 st_transform_DT(d)
@@ -303,15 +274,30 @@ ggplot() +
 # checked db, male had chicks hatched at 30 June 
 # how long did he drift?
 ds = d[ID == ID_ & datetime_ > as.POSIXct('2019-07-17 11:33:56', tz = 'UTC') & lat > -2075000]
-ds$datetime_ %>% max - ds$datetime_ %>% min
+difftime(max(ds$datetime_), min(ds$datetime_))
 
 #--------------------------------------------------------------------------------------------------------------
 
 # subset relevant data
 d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
 
+
+
+# assign filtered positions
+da = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+da[, datetime_ := as.POSIXct(as.character(datetime_), tz = 'UTC')]
+
+
+da = merge(da, d[, .(ID, datetime_, filtered = TRUE)], by = c('ID', 'datetime_'), all.x = TRUE)
+da[is.na(filtered), filtered:= FALSE]
+
+da[, .N, by = filtered]
+
+
+da = da[, .(year_, tagID, ID, sex, datetime_, lat, lon, gps_speed, altitude, batvolt, filtered)]
+
 # save data
-fwrite(d, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+fwrite(da, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 # version information
