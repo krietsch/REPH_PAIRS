@@ -10,8 +10,8 @@
 
 
 #==============================================================================================================
-# Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-# Contributor: Johannes Krietsch
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch
 #' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
 #' the presented results and figures presented in this study.  
 #' The order follows the appearance in the manuscript (as much as possible).  
@@ -22,7 +22,7 @@
 
 
 #==============================================================================================================
-# Analyse the accuracy of the tags
+#'  Analyse the accuracy of the tags
 #==============================================================================================================
 
 # Summary
@@ -38,7 +38,7 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/0_tag_accuracy.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/1_tag_accuracy.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
