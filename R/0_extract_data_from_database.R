@@ -63,11 +63,19 @@ con = dbcon('jkrietsch', db = 'REPHatBARROW')
 d = dbq(con, 'select * FROM NANO_TAGS')
 d = d[ID != 999] # exclude test data
 d[is.na(lon)] # check that no NA
-d[, datetime_ := as.POSIXct(datetime_, tz = 'UTC')]
+dg = dbq(con, 'select * FROM SEX')
 DBI::dbDisconnect(con)
 
+# merge with sex
+dg[, ID := as.numeric(ID)]
+dg = dg[!is.na(ID)]
+
+
+d = merge(d, dg, by = c('ID'), all.x = TRUE)
+
+
 # subset relevant data
-d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
+d = d[, .(year_, tagID, ID, sex, datetime_, lat, lon, gps_speed, altitude, batvolt)]
 
 # set order
 setorder(d, ID, tagID, datetime_)
