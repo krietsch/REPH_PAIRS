@@ -9,6 +9,19 @@
 #' ---
 
 #==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch
+#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
+#' the presented results and figures presented in this study.  
+#' The order follows the appearance in the manuscript (as much as possible).  
+#' Data were extracted from our database (see script) and are in the DATA folder.  
+#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
+#' Each section in the summary below can be run independently.  
+#==============================================================================================================
+
+
+
+#==============================================================================================================
 # Calculate spatio-temporal distance of points
 #==============================================================================================================
 
@@ -18,7 +31,7 @@
 # 3. Check altitudes
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'doFuture', 'knitr'), 
+sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'sf','foreach', 'doFuture', 'knitr'), 
         require, character.only = TRUE)
 
 # Functions
@@ -35,6 +48,7 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 d = d[filtered == TRUE]
 d[, datetime_ := as.POSIXct(as.character(datetime_), tz = 'UTC')]
+st_transform_DT(d)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Subset ID's with overlapping data

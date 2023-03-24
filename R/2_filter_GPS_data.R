@@ -15,7 +15,7 @@
 # NANO_TAGS data
 
 # Packages
-sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'viridis', 'ggplot2'),
+sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'viridis', 'ggplot2', 'knitr'),
         function(x) suppressPackageStartupMessages(require(x , character.only = TRUE, quietly = TRUE)))
 
 # Functions
@@ -297,7 +297,7 @@ da[, .N, by = filtered]
 da = da[, .(year_, tagID, ID, sex, datetime_, lat, lon, gps_speed, altitude, batvolt, filtered)]
 
 # save data
-fwrite(da, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(da, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 # version information

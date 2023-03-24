@@ -52,7 +52,7 @@ summary(d)
 sapply(d, function(x) sum(is.na(x)))
 
 # save data
-write.table(d, './DATA/NANO_TAGS_TEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# write.table(d, './DATA/NANO_TAGS_TEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # NANO_TAGS data
@@ -81,7 +81,7 @@ d = d[, .(year_, tagID, ID, sex, datetime_, lat, lon, gps_speed, altitude, batvo
 setorder(d, ID, tagID, datetime_)
 
 # save data
-fwrite(d, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(d, './DATA/NANO_TAGS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # CAPTURES
@@ -161,7 +161,7 @@ summary(d)
 sapply(d, function(x) sum(is.na(x)))
 
 # save data
-write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# write.table(d, './DATA/CAPTURES.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 # NESTS
@@ -346,7 +346,7 @@ summary(d)
 sapply(d, function(x) sum(is.na(x)))
 
 # save data
-write.table(d, './DATA/NESTS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# write.table(d, './DATA/NESTS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 #--------------------------------------------------------------------------------------------------------------

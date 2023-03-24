@@ -20,10 +20,14 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
+d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+d = d[filtered == TRUE]
+st_transform_DT(d)
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+# dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+# dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
 
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
+con = dbcon('jkrietsch', db = 'REPHatBARROW')
 dg = dbq(con, 'select * FROM SEX')
 dn = dbq(con, 'select * FROM NESTS')
 dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]

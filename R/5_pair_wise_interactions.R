@@ -9,6 +9,18 @@
 #' ---
 
 #==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch
+#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
+#' the presented results and figures presented in this study.  
+#' The order follows the appearance in the manuscript (as much as possible).  
+#' Data were extracted from our database (see script) and are in the DATA folder.  
+#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
+#' Each section in the summary below can be run independently.  
+#==============================================================================================================
+
+
+#==============================================================================================================
 # Calculate spatio-temporal distance of points
 #==============================================================================================================
 
@@ -27,21 +39,7 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-d = fread('./DATA/NANO_TAGS_FILTERED.txt', sep = '\t', header = TRUE) %>% data.table
-dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE) %>% data.table
-
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-dg = dbq(con, 'select * FROM SEX')
-dn = dbq(con, 'select * FROM NESTS')
-dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
-dn = dn[year_ > 2017]
-dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
-dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
-dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
-DBI::dbDisconnect(con)
-
-# change projection
-st_transform_DT(dn)
+dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
@@ -66,13 +64,16 @@ dp[, lat2_next := shift(lat2, type = 'lead'), by = pairID]
 dp[, lon2_next := shift(lon2, type = 'lead'), by = pairID]
 
 # distance to position before and after
-dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)), by = 1:nrow(dp)]
-dp[, distance1_next   := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)),     by = 1:nrow(dp)]
-dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)), by = 1:nrow(dp)]
-dp[, distance2_next   := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)),     by = 1:nrow(dp)]
+dp[, rowid := .I]
+setkey(dp, rowid)
+
+dp[, distance1_before := sqrt(sum((c(lon1, lat1) - c(lon1_before, lat1_before))^2)), by = rowid]
+dp[, distance1_next   := sqrt(sum((c(lon1, lat1) - c(lon1_next, lat1_next))^2)),     by = rowid]
+dp[, distance2_before := sqrt(sum((c(lon2, lat2) - c(lon2_before, lat2_before))^2)), by = rowid]
+dp[, distance2_next   := sqrt(sum((c(lon2, lat2) - c(lon2_next, lat2_next))^2)),     by = rowid]
 
 # interactions
-dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = 1:nrow(dp)]
+dp[, interaction := distance_pair < c(distance1_before + distance2_before + distance_threshold), by = rowid]
 
 # simple interactions
 dp[, interaction_threshold := distance_pair < distance_threshold]
