@@ -242,6 +242,9 @@ bm +
 d[, initiation := as.POSIXct(initiation)]
 setorder(d, year_, initiation)
 
+# assign clutch order
+d[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
+
 # first and second clutches by females
 d[, female_id_year := paste0(female_id, '_', substr(year_, 3,4 ))]
 d[, N_female_clutch := .N, by = female_id]
@@ -339,7 +342,8 @@ d[study_site == TRUE & initiation_method == 'none', .(year_, nest)]
 d = d[, .(data_type, year_, nestID, male_id, female_id, male_assigned, female_assigned, found_datetime, 
           clutch_size, initiation, initiation_method, egg1, egg2, egg3, egg4, hatching_datetime, nest_state, 
           nest_state_date, lat = lat_dec, lon = lon_dec, parentage, anyEPY, N_parentage, N_EPY, female_clutch, 
-          N_female_clutch, polyandrous, male_clutch, N_male_clutch, renesting_male, m_tagged, f_tagged)]
+          N_female_clutch, polyandrous, male_clutch, N_male_clutch, clutch_together, renesting_male, m_tagged, 
+          f_tagged)]
 
 # check data
 summary(d)
