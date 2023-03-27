@@ -40,7 +40,7 @@ st_transform_DT(dn)
 # start and end of the data
 d[, start := min(datetime_), by = ID]
 d[, end   := max(datetime_), by = ID]
-dID = unique(d, by = 'ID')
+dID = unique(d, by = c('ID', 'year_'))
 
 # check if data overlap
 dn = merge(dn, dID[, .(year_, male_id = ID, start_m = start, end_m = end)], by = c('male_id', 'year_'), all.x = TRUE)
@@ -61,34 +61,42 @@ dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_
 dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
 # nest data
-dnID = dn[, .(year_, nestID, male_id, female_id, initiation, nest_state_date, anyEPY, 
-              lat_n = lat, lon_n = lon, overlap, both_tagged_overlapping)]
+dnID = dn[, .(year_, nestID, male_id, female_id, initiation, nest_state_date, anyEPY, m_tagged, f_tagged,
+              lat_n = lat, lon_n = lon, female_clutch, male_clutch, clutch_together, overlap, both_tagged_overlapping)]
 dnID = unique(dnID, by = 'nestID')
 
 # as integer
 dnID[, male_id := as.integer(male_id)]
 dnID[, female_id := as.integer(female_id)]
 
-# assign clutch order
-setorder(dnID, male_id, initiation)
-dnID[!is.na(male_id) & !is.na(female_id), clutch_together := seq_len(.N), by = .(year_, male_id, female_id)]
-dnID[!is.na(male_id), male_clutch     := seq_len(.N), by = .(year_, male_id)]
-dnID[!is.na(female_id), female_clutch := seq_len(.N), by = .(year_, female_id)]
-
 # data available relative to clutch initiation for each ID
 dnIDu = rbind(dnID[!is.na(male_id), .(year_, ID = male_id, nestID, initiation, both_tagged_overlapping)],
               dnID[!is.na(female_id), .(year_, ID = female_id, nestID, initiation, both_tagged_overlapping)])
+
+
+# nests of tagged birds
+ds = unique(dnID[m_tagged == TRUE | f_tagged == TRUE], by = c('male_id', 'female_id', 'nestID'))
+ds[, .N, by = year_]
+ds[m_tagged == TRUE, .N, by = year_]
+ds[f_tagged == TRUE, .N, by = year_]
+ds[f_tagged == TRUE & m_tagged == TRUE, .N, by = year_]
+ds[both_tagged_overlapping == TRUE, .N, by = year_]
+
+# by ID
+ds = unique(dnID[m_tagged == TRUE | f_tagged == TRUE], by = c('male_id', 'female_id'))
+ds[both_tagged_overlapping == TRUE, .N, by = year_] # four replacement clutches of same pair
 
 # merge all with nest data
 dID = merge(d, dnIDu, by = c('year_', 'ID'), all.x = TRUE, allow.cartesian = TRUE)
 dID = dID[!is.na(nestID)]
 
 # relative timing
-dID[, datetime_rel_pair := difftime(datetime_, initiation, units = 'days') %>% as.numeric()]
-dID[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
+dID[, initiation_day := as.Date(initiation)]
+dID[, date_ := as.Date(datetime_)]
+dID[, date_rel_pair := difftime(date_, initiation_day, units = 'days') %>% as.numeric()]
 
 # unique by datetime_rel_pair0
-dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'datetime_rel_pair0', 'both_tagged_overlapping')]
+dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'date_rel_pair', 'both_tagged_overlapping')]
 
 # check max
 dID[, N] |> max()
@@ -172,6 +180,8 @@ dp[ID1 == 273145139 & ID2 == 270170970 & datetime_1 > as.POSIXct('2019-06-16 15:
 # merge with nests
 dp = merge(dp, dnID, by.x = c('ID1', 'ID2', 'year_', 'clutch_together'), 
            by.y = c('male_id', 'female_id', 'year_', 'clutch_together'), all.x = TRUE)
+
+unique(dp[!is.na(nestID)], by = 'nestID') |> nrow()
 
 # datetime relative to nest initiation date
 dp[, datetime_rel_pair := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
