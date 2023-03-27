@@ -186,8 +186,10 @@ unique(dp[!is.na(nestID)], by = 'nestID') |> nrow()
 # datetime relative to nest initiation date
 dp[, datetime_rel_pair := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 
-# date
+# datetime relative to nest initiation date
 dp[, date_ := as.Date(datetime_1)]
+dp[, initiation_day := as.Date(initiation)]
+dp[, date_rel_pair := difftime(date_, initiation_day, units = 'days') %>% as.numeric()]
 
 # same sex interaction?
 dp[, same_sex := sex1 == sex2]
@@ -197,39 +199,40 @@ dp[, breeding_pair := !is.na(nestID)]
 
 # Assign polyandry
 # polyandrous females
-xf = c(270170564, 270170901, 270170935, 273145005, 273145036, 273145109, 273145121, 273145140)
+xf = dn[polyandrous == TRUE]$female_id |> unique()
 dp[ID2 %in% xf, f_polyandrous := TRUE]
 dp[is.na(f_polyandrous), f_polyandrous := FALSE]
 
 # first nests
-x1 = c("R606_19", "R805_18", "R311_19", "R206_19", "R405_19", "R904_18", "R211_19", "R901_19", "R207_19", "REPH050_19")
+x1 = dn[polyandrous == TRUE & female_clutch == 1]$nestID |> unique()
 dp[nestID %in% x1, f_polyandrous_first := TRUE]
 dp[is.na(f_polyandrous_first), f_polyandrous_first := FALSE]
 
 # second nest
-x2 = c("R222_19", "R806_18", "R210_19", "R902_19", "R406_19", "R907_18", "R217_19", "R220_19", "R911_19", "R907_19")
+x2 = dn[polyandrous == TRUE & female_clutch == 2]$nestID |> unique()
 dp[nestID %in% x2, f_polyandrous_second := TRUE]
 dp[is.na(f_polyandrous_second), f_polyandrous_second := FALSE]
 
 # renesting females
 # first nests of renesting females
-x1 = c("R201_19", "R402_19", "R406_19", "R222_19", "R502_19", "R905_19")
+x1 = dn[polyandrous == FALSE & female_clutch == 1 & N_female_clutch > 1 |
+          polyandrous == TRUE & female_clutch == 2 & N_female_clutch > 2]$nestID |> unique()
 dp[nestID %in% x1, f_renesting_first := TRUE]
 
 # second nests of renesting females
-x2 = c("R232_19",  "R803_19",  "R320_19",  "R1101_19", "R218_19", "R913_19")
+x2 = dn[polyandrous == FALSE & female_clutch == 2 & N_female_clutch > 1 |
+          polyandrous == TRUE & female_clutch == 3 & N_female_clutch > 2]$nestID |> unique()
 dp[nestID %in% x2, f_renesting_second := TRUE]
 
 # relative timing 
-di = dn[!is.na(year_) & data_type == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+dn[, initiation_day := as.Date(initiation)]
+di = dn[!is.na(year_) & data_type == 'study_site', .(initiation_mean = mean(initiation_day, na.rm = TRUE)), by = year_]
+di[, initiation_mean := as.character(initiation_mean) |> as.Date()]
 
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
-dp[, datetime_rel_season := difftime(datetime_1, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
 # relative initiation date
-dp[, initiation_rel0 := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
-dp[, initiation_rel := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 2)]
-
+dp[, initiation_rel := difftime(initiation_day, initiation_mean, units = 'days') %>% as.numeric]
 
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance 
@@ -252,12 +255,8 @@ dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest1, at_nest2)],
 #' Subset relevant data
 #--------------------------------------------------------------------------------------------------------------
 
-# round to days
-dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
-dp[, datetime_rel_season0 := round(datetime_rel_season, 0)]
-
 # N pairwise data per day
-dpn = dp[!is.na(datetime_rel_pair0), .N, by = .(pairID, nestID, datetime_rel_pair0)]
+dpn = dp[!is.na(date_rel_pair), .N, by = .(pairID, nestID, date_rel_pair)]
 
 # check max
 dpn[, N] |> max()
@@ -266,15 +265,14 @@ dpn[, N] |> max()
 dpn[, Np := N / 142]
 
 # merge with dp
-dp = merge(dp, dpn, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dp = merge(dp, dpn, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 
 # subset 
 dps = 
 dp[breeding_pair == TRUE & sex1 == 'M', 
-   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, datetime_rel_season, 
-     datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0, distance_pair, interaction, split, merge, 
-     nestID, initiation, initiation_rel0, initiation_rel, at_nest1, at_nest2, female_clutch, anyEPY, 
-     breeding_pair, f_polyandrous, f_polyandrous_first,
+   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, date_rel_pair, datetime_rel_pair, 
+     distance_pair, interaction, split, merge, nestID, initiation, initiation_day, initiation_rel, at_nest1, 
+     at_nest2, female_clutch, anyEPY, breeding_pair, f_polyandrous, f_polyandrous_first,
      f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
 # save data
