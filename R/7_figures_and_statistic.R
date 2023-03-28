@@ -8,7 +8,7 @@
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
           'stringr', 'ggnewscale', 'doFuture', 'patchwork', 'activity', 'glmmTMB', 'effects', 'broomExtra',
-          'flextable', 'officer', 'dplyr', 'performance', 'ggh4x'), 
+          'flextable', 'officer', 'dplyr', 'performance', 'ggh4x', "DHARMa", "performance"), 
         require, character.only = TRUE)
 
 # Lines to run to create html output
@@ -19,17 +19,13 @@ opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-da = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-da[, year_ := year(datetime_1)]
+# da = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+# da[, year_ := year(datetime_1)]
 
-con = dbcon('jkrietsch', db = 'REPHatBARROW')  
-dn = dbq(con, 'select * FROM NESTS')
-dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
-dn = dn[year_ > 2017]
-dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
+dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+st_transform_DT(dn) # change projection
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
-dn[, nest_state_date := as.POSIXct(nest_state_date, tz = 'UTC')]
-DBI::dbDisconnect(con)
+dn = dn[year_ > 2017]
 
 # plot settings
 margin_ = unit(c(2, 2, 2, 2), 'pt')
@@ -37,13 +33,35 @@ margin_top = unit(c(2, 2, 6, 2), 'pt')
 sample_size_label = 2.5
 egg_laying_color = 'grey85'
 
+# assign periods
+dp[, period := fcase(
+  date_rel_pair >= -5 & date_rel_pair <= -1, "[-5,-1]", 
+  date_rel_pair >= 0 & date_rel_pair <= 3,   "[0,3]", 
+  date_rel_pair >= 4 & date_rel_pair <= 10,  "[4,10]"
+)]
+
+# set order
+setorder(dp, pairID, nestID, datetime_1)
+
 # subset data 10 days around clutch initiation
-dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
-dmr = dr[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+dm = dp[date_rel_pair >= -10 & date_rel_pair <= 10]
+dmr = dr[date_rel_pair >= -10 & date_rel_pair <= 10]
 
 # sample size
 dm[, .N, pairID] |> nrow()
 dm[, .N, nestID] |> nrow()
+
+# mean for each day
+dpm = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair, initiation_rel, N, year_)]
+dpm[, interaction_per_day := N_int / N]
+
+dpm[, period := fcase(
+  date_rel_pair >= -5 & date_rel_pair <= -1, "[-5,-1]", 
+  date_rel_pair >= 0 & date_rel_pair <= 3,   "[0,3]", 
+  date_rel_pair >= 4 & date_rel_pair <= 10,  "[4,10]"
+)]
+
+setorder(dpm, pairID, nestID, date_rel_pair)
 
 # nest method
 dmn = unique(dm, by = 'nestID')
@@ -57,23 +75,27 @@ ESM = read_docx()
 
 # parameter names 
 pn = fread("parname;                                                          parameter
-            (Intercept);                                                      intercept  
+            (Intercept);                                                      Intercept 
+            sin(hh2rad(HH));                                                  Sinus time
+            cos(hh2rad(HH));                                                  Cosinus time
             any_EPYTRUE;                                                      EPP (yes)
-            sexM;                                                             sex (male)
-            scale(initiation_rel);                                            clutch initiation date
-            poly(initiation_rel, 2)1;                                         clutch initiation date (linear)
-            poly(initiation_rel, 2)2;                                         clutch initiation date (quadratic)
-            scale(datetime_rel_pair0);                                        day relative to clutch initiation 
-            poly(datetime_rel_pair0, 2)1;                                     day relative to clutch initiation (linear)
-            poly(datetime_rel_pair0, 2)2;                                     day relative to clutch initiation (quadratic)
-            year_2019;                                                        year (2019)
-            f_polyandrous_firstTRUE;                                          first clutch of polyandrous female (yes)
-            typerandomization;                                                data type (random pairs)
-            poly(datetime_rel_pair0, 2)1:typerandomization;                   day relative to clutch initiation (linear):data type (random pairs)
-            poly(datetime_rel_pair0, 2)2:typerandomization;                   day relative to clutch initiation (quadratic):data type (random pairs)
-            typerandomization:poly(initiation_rel, 2)1;                       clutch initiation date (linear):data type (random pairs)
-            typerandomization:poly(initiation_rel, 2)2;                       clutch initiation date (quadratic):data type (random pairs)
-            sd__(Intercept);                                                  random intercept
+            sexM;                                                             Sex (male)
+            scale(initiation_rel);                                            Clutch initiation date
+            poly(initiation_rel, 2)1;                                         Clutch initiation date (linear)
+            poly(initiation_rel, 2)2;                                         Clutch initiation date (quadratic)
+            scale(datetime_rel_pair0);                                        Day relative to clutch initiation 
+            poly(datetime_rel_pair0, 2)1;                                     Day relative to clutch initiation (linear)
+            poly(datetime_rel_pair0, 2)2;                                     Day relative to clutch initiation (quadratic)
+            poly(date_rel_pair, 2)1;                                          Day relative to clutch initiation (linear)
+            poly(date_rel_pair, 2)2;                                          Day relative to clutch initiation (quadratic)
+            year_2019;                                                        Year (2019)
+            f_polyandrous_firstTRUE;                                          First clutch of polyandrous female (yes)
+            typerandomization;                                                Data type (random pairs)
+            poly(datetime_rel_pair0, 2)1:typerandomization;                   Day relative to clutch initiation (linear):data type (random pairs)
+            poly(datetime_rel_pair0, 2)2:typerandomization;                   Day relative to clutch initiation (quadratic):data type (random pairs)
+            typerandomization:poly(initiation_rel, 2)1;                       Clutch initiation date (linear):data type (random pairs)
+            typerandomization:poly(initiation_rel, 2)2;                       Clutch initiation date (quadratic):data type (random pairs)
+            sd__(Intercept);                                                  Random intercept
             r2marg;                                                           R² marginal
             r2cond;                                                           R² conditional
             
@@ -83,16 +105,16 @@ pn = fread("parname;                                                          pa
 #' Data available relative to clutch initiation
 #--------------------------------------------------------------------------------------------------------------
 
-dIDs = unique(dID[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-              by = c('sex', 'nestID', 'datetime_rel_pair0'))
-dIDs = dIDs[, .N, by = .(sex, datetime_rel_pair0, both_tagged_overlapping)]
+dIDs = unique(dID[date_rel_pair >= -10 & date_rel_pair <= 10], 
+              by = c('sex', 'nestID', 'date_rel_pair'))
+dIDs = dIDs[, .N, by = .(sex, date_rel_pair, both_tagged_overlapping)]
 dIDs
 
 # pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss = unique(du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
+du = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+dss = unique(du[date_rel_pair >= -10 & date_rel_pair <= 10], 
+             by = c('nestID', 'date_rel_pair'))
+dss = dss[, .N, by = date_rel_pair]
 dss
 
 # plot data available
@@ -112,7 +134,7 @@ ggplot(data = dp) +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = -Inf, ymax = Inf), fill = egg_laying_color) +
   geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
   scale_fill_manual(values = c('TRUE' = 'steelblue4', 'FALSE' = 'darkorange'), name = '', 
-                    labels = c('Together', 'Not together'), drop = FALSE) +
+                    labels = c('Not together', 'Together'), drop = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 0.2) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 0.2) +
   xlab('Day relative to clutch initiation (= 0)') + ylab('Nest') +
@@ -126,94 +148,281 @@ ggplot(data = dp) +
 dp[, nestID := as.character(nestID)]
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state
+#' Mate guarding intensity in relation to daily patterns
 #--------------------------------------------------------------------------------------------------------------
 
-# Male and female together
-dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
-d0 = copy(du)
+# Function to deal with time
+dt2hh <- function(x) {
+  h <- as.POSIXlt(x)
+  h$hour + h$min / 60 + h$sec / 3600
+}
+
+hh2rad <- function(x) {
+  x * pi / 12
+}
+
+dm[, HH := dt2hh(datetime_1)]
 
 
-# Male and female together randomized
-dms = dmr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dmr, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
-d1 = copy(du)
+### before clutch initiation
+dx = dm[period == "[-5,-1]"]
+
+# model
+m <- glmmTMB(interaction ~ sin(hh2rad(HH)) + cos(hh2rad(HH)) + 
+               poly(initiation_rel, 2) + poly(datetime_rel_pair, 2) +
+               (datetime_rel_pair | nestID),
+  family = binomial(link = "logit"), 
+  data = dx,
+  control = glmmTMBControl(parallel = 15)
+)
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) # problems
+acf(resid(m)) # high autocorrelation
 
 
-# merge data
-du = rbindlist(list(d0[, .(pairID, nestID, year_, datetime_rel_pair0, prop = int_prop, Np, type = 'm_f_together')],
-                    d1[, .(pairID, nestID, year_, datetime_rel_pair0, prop = int_prop, Np, type = 'm_f_together_randomized')]
-                   ))
+# check effect of time of the day
+e = effect("sin(hh2rad(HH))", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
 
 
-# Plot time together breeding pairs vs. randomized pairs
-pa = 
-ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
-  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
-  geom_boxplot(data = du, 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
-               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du, 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), # shape = data_quality
-             position=position_jitterdodge(), size = 0.2) +
-  # scale_shape_manual(values=c(20, 19)) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('Breeding pair', 'Random pair'), drop = FALSE) +
-  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
-                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', '', '6', '', '8', '', '10'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
-                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0, 0.05))) +
+ggplot(e, aes(y = fit, x = HH)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+  geom_line(linewidth = 1) +
   theme_classic(base_size = 10) +
-  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_top, 
-        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together') +
-  xlab('Day relative to clutch initiation (= 0)')
+  xlab("Hour") + 
+  ylab("Proportion of time together") 
 
-pa
+# check effect size and when min and max
+e[, min(fit)]
+e[, max(fit)]
+e[, max(fit)] - e[, min(fit)] # not biological relevant
+
+e[fit == min(fit), .(HH)]
+e[fit == max(fit), .(HH)]
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)] 
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S1. GLMM together and time -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+
+### during egg-laying
+dx = dm[period == "[0,3]"]
+
+# model
+m <- glmmTMB(interaction ~ sin(hh2rad(HH)) + cos(hh2rad(HH)) + 
+               poly(initiation_rel, 2) + poly(datetime_rel_pair, 2) +
+               (datetime_rel_pair | nestID),
+             family = binomial(link = "logit"), 
+             data = dx,
+             control = glmmTMBControl(parallel = 15)
+)
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) # problems
+acf(resid(m)) # high autocorrelation
+
+
+# check effect of time of the day
+e = effect("sin(hh2rad(HH))", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+
+ggplot(e, aes(y = fit, x = HH)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.5) + 
+  geom_line(linewidth = 1) +
+  theme_classic(base_size = 10) +
+  xlab("Hour") + 
+  ylab("Proportion of time together") 
+
+# check effect size and when min and max
+e[, min(fit)]
+e[, max(fit)]
+e[, max(fit)] - e[, min(fit)] # biological relevant
+
+e[fit == min(fit), .(HH)]
+e[fit == max(fit), .(HH)]
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)] 
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S2. GLMM together and time 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation year
+#--------------------------------------------------------------------------------------------------------------
+
+### before clutch initiation
+dx = dpm[period == "[-5,-1]"]
+
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
+
+dx[, year_ := as.character(year_)]
+
+# model
+m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + year_ + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S3. GLMM together and year -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+### during egg-laying
+dx = dpm[period == "[0,3]"]
+
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
+
+dx[, year_ := as.character(year_)]
+
+# model
+m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + year_ + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S4. GLMM together and year 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
 
 # Plot time together breeding pairs split by year
 
 # pairwise sample size 2018
-dus = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss_2018 = unique(dus[year_ == 2018 & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss_2018 = dss_2018[, .N, by = datetime_rel_pair0]
+dus = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+dss_2018 = unique(dus[year_ == 2018 & date_rel_pair >= -10 & date_rel_pair <= 10], 
+                  by = c('nestID', 'date_rel_pair'))
+dss_2018 = dss_2018[, .N, by = date_rel_pair]
 
 # pairwise sample size 2019
-dus = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss_2019 = unique(dus[year_ == 2019 & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-                 by = c('nestID', 'datetime_rel_pair0'))
-dss_2019 = dss_2019[, .N, by = datetime_rel_pair0]
+dus = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+dss_2019 = unique(dus[year_ == 2019 & date_rel_pair >= -10 & date_rel_pair <= 10], 
+                  by = c('nestID', 'date_rel_pair'))
+dss_2019 = dss_2019[, .N, by = date_rel_pair]
 
 du[, year_ := as.character(year_)]
 
 
 # merge 
-dss = merge(dss_2018[, .(N_2018 = N, datetime_rel_pair0)], 
-            dss_2019[, .(N_2019 = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all = TRUE)
+dss = merge(dss_2018[, .(N_2018 = N, date_rel_pair)], 
+            dss_2019[, .(N_2019 = N, date_rel_pair)], by = 'date_rel_pair', all = TRUE)
 dss[is.na(N_2018), N_2018 := 0]
 dss[, N_year_label := paste0(N_2018, '/', N_2019)]
 
+dpm[, year_cha := as.character(year_)]
+
+
 p1 = 
   ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_year_label), vjust = 1, size = sample_size_label) +
+  geom_text(data = dss, aes(date_rel_pair, Inf, label = N_year_label), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
-  geom_boxplot(data = du[type == 'm_f_together'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, year_), color = year_),
+  geom_boxplot(data = dpm, 
+               aes(date_rel_pair, interaction_per_day, group = interaction(date_rel_pair, year_cha), color = year_cha),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0, position = position_dodge2(preserve = "single")) +
-  geom_point(data = du[type == 'm_f_together'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, year_), color = year_), # shape = data_quality
+  geom_point(data = dpm, 
+             aes(date_rel_pair, interaction_per_day, group = interaction(date_rel_pair, year_cha), color = year_cha), # shape = data_quality
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                      labels = c('2018', '2019'), drop = FALSE) +
@@ -233,14 +442,13 @@ p1 =
 p1
 
 
-
 # clutch initiation distribution
-di = dn[!is.na(year_) & plot == 'NARL', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
+di = dn[!is.na(year_) & data_type == 'study_site', .(initiation_mean = mean(initiation, na.rm = TRUE)), by = year_]
 
 dn = merge(dn, di, by = 'year_', all.x = TRUE)
 dn[, initiation_rel_ := difftime(initiation, initiation_mean, units = 'days') %>% as.numeric %>% round(., 0)]
 
-dns = dn[plot == 'NARL' & !is.na(initiation_rel_)]
+dns = dn[data_type == 'study_site' & !is.na(initiation_rel_)]
 dns[, year_ := as.character(year_)]
 
 # Sample size
@@ -264,7 +472,7 @@ p2 =
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                      labels = c('2018', '2019'), drop = FALSE) +
   scale_fill_manual(values = c('steelblue4', 'darkorange'), name = '', 
-                     labels = c('2018', '2019'), drop = FALSE) +
+                    labels = c('2018', '2019'), drop = FALSE) +
   scale_x_continuous(limits = c(-16, 16), breaks = seq(-16, 16, 1), 
                      labels = xy$seq2,
                      expand = expansion(add = c(0.5, 0.5))) +
@@ -284,78 +492,72 @@ p1 + p2 +
 # ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
-### Models 
-
-# Statistic together differences between years
-
-# before clutch initiation
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-dx[, year_ := as.character(year_)]
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + year_ + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation to breeding state breeders vs. random pairs
+#--------------------------------------------------------------------------------------------------------------
 
 
-plot(allEffects(m))
-summary(m)
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table() 
 
 
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S1. GLMM together and year -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
 
 
-# during egg-laying
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-dx[, year_ := as.character(year_)]
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + year_ + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
 
 
-plot(allEffects(m))
-summary(m)
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table() 
 
 
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S2. GLMM together and year 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
+# Male and female together
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+d0 = copy(du)
+
+
+# Male and female together randomized
+dms = dmr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dmr, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+du[is.na(N_int), N_int := 0]
+du[, int_prop := N_int / N]
+d1 = copy(du)
+
+
+# merge data
+du = rbindlist(list(d0[, .(pairID, nestID, year_, date_rel_pair, prop = int_prop, Np, type = 'm_f_together')],
+                    d1[, .(pairID, nestID, year_, date_rel_pair, prop = int_prop, Np, type = 'm_f_together_randomized')]
+                   ))
+
+
+# Plot time together breeding pairs vs. randomized pairs
+pa = 
+ggplot() +
+  geom_text(data = dss, aes(date_rel_pair, Inf, label = N), vjust = 1, size = sample_size_label) +
+  geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
+  geom_boxplot(data = du, 
+               aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
+               lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
+  geom_point(data = du, 
+             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), # shape = data_quality
+             position=position_jitterdodge(), size = 0.2) +
+  # scale_shape_manual(values=c(20, 19)) +
+  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+                     labels = c('Breeding pair', 'Random pair'), drop = FALSE) +
+  scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
+                     labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0, 0.05))) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.9, 0.85), legend.background = element_blank(), plot.margin = margin_top, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Day relative to clutch initiation (= 0)')
+
+pa
 
 
 # Statistic together
