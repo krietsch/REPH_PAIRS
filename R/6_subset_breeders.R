@@ -95,7 +95,7 @@ dID[, initiation_day := as.Date(initiation)]
 dID[, date_ := as.Date(datetime_)]
 dID[, date_rel_pair := difftime(date_, initiation_day, units = 'days') %>% as.numeric()]
 
-# unique by datetime_rel_pair0
+# unique by date_rel_pair
 dID = dID[, .(N = .N), by = c('year_', 'nestID', 'ID', 'sex', 'date_rel_pair', 'both_tagged_overlapping')]
 
 # check max
@@ -282,112 +282,113 @@ dp[breeding_pair == TRUE & sex1 == 'M',
 #' # Randomization for interaction base line
 #--------------------------------------------------------------------------------------------------------------
 
-# # unique data
-# du = unique(dp, by = c('pairID'))
-# ds = unique(dp, by = c('nestID', 'datetime_rel_pair0'))
-# ds = ds[!is.na(datetime_rel_pair0)]
-# 
-# # nests to exclude (second clutches)
-# n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
-# ds = ds[!(nestID %in% n2)]
-# 
-# # data needed for null model
-# d0 = ds[, .(datetime_rel_pair0, date_)] %>% unique
-# 
-# # subset non-breeders pairs within breeders
-# breeding_males = du[breeding_pair == TRUE]$ID1
-# breeding_females = du[breeding_pair == TRUE]$ID2
-# 
-# dps = dp[breeding_pair == FALSE & ID1 %in% breeding_males & ID2 %in% breeding_females]
-# 
-# # subset all interactions on days with relative initiation date for breeders
-# x = d0$datetime_rel_pair0 %>% unique
-# 
-# d0a = foreach(i = x, .combine = 'rbind') %do% {
-# 
-#   # subset relative day
-#   dss = d0[datetime_rel_pair0 == i]
-# 
-#   # subset all pairwise interactions from this date
-#   dsms = dps[date_ %in% dss$date_]
-# 
-#   # assign type
-#   dsms[, datetime_rel_pair0 := i]
-# 
-#   dsms
-# 
-# }
-# 
-# d0a[, datetime_rel_pair0_type := 'null_model']
-# 
-# 
-# # subset pairwise data with at least one interaction per day
-# 
-# # pairwise positions non-breeder pairs
-# dpn = d0a[, .N, by = .(pairID, date_, datetime_rel_pair0)]
-# setnames(dpn, 'N', 'Nnb')
-# 
-# # proportion of locations send
-# dpn[, Np_nb := Nnb / 142]
-# 
-# d0a = merge(d0a, dpn, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
-# 
-# # Proportion of time together
-# dps = d0a[interaction == TRUE, .(N_int_nb = .N), by = .(pairID, date_, datetime_rel_pair0)]
-# du = unique(d0a, by = c('pairID', 'date_', 'datetime_rel_pair0'))
-# du = merge(du, dps, by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
-# du[is.na(N_int_nb), N_int_nb := 0]
-# du[, int_prop_nb := N_int_nb / Nnb]
-# 
-# # merge back with full table
-# d0a = merge(d0a, du[, .(pairID, date_, datetime_rel_pair0, N_int_nb, int_prop_nb)],
-#             by = c('pairID', 'date_', 'datetime_rel_pair0'), all.x = TRUE)
-# 
-# # subset only pairs with at least one interaction
-# d0a = d0a[int_prop_nb > 0]
-# 
-# # subset pairs with at least 50% data
-# d0a = d0a[Np_nb >= 0.5]
-# 
-# # select random pairs for each day
-# ds = unique(d0a, by = c('pairID', 'date_', 'datetime_rel_pair0'))
-# 
-# # shuffle data
-# ds = ds[sample(dim(ds)[1])]
-# 
-# # subset 31 pairs
-# ds[, datetime_rel_pair0_id := seq_len(.N), by = datetime_rel_pair0]
-# ds = ds[datetime_rel_pair0_id <= 50]
-# ds[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
-# d0a[, sub := paste0(pairID, '_', date_, '_', datetime_rel_pair0)]
-# 
-# d0as = d0a[sub %in% ds$sub]
-# 
-# ds[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10, .N, datetime_rel_pair0]
-# 
-# # merge with nest data from female
-# duf = unique(dp[!is.na(nestID)], by = c('ID2', 'year_'))
-# 
-# # delete columns in d0as
-# d0as[, nestID := NULL]
-# d0as[, initiation := NULL]
-# d0as[, initiation_rel := NULL]
-# 
-# d0as = merge(d0as, duf[, .(year_, ID2, nestID, initiation, initiation_rel)],
-#              by = c('year_', 'ID2'), all.x = TRUE)
-# 
-# d0as[is.na(nestID)]
-# 
-# # rename order and save
-# d0as = d0as[,
-#         .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_,
-#           datetime_rel_season, datetime_rel_season0, datetime_rel_pair, datetime_rel_pair0,
-#           interaction, split, merge, nestID, initiation, initiation_rel, at_nest1, at_nest2, any_EPY,
-#           ID1_any_ep_int, ID2_any_ep_int, breeding_pair, f_polyandrous, f_polyandrous_first,
-#           f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'randomization')]
-# 
-# # save data
-# fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
-# 
-# 
-# 
+# unique data
+du = unique(dp, by = c('pairID'))
+ds = unique(dp, by = c('nestID', 'date_rel_pair'))
+ds = ds[!is.na(date_rel_pair)]
+
+# nests to exclude (second clutches)
+n2 = c('R201_19', 'R231_19', 'R905_19', 'R502_19')
+ds = ds[!(nestID %in% n2)]
+
+# data needed for null model
+d0 = ds[, .(date_rel_pair, date_)] %>% unique
+
+# subset non-breeders pairs within breeders
+breeding_males = du[breeding_pair == TRUE]$ID1
+breeding_females = du[breeding_pair == TRUE]$ID2
+
+dps = dp[breeding_pair == FALSE & ID1 %in% breeding_males & ID2 %in% breeding_females]
+
+# subset all interactions on days with relative initiation date for breeders
+x = d0$date_rel_pair %>% unique
+
+d0a = foreach(i = x, .combine = 'rbind') %do% {
+
+  # subset relative day
+  dss = d0[date_rel_pair == i]
+
+  # subset all pairwise interactions from this date
+  dsms = dps[date_ %in% dss$date_]
+
+  # assign type
+  dsms[, date_rel_pair := i]
+
+  dsms
+
+}
+
+d0a[, date_rel_pair_type := 'null_model']
+
+
+# subset pairwise data with at least one interaction per day
+
+# pairwise positions non-breeder pairs
+dpn = d0a[, .N, by = .(pairID, date_, date_rel_pair)]
+setnames(dpn, 'N', 'Nnb')
+
+# proportion of locations send
+dpn[, Np_nb := Nnb / 142]
+
+d0a = merge(d0a, dpn, by = c('pairID', 'date_', 'date_rel_pair'), all.x = TRUE)
+
+# Proportion of time together
+dps = d0a[interaction == TRUE, .(N_int_nb = .N), by = .(pairID, date_, date_rel_pair)]
+du = unique(d0a, by = c('pairID', 'date_', 'date_rel_pair'))
+du = merge(du, dps, by = c('pairID', 'date_', 'date_rel_pair'), all.x = TRUE)
+du[is.na(N_int_nb), N_int_nb := 0]
+du[, int_prop_nb := N_int_nb / Nnb]
+
+# merge back with full table
+d0a = merge(d0a, du[, .(pairID, date_, date_rel_pair, N_int_nb, int_prop_nb)],
+            by = c('pairID', 'date_', 'date_rel_pair'), all.x = TRUE)
+
+# subset only pairs with at least one interaction
+d0a = d0a[int_prop_nb > 0]
+
+# subset pairs with at least 50% data
+d0a = d0a[Np_nb >= 0.5]
+
+# select random pairs for each day
+ds = unique(d0a, by = c('pairID', 'date_', 'date_rel_pair'))
+
+# shuffle data
+set.seed(21)
+ds = ds[sample(dim(ds)[1])]
+
+# subset pairs
+ds[, date_rel_pair_id := seq_len(.N), by = date_rel_pair]
+ds = ds[date_rel_pair_id <= 50]
+ds[, sub := paste0(pairID, '_', date_, '_', date_rel_pair)]
+d0a[, sub := paste0(pairID, '_', date_, '_', date_rel_pair)]
+
+d0as = d0a[sub %in% ds$sub]
+
+ds[date_rel_pair >= -10 & date_rel_pair <= 10, .N, date_rel_pair]
+
+# merge with nest data from female
+duf = unique(dp[!is.na(nestID)], by = c('ID2', 'year_'))
+
+# delete columns in d0as
+d0as[, nestID := NULL]
+d0as[, initiation := NULL]
+d0as[, initiation_rel := NULL]
+
+d0as = merge(d0as, duf[, .(year_, ID2, nestID, initiation, initiation_rel)],
+             by = c('year_', 'ID2'), all.x = TRUE)
+
+d0as[is.na(nestID)]
+
+# rename order and save
+d0as = d0as[,
+        .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
+          date_rel_pair, datetime_rel_pair, distance_pair, interaction, split, merge, nestID, initiation, 
+          initiation_day, initiation_rel, at_nest1, at_nest2, female_clutch, anyEPY, breeding_pair, 
+          f_polyandrous, f_polyandrous_first, f_polyandrous_second, f_renesting_first, f_renesting_second, 
+          type = 'randomization')]
+
+# save data
+fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+
+
+
