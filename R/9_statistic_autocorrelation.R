@@ -4,7 +4,7 @@ sapply( c('data.table', 'ggplot2',  'glmmTMB', 'effects', 'activity', 'nlme', 'k
         require, character.only = TRUE)
 
 # Data
-dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE, nThread = 20) |>  data.table()
+dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_v1.txt', sep = '\t', header = TRUE, nThread = 20) |>  data.table()
 
 # plot settings
 margin_ = unit(c(2, 2, 2, 2), 'pt')

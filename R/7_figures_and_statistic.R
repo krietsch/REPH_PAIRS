@@ -53,6 +53,7 @@ dm[, .N, nestID] |> nrow()
 
 # mean for each day
 dpm = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair, initiation_rel, N, year_)]
+dpm[is.na(N_int), N_int := 0]
 dpm[, interaction_per_day := N_int / N]
 
 dpm[, period := fcase(
@@ -62,6 +63,19 @@ dpm[, period := fcase(
 )]
 
 setorder(dpm, pairID, nestID, date_rel_pair)
+
+# random pairs
+drm = dr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair, initiation_rel, N, year_)]
+drm[is.na(N_int), N_int := 0]
+drm[, interaction_per_day := N_int / N]
+
+drm[, period := fcase(
+  date_rel_pair >= -5 & date_rel_pair <= -1, "[-5,-1]", 
+  date_rel_pair >= 0 & date_rel_pair <= 3,   "[0,3]", 
+  date_rel_pair >= 4 & date_rel_pair <= 10,  "[4,10]"
+)]
+
+setorder(drm, pairID, nestID, date_rel_pair)
 
 # nest method
 dmn = unique(dm, by = 'nestID')
@@ -493,40 +507,238 @@ p1 + p2 +
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state breeders vs. random pairs
+#' Mate guarding intensity in relation to breeding state 
 #--------------------------------------------------------------------------------------------------------------
 
 
+### before clutch initiation
+dx = dpm[period == "[-5,-1]"]
+
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
+
+dx[, year_ := as.character(year_)]
+
+# model
+m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S5. GLMM together -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# descriptive part
+x = effect("poly(initiation_rel,2)", m, xlevels = 20) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+# more than 95% together 
+x[fit > 0.95] 
+
+# before and after peak
+x[initiation_rel < -1, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel > 8, .(fit = mean(fit), se = mean(se))] * 100
+
+
+x = effect("poly(date_rel_pair,2)", m, xlevels = 5) |>
+  data.frame() |>
+  setDT() |> 
+  print()
+
+x[, .(fit = mean(fit), se = mean(se))] * 100
+
+# pairs with more than 95% together
+d0[datetime_rel_pair0 == -2 & int_prop > 0.95] |> nrow()
 
 
 
+# extract effect from model for plot
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
 
 
+# data for points 
+dms = dm[period == "[-5,-1]"]
+dms = dms[, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
+du[, .(min(N_ini), max(N_ini))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
-
-
-
-# Male and female together
-dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
-du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+dms = dms[interaction == TRUE & period == "[-5,-1]", .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
+du[, int_prop := N_int / N_ini]
 d0 = copy(du)
 
+# point sizes range
+du[, .(min(N_ini), max(N_ini))]
 
-# Male and female together randomized
-dms = dmr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
-du = unique(dmr, by = c('pairID', 'nestID', 'date_rel_pair'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+pb = 
+  ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.2, 0.2))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0.05, 0.05))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('Proportion of time together') +
+  xlab('Clutch initiation date (standardized)')
+
+pb
+
+
+### during egg-laying
+dx = dpm[period == "[0,3]"]
+
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
+
+dx[, year_ := as.character(year_)]
+
+# model
+m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + year_ + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S6. GLMM together and year 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# descriptive part
+effect("poly(date_rel_pair,2)", m, xlevels = 4) |>
+  data.frame() |>
+  setDT() |> 
+  print() * 100
+
+x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
+  data.frame() |>
+  setDT() |> 
+  print() 
+
+# extract effect from model for plot
+e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+  data.frame() |>
+  setDT()
+
+# data for points 
+dms = dm[period == "[0,3]"]
+dms = dms[, N_ini := .N, by = .(pairID, nestID)]
+du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
+du = du[!is.na(N_ini)]
+du[, .(min(N_ini), max(N_ini))] # check min and max
+du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+
+dms = dms[interaction == TRUE & period == "[0,3]", .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
+du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N]
-d1 = copy(du)
+du[, int_prop := N_int / N_ini]
+d0 = copy(du)
 
+# point sizes range
+du[, .(min(N_ini), max(N_ini))]
+
+pc = 
+  ggplot() +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
+  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
+                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
+                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
+                     expand = expansion(add = c(0.4, 0.4))) +
+  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
+                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
+                     expand = expansion(add = c(0.05, 0.05))) +
+  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
+        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
+  ylab('') +
+  xlab('Clutch initiation date (standardized)')
+
+pc
+
+
+
+# plot time together
 
 # merge data
-du = rbindlist(list(d0[, .(pairID, nestID, year_, date_rel_pair, prop = int_prop, Np, type = 'm_f_together')],
-                    d1[, .(pairID, nestID, year_, date_rel_pair, prop = int_prop, Np, type = 'm_f_together_randomized')]
+du = rbindlist(list(dpm[, .(pairID, nestID, year_, date_rel_pair, prop = interaction_per_day, type = 'm_f_together')],
+                    drm[, .(pairID, nestID, year_, date_rel_pair, prop = interaction_per_day, type = 'm_f_together_randomized')]
                    ))
 
 
@@ -560,206 +772,6 @@ ggplot() +
 pa
 
 
-# Statistic together
-
-# before clutch initiation
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-dx[, year_ := as.character(year_)]
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = FALSE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-# y[parameter %in% c('intercept', 'relative day', 'split (after)'), p := NA]
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S3. GLMM together -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-
-# descriptive part
-x = effect("poly(initiation_rel,2)", m, xlevels = 20) |>
-  data.frame() |>
-  setDT() |> 
-  print()
-
-# more than 95% together 
-x[fit > 0.95] 
-
-# before and after peak
-x[initiation_rel < -1, .(fit = mean(fit), se = mean(se))] * 100
-x[initiation_rel > 8, .(fit = mean(fit), se = mean(se))] * 100
-
-
-x = effect("poly(datetime_rel_pair0,2)", m, xlevels = 5) |>
-  data.frame() |>
-  setDT() |> 
-  print()
-
-x[, .(fit = mean(fit), se = mean(se))] * 100
-
-# pairs with more than 95% together
-d0[datetime_rel_pair0 == -2 & int_prop > 0.95] |> nrow()
-
-
-
-# extract effect from model for plot
-e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
-  data.frame() |>
-  setDT()
-
-
-# data for points 
-dms = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
-dms = dms[, N_ini := .N, by = .(pairID, nestID)]
-du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
-du = du[!is.na(N_ini)]
-du[, .(min(N_ini), max(N_ini))] # check min and max
-du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
-
-dms = dms[interaction == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
-du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N_ini]
-d0 = copy(du)
-
-# point sizes range
-du[, .(min(N_ini), max(N_ini))]
-
-pb = 
-  ggplot() +
-  geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
-  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
-  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
-                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
-                     expand = expansion(add = c(0.2, 0.2))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
-                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0.05, 0.05))) +
-  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
-        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('Proportion of time together') +
-  xlab('Clutch initiation date (standardized)')
-
-pb
-
-
-# during egg-laying
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-dx[, year_ := as.character(year_)]
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
-             control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S4. GLMM together 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-# descriptive part
-effect("poly(datetime_rel_pair0,2)", m, xlevels = 4) |>
-  data.frame() |>
-  setDT() |> 
-  print() * 100
-
-x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
-  data.frame() |>
-  setDT() |> 
-  print() 
-
-# extract effect from model for plot
-e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
-  data.frame() |>
-  setDT()
-
-# data for points 
-dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-dms = dms[, N_ini := .N, by = .(pairID, nestID)]
-du = unique(dms, by = c('pairID', 'nestID', 'initiation_rel'))
-du = du[!is.na(N_ini)]
-du[, .(min(N_ini), max(N_ini))] # check min and max
-du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
-
-dms = dm[interaction == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, .(N_int = .N), by = .(pairID, nestID, initiation_rel)]
-du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N_ini]
-d0 = copy(du)
-
-# point sizes range
-du[, .(min(N_ini), max(N_ini))]
-
-pc = 
-  ggplot() +
-  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
-  geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
-  scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
-                     labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
-                                '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
-                     expand = expansion(add = c(0.4, 0.4))) +
-  scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
-                     labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
-                     expand = expansion(add = c(0.05, 0.05))) +
-  scale_size_area(max_size = 4, breaks=c(100, 300, 500)) +
-  theme_classic(base_size = 10) +
-  theme(legend.position = "none", legend.background = element_blank(), plot.margin = margin_, 
-        legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank()) +
-  ylab('') +
-  xlab('Clutch initiation date (standardized)')
-
-pc
-
 
 
 # merge plots
@@ -772,6 +784,10 @@ pa + pb + pc +
 
 # ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
+
+#--------------------------------------------------------------------------------------------------------------
+#' Mate guarding intensity in relation to breeding state breeders vs. random pairs
+#--------------------------------------------------------------------------------------------------------------
 
 
 # Statistic together breeding pairs vs. random pairs
