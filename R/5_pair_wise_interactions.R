@@ -106,10 +106,10 @@ dp[, split := interaction_before == TRUE & interaction == FALSE]
 dp[, merge := interaction_before == FALSE & interaction == TRUE]
 
 # which ID split?
-dp[split == TRUE, split_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
+dp[split == TRUE, IDsplitting := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 # which ID approached?
-dp[merge == TRUE, merge_ID := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
+dp[merge == TRUE, IDmerging := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 # save data
 fwrite(dp, './DATA/PAIR_WISE_INTERACTIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)

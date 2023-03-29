@@ -270,13 +270,14 @@ dp = merge(dp, dpn, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 # subset 
 dps = 
 dp[breeding_pair == TRUE & sex1 == 'M', 
-   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, date_rel_pair, datetime_rel_pair, 
-     distance_pair, interaction, split, merge, nestID, initiation, initiation_day, initiation_rel, at_nest1, 
+   .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N, Np, date_, date_rel_pair, 
+     datetime_rel_pair, distance_pair, interaction, split, merge, IDsplitting, IDmerging, distance1_before, 
+     distance2_before, nestID, initiation, initiation_day, initiation_rel, at_nest1, 
      at_nest2, female_clutch, anyEPY, breeding_pair, f_polyandrous, f_polyandrous_first,
      f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
 # save data
-# fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Randomization for interaction base line
@@ -383,9 +384,7 @@ d0as[is.na(nestID)]
 d0as = d0as[,
         .(pairID, year_, ID1, ID2, sex1, sex2, datetime_1, datetime_2, N = Nnb, Np = Np_nb, date_, 
           date_rel_pair, datetime_rel_pair, distance_pair, interaction, split, merge, nestID, initiation, 
-          initiation_day, initiation_rel, at_nest1, at_nest2, female_clutch, anyEPY, breeding_pair, 
-          f_polyandrous, f_polyandrous_first, f_polyandrous_second, f_renesting_first, f_renesting_second, 
-          type = 'randomization')]
+          initiation_day, initiation_rel, type = 'randomization')]
 
 # save data
 fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
