@@ -325,7 +325,7 @@ dx[, year_ := as.character(year_)]
 # model
 m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + year_ + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -372,7 +372,7 @@ dx[, year_ := as.character(year_)]
 # model
 m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + year_ + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -574,7 +574,7 @@ dx[, year_ := as.character(year_)]
 # model
 m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -693,7 +693,7 @@ dx[, year_ := as.character(year_)]
 # model
 m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -823,7 +823,7 @@ dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 # model
 m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) * type + poly(initiation_rel, 2) * type + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -869,7 +869,7 @@ dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 # model
 m <- glmmTMB(interaction_per_day ~ date_rel_pair * type + poly(initiation_rel, 2) * type + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -915,7 +915,7 @@ dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 # model
 m <- glmmTMB(interaction_per_day ~ date_rel_pair * type + initiation_rel * type + 
                (date_rel_pair | nestID),
-             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -1016,7 +1016,7 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 # model
 m <- glmmTMB(IDsplitting ~ date_rel_pair + initiation_rel + 
                (date_rel_pair | nestID),
-             family =  binomial(link = "logit"), data = dx, REML = FALSE,
+             family =  binomial(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -1125,7 +1125,7 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 # model
 m <- glmmTMB(IDsplitting ~ date_rel_pair + initiation_rel + 
                (date_rel_pair | nestID),
-             family =  binomial(link = "logit"), data = dx, REML = FALSE,
+             family =  binomial(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -1291,49 +1291,43 @@ ggplot() +
 dms = dm[split == TRUE]
 
 # merge male and female data for plot
-dms_m = dms[ID_splitting == 'ID1', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex1, 
+dms_m = dms[IDsplitting == 'ID1', .(pairID, nestID, date_rel_pair, period, initiation_rel, sex = sex1, 
                                      split_distance = distance1_before, stay_distance = distance2_before)]
-dms_f = dms[ID_splitting == 'ID2', .(pairID, nestID, datetime_rel_pair0, initiation_rel, sex = sex2, 
+dms_f = dms[IDsplitting == 'ID2', .(pairID, nestID, date_rel_pair, period, initiation_rel, sex = sex2, 
                                      split_distance = distance2_before, stay_distance = distance1_before)]
 
 dms = rbindlist(list(dms_m, dms_f))
 
-
+# how often did the other ID stay within 30 m?
 ggplot(data = dms) +
-  geom_histogram(aes(x = stay_distance))
+  geom_histogram(aes(x = stay_distance)) +
+  theme_classic(base_size = 10)
   
 dms[, median(stay_distance)]
-
 dms[stay_distance < 30] |> nrow() / nrow(dms) * 100
 
-
+# how much was the differences when the other ID moved too?
 dms[, delta_split := split_distance - stay_distance]
 
 dms[stay_distance > 30, median(delta_split)]
 dms[stay_distance > 30, min(delta_split)]
 
-dms[, median(delta_split)]
-
-dms[, min(split_distance)]
-
-
 ggplot(data = dms[stay_distance > 30]) +
-  geom_histogram(aes(x = delta_split))
+  geom_histogram(aes(x = delta_split)) +
+  theme_classic(base_size = 10)
 
 
 # pairwise sample size
-du = unique(dm[split == TRUE], by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss_m = unique(du[ID_splitting == 'ID1' & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss_m = dss_m[, .N, by = datetime_rel_pair0]
+du = unique(dm[split == TRUE], by = c('pairID', 'nestID', 'date_rel_pair'))
+dss_m = unique(du[IDsplitting == 'ID1'], by = c('nestID', 'date_rel_pair'))
+dss_m = dss_m[, .N, by = date_rel_pair]
 
 # pairwise sample size
-dss_f = unique(du[ID_splitting == 'ID2' & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-               by = c('nestID', 'datetime_rel_pair0'))
-dss_f = dss_f[, .N, by = datetime_rel_pair0]
+dss_f = unique(du[IDsplitting == 'ID2'], by = c('nestID', 'date_rel_pair'))
+dss_f = dss_f[, .N, by = date_rel_pair]
 
 # merge 
-dss = merge(dss_m[, .(N_m = N, datetime_rel_pair0)], dss_f[, .(N_f = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss = merge(dss_m[, .(N_m = N, date_rel_pair)], dss_f[, .(N_f = N, date_rel_pair)], by = 'date_rel_pair', all.x = TRUE)
 dss[, N_label := paste0(N_f, '/', N_m)]
 
 
@@ -1343,13 +1337,13 @@ dms[split_distance > 1000, split_distance1000 := 1000]
 
 ggplot() +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1005), fill = egg_laying_color) +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_label), vjust = 1, size = sample_size_label) +
+  geom_text(data = dss, aes(date_rel_pair, Inf, label = N_label), vjust = 1, size = sample_size_label) +
   geom_boxplot(data = dms, 
-               aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), 
+               aes(date_rel_pair, split_distance1000, group = interaction(date_rel_pair, sex), 
                    color = sex),
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = dms, 
-             aes(datetime_rel_pair0, split_distance1000, group = interaction(datetime_rel_pair0, sex), 
+             aes(date_rel_pair, split_distance1000, group = interaction(date_rel_pair, sex), 
                  color = sex), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '',
                      labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
@@ -1366,10 +1360,15 @@ ggplot() +
 
 # ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
-# model before clutch initiation
-dx = dms[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
 
-m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+
+
+# statistic
+
+### before clutch initiation
+dx = dms[period == "[-5,-1]"]
+
+m <- glmmTMB(split_distance ~ sex + date_rel_pair + initiation_rel + (date_rel_pair | nestID),
                family = gaussian, data = dx, REML = TRUE,
                control = glmmTMBControl(parallel = 15)
 )
@@ -1378,8 +1377,11 @@ m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation
 plot(allEffects(m))
 summary(m)
 
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
 
-# create clean summary table -----
+# create clean summary table
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -1391,30 +1393,33 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S10. GLMM split distance -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S12. GLMM split distance -5 to -1')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part 
 x = effect("sex", m, xlevels = 2) |>
   data.frame() |>
   setDT() |> 
   print()
 
-x = effect("scale(datetime_rel_pair0)", m, xlevels = 9) |>
+x = effect("date_rel_pair", m, xlevels = 9) |>
   data.frame() |>
   setDT() |> 
   print()
 
 
-# model during clutch initiation
-dx = dms[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
 
-m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation_rel) + (datetime_rel_pair0 | nestID),
+### during egg-laying
+dx = dms[period == "[0,3]"]
+
+m <- glmmTMB(split_distance ~ sex + date_rel_pair + initiation_rel + (date_rel_pair | nestID),
              family = gaussian, data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
@@ -1423,8 +1428,12 @@ m <- glmmTMB(split_distance ~ sex + scale(datetime_rel_pair0) + scale(initiation
 plot(allEffects(m))
 summary(m)
 
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
 
-# create clean summary table -----
+
+# create clean summary table
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -1436,34 +1445,26 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S11. GLMM split distance 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S13. GLMM split distance 0 to 3')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
 x = effect("sex", m, xlevels = 2) |>
   data.frame() |>
   setDT() |> 
   print()
 
-x = effect("scale(datetime_rel_pair0)", m, xlevels = 9) |>
+x = effect("date_rel_pair", m, xlevels = 9) |>
   data.frame() |>
   setDT() |> 
   print()
-
-# before and after clutch initiation
-x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
-x[datetime_rel_pair0 >= 0, .(fit = mean(fit), se = mean(se))]
-
-
-# before and after clutch initiation
-x[datetime_rel_pair0 <= -1, .(fit = mean(fit), se = mean(se))]
-x[datetime_rel_pair0 >= 0, .(fit = mean(fit), se = mean(se))]
-
 
 #--------------------------------------------------------------------------------------------------------------
 #' Nest attendance by sex
