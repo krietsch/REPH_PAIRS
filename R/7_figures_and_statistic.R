@@ -1950,57 +1950,55 @@ pa + pb + pc + pd + pe +
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding effect on extra-pair paternity
+#' Mate guarding intensity and extra-pair paternity
 #--------------------------------------------------------------------------------------------------------------
 
 # pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-dss = unique(du[any_EPY == FALSE & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
+du = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+dss = unique(du[anyEPY == FALSE & date_rel_pair >= -10 & date_rel_pair <= 10], 
+             by = c('nestID', 'date_rel_pair'))
+dss = dss[, .N, by = date_rel_pair]
 
 # pairwise sample size
-dss_epy = unique(du[any_EPY == TRUE & datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss_epy = dss_epy[, .N, by = datetime_rel_pair0]
+dss_epy = unique(du[anyEPY == TRUE & date_rel_pair >= -10 & date_rel_pair <= 10], 
+             by = c('nestID', 'date_rel_pair'))
+dss_epy = dss_epy[, .N, by = date_rel_pair]
 dss_epy
 
 # merge 
-dss = merge(dss, dss_epy[, .(N_epy = N, datetime_rel_pair0)], by = 'datetime_rel_pair0', all.x = TRUE)
+dss = merge(dss, dss_epy[, .(N_epy = N, date_rel_pair)], by = 'date_rel_pair', all.x = TRUE)
 dss[, N_epy_label := paste0(N, '/', N_epy)]
 
 # Proportion of time together breeders
-dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dps, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dps = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dps, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
-
-dp[, datetime_rel_pair_min := NULL]
 
 # N 
 du[, .N, by = pairID] |> nrow()
 du[, .N, by = nestID] |> nrow()
 
-du = du[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
+du = du[date_rel_pair >= -10 & date_rel_pair <= 10]
 
 # median per day
-dmd = du[, .(int_prop_median = median(int_prop)), by = datetime_rel_pair0]
+dmd = du[, .(int_prop_median = median(int_prop)), by = date_rel_pair]
 
 # order
-du[, any_EPY_plot := ifelse(any_EPY == TRUE, 'EPY', 'No EPY')]
+du[, any_EPY_plot := ifelse(anyEPY == TRUE, 'EPY', 'No EPY')]
 du[, any_EPY_plot := factor(any_EPY_plot, levels = c('No EPY', 'EPY'))]
 
 ### plot proportion of time together 
 pa = 
 ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
+  geom_text(data = dss, aes(date_rel_pair, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
-  geom_boxplot(data = du[!is.na(any_EPY)], 
-               aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot),
+  geom_boxplot(data = du[!is.na(anyEPY)], 
+               aes(date_rel_pair, int_prop, group = interaction(date_rel_pair, any_EPY_plot), color = any_EPY_plot),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_point(data = du[!is.na(any_EPY)], 
-             aes(datetime_rel_pair0, int_prop, group = interaction(datetime_rel_pair0, any_EPY_plot), color = any_EPY_plot), 
+  geom_point(data = du[!is.na(anyEPY)], 
+             aes(date_rel_pair, int_prop, group = interaction(date_rel_pair, any_EPY_plot), color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                      labels = c('No EPP', 'EPP'), drop = FALSE) +
@@ -2022,66 +2020,30 @@ pa
 # descriptive statistic
 
 # fertile period 
-du[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == TRUE & date_rel_pair >= -5 & date_rel_pair <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == FALSE & date_rel_pair >= -5 & date_rel_pair <= 2, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
 # before clutch initiation period 
-du[any_EPY == TRUE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[any_EPY == FALSE & datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == TRUE & date_rel_pair >= -5 & date_rel_pair <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == FALSE & date_rel_pair >= -5 & date_rel_pair <= -1, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
 # after clutch initiation period 
-du[any_EPY == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
-du[any_EPY == FALSE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == TRUE & date_rel_pair >= 0 & date_rel_pair <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
+du[anyEPY == FALSE & date_rel_pair >= 0 & date_rel_pair <= 3, quantile(int_prop, c(0.5, 0.25, 0.75), na.rm = TRUE)]
 
 
+### before clutch initiation
+dx = du[period == "[-5,-1]"]
+dx[, prop := int_prop]
 
-# before clutch initiation
-dx = dm[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+# beta models only accept proportion in the (0,1) interval
+dx[prop == 1, prop := 0.9999]
+dx[prop == 0, prop := 0.0001]
 
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table() 
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
-
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S14. GLMM together and EPY -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-
-# extract effect from model for plot
-e1 = effect("any_EPY", m, xlevels = 2) |>
-  data.frame() |>
-  setDT()
-
-
-# model before clutch initiation
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 2]
-
-m <- glmmTMB(interaction ~ scale(datetime_rel_pair0) + poly(initiation_rel, 2) + any_EPY + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+# model
+m <- glmmTMB(prop ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + anyEPY + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -2089,8 +2051,12 @@ m <- glmmTMB(interaction ~ scale(datetime_rel_pair0) + poly(initiation_rel, 2) +
 plot(allEffects(m))
 summary(m)
 
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
 
-# create clean summary table -----
+
+# create clean summary table
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -2102,17 +2068,72 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S15. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S16. GLMM together and EPY -5 to -1')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+
 # extract effect from model for plot
-e2 = effect("any_EPY", m, xlevels = 2) |>
+e1 = effect("anyEPY", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
+
+
+
+### during egg-laying fertile period
+dx = du[date_rel_pair >= 0 & date_rel_pair <= 2]
+dx[, prop := int_prop]
+
+# beta models only accept proportion in the (0,1) interval
+dx[prop == 1, prop := 0.9999]
+dx[prop == 0, prop := 0.0001]
+
+# model
+m <- glmmTMB(prop ~ date_rel_pair + poly(initiation_rel, 2) + anyEPY + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S17. GLMM together and EPY 0 to 2')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
+
+
+# extract effect from model for plot
+e2 = effect("anyEPY", m, xlevels = 2) |>
   data.frame() |>
   setDT()
 
@@ -2126,13 +2147,13 @@ e2[, type := '0 to 2']
 e = rbind(e1, e2)
 
 # pairwise sample size
-du = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = du[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= 2]
-du[, type := ifelse(datetime_rel_pair0 >= 0, '0 to 2', '-5 to -1')]
-dsss = unique(du[any_EPY == FALSE], by = c('nestID', 'type'))
+du = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = du[date_rel_pair >= -5 & date_rel_pair <= 2]
+du[, type := ifelse(date_rel_pair >= 0, '0 to 2', '-5 to -1')]
+dsss = unique(du[anyEPY == FALSE], by = c('nestID', 'type'))
 dsss = dsss[, .N, by = type]
 
-dsss_epy = unique(du[any_EPY == TRUE], by = c('nestID', 'type'))
+dsss_epy = unique(du[anyEPY == TRUE], by = c('nestID', 'type'))
 dsss_epy = dsss_epy[, .N, by = type]
 
 # merge 
@@ -2141,13 +2162,13 @@ dsss[, N_epy_label := paste0(N, '/', N_epy)]
 
 # p values
 dsp = data.table(type = c( '-5 to -1', '0 to 2'),
-                 p_value = c('p = 0.29', 'p = 0.20'))
+                 p_value = c('p = 0.61', 'p = 0.22'))
 
 
 p1 =
   ggplot() +
-  geom_point(data = e, aes(type, fit, group = interaction(any_EPY, type), color = any_EPY), position = position_dodge(width = 0.5)) +
-  geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = any_EPY), size = 0.3, position = position_dodge(width = 0.5)) +
+  geom_point(data = e, aes(type, fit, group = interaction(anyEPY, type), color = anyEPY), position = position_dodge(width = 0.5)) +
+  geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = anyEPY), size = 0.3, position = position_dodge(width = 0.5)) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                        labels = c('No EPP', 'EPP'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +

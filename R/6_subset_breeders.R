@@ -60,6 +60,9 @@ dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation 
 dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_f > 0, by = nestID]
 dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
+# any EPY as logic 
+dn[, anyEPY := as.logical(anyEPY)]
+
 # nest data
 dnID = dn[, .(year_, nestID, male_id, female_id, initiation, nest_state_date, anyEPY, m_tagged, f_tagged,
               lat_n = lat, lon_n = lon, female_clutch, male_clutch, clutch_together, overlap, both_tagged_overlapping)]
