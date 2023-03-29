@@ -1495,65 +1495,65 @@ dss[, .(mean = mean(first_nest_visit),
         max = max(first_nest_visit))]
 
 # Male and female together
-dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_int), N_int := 0]
 du[, int_prop := N_int / N]
 d0 = copy(du)
 
 # Proportion of time males at nest
-dms = dm[m_at_nest == TRUE, .(N_m_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[m_at_nest == TRUE, .(N_m_at_nest = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_m_at_nest), N_m_at_nest := 0]
 du[, m_at_nest_prop := N_m_at_nest / N]
 d1 = copy(du)
 
 # Proportion of time females at nest
-dms = dm[f_at_nest == TRUE, .(N_f_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[f_at_nest == TRUE, .(N_f_at_nest = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_f_at_nest), N_f_at_nest := 0]
 du[, f_at_nest_prop := N_f_at_nest / N]
 d2 = copy(du)
 
 # Proportion of time both at nest
-dms = dm[both_at_nest == TRUE, .(N_both_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[both_at_nest == TRUE, .(N_both_at_nest = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_both_at_nest), N_both_at_nest := 0]
 du[, both_at_nest_prop := N_both_at_nest / N]
 d3 = copy(du)
 
 # Proportion of time male alone at nest
-dms = dm[m_alone_at_nest == TRUE, .(N_m_alone_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[m_alone_at_nest == TRUE, .(N_m_alone_at_nest = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_m_alone_at_nest), N_m_alone_at_nest := 0]
 du[, m_alone_at_nest_prop := N_m_alone_at_nest / N]
 d4 = copy(du)
 
 # Proportion of time female alone at nest
-dms = dm[f_alone_at_nest == TRUE, .(N_f_alone_at_nest = .N), by = .(pairID, nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+dms = dm[f_alone_at_nest == TRUE, .(N_f_alone_at_nest = .N), by = .(pairID, nestID, date_rel_pair)]
+du = unique(dm, by = c('pairID', 'nestID', 'date_rel_pair'))
+du = merge(du, dms, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 du[is.na(N_f_alone_at_nest), N_f_alone_at_nest := 0]
 du[, f_alone_at_nest_prop := N_f_alone_at_nest / N]
 d5 = copy(du)
 
 # male alone and not at the nest
-d6 = merge(d0[, .(pairID, nestID, datetime_rel_pair0, int_prop)], 
-           d4[, .(pairID, nestID, datetime_rel_pair0, m_alone_at_nest_prop)], 
-           by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+d6 = merge(d0[, .(pairID, nestID, date_rel_pair, int_prop)], 
+           d4[, .(pairID, nestID, date_rel_pair, m_alone_at_nest_prop)], 
+           by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 d6[, m_alone_prop := 1 - c(int_prop + m_alone_at_nest_prop)]
 
 d6[, total := m_alone_prop + int_prop + m_alone_at_nest_prop]
 
 # female alone and not at the nest
-d7 = merge(d0[, .(pairID, nestID, datetime_rel_pair0, int_prop)], 
-           d5[, .(pairID, nestID, datetime_rel_pair0, f_alone_at_nest_prop)], 
-           by = c('pairID', 'nestID', 'datetime_rel_pair0'), all.x = TRUE)
+d7 = merge(d0[, .(pairID, nestID, date_rel_pair, int_prop)], 
+           d5[, .(pairID, nestID, date_rel_pair, f_alone_at_nest_prop)], 
+           by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 d7[, f_alone_prop := 1 - c(int_prop + f_alone_at_nest_prop)]
 
 d7[, total := f_alone_prop + int_prop + f_alone_at_nest_prop]
@@ -1561,14 +1561,14 @@ d7[, total := f_alone_prop + int_prop + f_alone_at_nest_prop]
 
 
 # merge data
-du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, type = 'm_f_together')],
-                    d1[, .(pairID, nestID, datetime_rel_pair0, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
-                    d2[, .(pairID, nestID, datetime_rel_pair0, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
-                    d3[, .(pairID, nestID, datetime_rel_pair0, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
-                    d4[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
-                    d5[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')],
-                    d6[, .(pairID, nestID, datetime_rel_pair0, prop = m_alone_prop, type = 'm_alone_prop')],
-                    d7[, .(pairID, nestID, datetime_rel_pair0, prop = f_alone_prop, type = 'f_alone_prop')]
+du = rbindlist(list(d0[, .(pairID, nestID, date_rel_pair, prop = int_prop, type = 'm_f_together')],
+                    d1[, .(pairID, nestID, date_rel_pair, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
+                    d2[, .(pairID, nestID, date_rel_pair, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
+                    d3[, .(pairID, nestID, date_rel_pair, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
+                    d4[, .(pairID, nestID, date_rel_pair, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
+                    d5[, .(pairID, nestID, date_rel_pair, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')],
+                    d6[, .(pairID, nestID, date_rel_pair, prop = m_alone_prop, type = 'm_alone_prop')],
+                    d7[, .(pairID, nestID, date_rel_pair, prop = f_alone_prop, type = 'f_alone_prop')]
 ))
 
 
@@ -1576,47 +1576,47 @@ du = rbindlist(list(d0[, .(pairID, nestID, datetime_rel_pair0, prop = int_prop, 
 # descriptive statistic
 
 # day before clutch initiation
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_at_nest_prop' & date_rel_pair == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & date_rel_pair == -1, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 # at clutch initiation
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_at_nest_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 # at clutch last day of egg laying
-du[type == 'f_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_at_nest_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_at_nest_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 ## without partner at nest
 # clutch initiation 
-du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_alone_at_nest_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_at_nest_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 # at clutch last day of egg laying
-du[type == 'f_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_alone_at_nest_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_alone_at_nest_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_at_nest_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 ### without partner away from nest
 # clutch initiation 
-du[type == 'f_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_alone_prop' & datetime_rel_pair0 == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_alone_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_prop' & date_rel_pair == 0, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 # at clutch last day of egg laying
-du[type == 'f_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
-du[type == 'm_alone_prop' & datetime_rel_pair0 == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'f_alone_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
+du[type == 'm_alone_prop' & date_rel_pair == 3, quantile(prop, c(0.5, 0.25, 0.75), na.rm = TRUE)] * 100
 
 
 
 
 # pairwise sample size
-dus = unique(dp, by = c('pairID', 'nestID', 'datetime_rel_pair0'))
+dus = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair'))
 dss = unique(dus[datetime_rel_pair >= -10 & datetime_rel_pair <= 10], 
-             by = c('nestID', 'datetime_rel_pair0'))
-dss = dss[, .N, by = datetime_rel_pair0]
+             by = c('nestID', 'date_rel_pair'))
+dss = dss[, .N, by = date_rel_pair]
 dss
 
 
@@ -1628,13 +1628,13 @@ dus[, type := factor(type, levels = c('m_at_nest_prop', 'f_at_nest_prop'))]
 # Males and females at the nest
 pa = 
 ggplot() +
-  geom_text(data = dss, aes(datetime_rel_pair0, Inf, label = N), vjust = 1, size = sample_size_label) +
+  geom_text(data = dss, aes(date_rel_pair, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = dus, 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = dus, 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
+             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'firebrick3'), name = '', 
                      labels = c('Male', 'Female'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
@@ -1658,10 +1658,10 @@ pd =
   geom_text(aes(-5.2, Inf, label = 'Male'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
+             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
                      labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
@@ -1684,10 +1684,10 @@ pe =
   geom_text(aes(-5.2, Inf, label = 'Female'), vjust = 1, hjust = 0, size = 3.3) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
-               aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type),
+               aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
-             aes(datetime_rel_pair0, prop, group = interaction(datetime_rel_pair0, type), color = type), position=position_jitterdodge(), size = 0.2) +
+             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), position=position_jitterdodge(), size = 0.2) +
   scale_color_manual(values = c('firebrick3', 'darkorange'), name = '', 
                      labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
@@ -1707,18 +1707,33 @@ pe
 
 # statistic 
 
-# during egg-laying male
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-m <- glmmTMB(m_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+# merge du with clutch initiation date
+dni = unique(dp[, .(nestID, initiation_rel)], by = 'nestID')
+du = merge(du, dni, by = 'nestID', all.x = TRUE)
+
+### during egg-laying male
+dx = du[type == 'm_at_nest_prop' & date_rel_pair >= 0 & date_rel_pair <= 3]
+
+# beta models only accept proportion in the (0,1) interval
+dx[prop == 1, prop := 0.9999]
+dx[prop == 0, prop := 0.0001]
+
+# model
+m <- glmmTMB(prop ~ date_rel_pair + initiation_rel + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
 plot(allEffects(m))
 summary(m)
 
-# create clean summary table -----
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
+
+# create clean summary table
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -1730,18 +1745,19 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S12. GLMM male at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S14. GLMM male at nest 0 to 3')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
 # descriptive part
-x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
+x = effect("initiation_rel", m, xlevels = 22) |>
   data.frame() |>
   setDT() |> 
   print() 
@@ -1751,7 +1767,7 @@ x[initiation_rel <= 0, .(fit = mean(fit), se = mean(se))] * 100
 x[initiation_rel >= 0, .(fit = mean(fit), se = mean(se))] * 100
 
 
-x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+x = effect("date_rel_pair", m, xlevels = 4) |>
   data.frame() |>
   setDT() |> 
   print() 
@@ -1760,32 +1776,32 @@ x[, .(fit = mean(fit), se = mean(se))] * 100
 
 
 # extract effect from model for plot
-e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
+e = effect("initiation_rel", m, xlevels = 100) |>
   data.frame() |>
   setDT()
 
 
 # data for points 
-dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dms = dm[period == "[0,3]"]
 dms[, N_nest_season := .N, by = .(pairID, nestID, initiation_rel)]
-du = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
-du[, .(min(N_nest_season), max(N_nest_season))] # check min and max
-du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+dus = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+dus[, .(min(N_nest_season), max(N_nest_season))] # check min and max
+dus[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
-dms = dm[m_at_nest == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, 
+dms = dm[m_at_nest == TRUE & period == "[0,3]", 
          .(N_m_at_nest = .N), by = .(pairID, nestID, initiation_rel)]
-du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
-du[is.na(N_m_at_nest), N_m_at_nest := 0]
-du[, m_at_nest_prop := N_m_at_nest / N_nest_season]
-d1 = copy(du)
+dus = merge(dus, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+dus[is.na(N_m_at_nest), N_m_at_nest := 0]
+dus[, m_at_nest_prop := N_m_at_nest / N_nest_season]
+d1 = copy(dus)
 
 # point sizes range
-du[, .(min(N_nest_season), max(N_nest_season))]
+dus[, .(min(N_nest_season), max(N_nest_season))]
 
 pb = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, color = 'steelblue4') +
+  geom_point(data = dus, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, color = 'steelblue4') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'steelblue4') +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
@@ -1806,10 +1822,17 @@ pb
 
 
 
-# during egg-laying female
-dx = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-m <- glmmTMB(f_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+### during egg-laying female
+dx = du[type == 'f_at_nest_prop' & date_rel_pair >= 0 & date_rel_pair <= 3]
+
+# beta models only accept proportion in the (0,1) interval
+dx[prop == 1, prop := 0.9999]
+dx[prop == 0, prop := 0.0001]
+
+# model
+m <- glmmTMB(prop ~ date_rel_pair + poly(initiation_rel, 2) + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = TRUE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -1817,7 +1840,11 @@ m <- glmmTMB(f_at_nest ~ poly(initiation_rel, 2) + scale(datetime_rel_pair0) + (
 plot(allEffects(m))
 summary(m)
 
-# create clean summary table -----
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m), type = 'partial')
+
+# create clean summary table
 y = tidy(m) |> data.table()
 x = r2(m) |> data.table() 
 
@@ -1829,17 +1856,19 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
 y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S13. GLMM female at nest 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S15. GLMM female at nest 0 to 3')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+
 # descriptive part
-x = effect("scale(initiation_rel)", m, xlevels = 22) |>
+x = effect("poly(initiation_rel,2)", m, xlevels = 22) |>
   data.frame() |>
   setDT() |> 
   print() 
@@ -1852,7 +1881,7 @@ x[initiation_rel >= 2 & initiation_rel <= 5, .(fit = mean(fit), se = mean(se))] 
 x[initiation_rel >= 6, .(fit = mean(fit), se = mean(se))] * 100
 
 
-x = effect("scale(datetime_rel_pair0)", m, xlevels = 4) |>
+x = effect("date_rel_pair", m, xlevels = 4) |>
   data.frame() |>
   setDT() |> 
   print() 
@@ -1867,27 +1896,27 @@ e = effect("poly(initiation_rel,2)", m, xlevels = 100) |>
 
 
 # data for points 
-dms = dm[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
+dms = dm[date_rel_pair >= 0 & date_rel_pair <= 3]
 dms[, N_nest_season := .N, by = .(pairID, nestID, initiation_rel)]
-du = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
-du[, .(min(N_nest_season), max(N_nest_season))] # check min and max
-du[, .(min(initiation_rel), max(initiation_rel))] # check min and max
+dus = unique(dms[!is.na(N_nest_season)], by = c('pairID', 'nestID', 'initiation_rel'))
+dus[, .(min(N_nest_season), max(N_nest_season))] # check min and max
+dus[, .(min(initiation_rel), max(initiation_rel))] # check min and max
 
 
-dms = dm[f_at_nest == TRUE & datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3, 
+dms = dm[f_at_nest == TRUE & date_rel_pair >= 0 & date_rel_pair <= 3, 
          .(N_f_at_nest = .N), by = .(pairID, nestID, initiation_rel)]
-du = merge(du, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
-du[is.na(N_f_at_nest), N_f_at_nest := 0]
-du[, f_at_nest_prop := N_f_at_nest / N_nest_season]
+dus = merge(dus, dms, by = c('pairID', 'nestID', 'initiation_rel'), all.x = TRUE)
+dus[is.na(N_f_at_nest), N_f_at_nest := 0]
+dus[, f_at_nest_prop := N_f_at_nest / N_nest_season]
 d1 = copy(du)
 
 # point sizes range
-du[, .(min(N_nest_season), max(N_nest_season))]
+dus[, .(min(N_nest_season), max(N_nest_season))]
 
 pc = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, color = 'firebrick3') +
+  geom_point(data = dus, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, color = 'firebrick3') +
   geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'firebrick3') +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, fill = 'firebrick3') +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
