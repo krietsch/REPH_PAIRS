@@ -52,7 +52,9 @@ dm[, .N, pairID] |> nrow()
 dm[, .N, nestID] |> nrow()
 
 # mean for each day
-dpm = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair, initiation_rel, N, year_)]
+dpmi = dp[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+dpm = unique(dp, by = c('pairID', 'nestID', 'date_rel_pair', 'initiation_rel', 'N', 'year_'))
+dpm = merge(dpm, dpmi, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 dpm[is.na(N_int), N_int := 0]
 dpm[, interaction_per_day := N_int / N]
 
@@ -65,7 +67,10 @@ dpm[, period := fcase(
 setorder(dpm, pairID, nestID, date_rel_pair)
 
 # random pairs
-drm = dr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair, initiation_rel, N, year_)]
+dr[, N := .N, by = .(pairID, nestID, date_rel_pair)]
+drmi = dr[interaction == TRUE, .(N_int = .N), by = .(pairID, nestID, date_rel_pair)]
+drm = unique(dr, by = c('pairID', 'nestID', 'date_rel_pair', 'initiation_rel', 'N', 'year_'))
+drm = merge(drm, drmi, by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
 drm[is.na(N_int), N_int := 0]
 drm[, interaction_per_day := N_int / N]
 
@@ -580,7 +585,7 @@ x = effect("poly(date_rel_pair,2)", m, xlevels = 5) |>
 x[, .(fit = mean(fit), se = mean(se))] * 100
 
 # pairs with more than 95% together
-d0[datetime_rel_pair0 == -2 & int_prop > 0.95] |> nrow()
+dpm[date_rel_pair == -2 & interaction_per_day > 0.95] |> nrow()
 
 
 
@@ -640,7 +645,7 @@ dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 dx[, year_ := as.character(year_)]
 
 # model
-m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + year_ + 
+m <- glmmTMB(interaction_per_day ~ date_rel_pair + poly(initiation_rel, 2) + 
                (date_rel_pair | nestID),
              family =  beta_family(link = "logit"), data = dx, REML = FALSE,
              control = glmmTMBControl(parallel = 15)
@@ -742,6 +747,13 @@ du = rbindlist(list(dpm[, .(pairID, nestID, year_, date_rel_pair, prop = interac
                    ))
 
 
+# pairwise sample size
+ds = unique(dpm, by = c('pairID', 'nestID', 'date_rel_pair'))
+dss = unique(du[date_rel_pair >= -10 & date_rel_pair <= 10], 
+             by = c('nestID', 'date_rel_pair'))
+dss = dss[, .N, by = date_rel_pair]
+dss
+
 # Plot time together breeding pairs vs. randomized pairs
 pa = 
 ggplot() +
@@ -751,7 +763,7 @@ ggplot() +
                aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
                lwd = 0.3, outlier.size = 0.7, outlier.alpha = 0) +
   geom_point(data = du, 
-             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), # shape = data_quality
+             aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
              position=position_jitterdodge(), size = 0.2) +
   # scale_shape_manual(values=c(20, 19)) +
   scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
@@ -796,69 +808,24 @@ pa + pb + pc +
 dmr[, nestID := pairID]
 
 # merge data
-dmx = rbindlist(list(dm[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)],
-                     dmr[, .(pairID, nestID, interaction, initiation_rel, datetime_rel_pair0, type)]))
+dprm = rbindlist(list(dpm[, .(pairID, nestID, year_, date_rel_pair, initiation_rel, interaction_per_day, 
+                              period, type = 'breeder')],
+                      drm[, .(pairID, nestID, year_, date_rel_pair, initiation_rel, interaction_per_day, 
+                              period, type = 'randomization')]
+))
 
 
-# model before clutch initiation
-dx = dmx[datetime_rel_pair0 >= -5 & datetime_rel_pair0 <= -1]
+### before clutch initiation
+dx = dprm[period == "[-5,-1]"]
 
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
-)
-
-
-plot(allEffects(m))
-summary(m)
-
-
-
-# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-#              family = binomial, data = dx, REML = TRUE,
-#              control = glmmTMBControl(parallel = 15)
-# )
-# 
-# 
-# plot(allEffects(m))
-# summary(m)
-
-
-# create clean summary table -----
-y = tidy(m) |> data.table()
-x = r2(m) |> data.table()
-
-
-setnames(x, c('estimate'))
-x[, estimate := as.numeric(estimate)]
-x[, term :=  c('r2cond', 'r2marg')]
-y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
-y[, row_order := rownames(y) |> as.numeric()]
-y = merge(y, pn, by.x = 'term', by.y = 'parname')
-setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
-
-# save table in word -----
-ft = flextable(y) |> autofit()
-ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S5. GLMM together vs. randomized -5 to -1')) |>  body_add_par('') |> body_add_flextable(ft)
-ESM = ESM |> body_add_break(pos = 'after')
-
-# extract effect from model for plot
-effect("type", m, xlevels = 2) |>
-  data.frame() |>
-  setDT() |> 
-  print()
-
-
-# model during laying
-dx = dmx[datetime_rel_pair0 >= 0 & datetime_rel_pair0 <= 3]
-
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
-             family = binomial, data = dx, REML = TRUE,
+# model
+m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) * type + poly(initiation_rel, 2) * type + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
              control = glmmTMBControl(parallel = 15)
 )
 
@@ -866,20 +833,14 @@ m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2)
 plot(allEffects(m))
 summary(m)
 
-
-# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-#              family = binomial, data = dx, REML = TRUE,
-#              control = glmmTMBControl(parallel = 15)
-# )
-# 
-# 
-# plot(allEffects(m))
-# summary(m)
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
 
 
-# create clean summary table -----
+# create clean summary table
 y = tidy(m) |> data.table()
-x = r2(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -889,49 +850,43 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S6. GLMM together vs. randomized 0 to 3')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S7. GLMM together vs. randomized -5 to -1')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
-# extract effect from model for plot
-effect("type", m, xlevels = 2) |>
-  data.frame() |>
-  setDT() |> 
-  print()
 
+### during egg-laying
+dx = dprm[period == "[0,3]"]
 
-# model after laying
-dx = dmx[datetime_rel_pair0 >= 4 & datetime_rel_pair0 <= 10]
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 
-
-m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) + poly(initiation_rel, 2) + type + (datetime_rel_pair0 | nestID),
-               family = binomial, data = dx, REML = TRUE,
-               control = glmmTMBControl(parallel = 15)
+# model
+m <- glmmTMB(interaction_per_day ~ date_rel_pair * type + poly(initiation_rel, 2) * type + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
 )
 
 
 plot(allEffects(m))
 summary(m)
 
-# m <- glmmTMB(interaction ~ poly(datetime_rel_pair0, 2) * type + poly(initiation_rel, 2) * type + (datetime_rel_pair0 | nestID),
-#              family = binomial, data = dx, REML = TRUE,
-#              control = glmmTMBControl(parallel = 15)
-# )
-# 
-# 
-# plot(allEffects(m))
-# summary(m)
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
 
 
-
-# create clean summary table -----
+# create clean summary table
 y = tidy(m) |> data.table()
-x = r2(m) |> data.table()
+x = r2(m) |> data.table() 
 
 
 setnames(x, c('estimate'))
@@ -941,21 +896,61 @@ y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
 y[, row_order := rownames(y) |> as.numeric()]
 y = merge(y, pn, by.x = 'term', by.y = 'parname')
 setorder(y, row_order)
-y = y[, .(parameter, estimate, s.e. = std.error, statistic, p = p.value)] # subset relevant
-y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
 
-# save table in word -----
+# save table in word
 ft = flextable(y) |> autofit()
 ft = bold(ft, bold = TRUE, part = "header")
-ESM = ESM |> body_add_par(paste0('Table S7. GLMM together vs. randomized 4 to 10')) |>  body_add_par('') |> body_add_flextable(ft)
+ESM = ESM |> body_add_par(paste0('Table S8. GLMM together vs. randomized 0 to 3')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
 
-# extract effect from model for plot
-effect("type", m, xlevels = 2) |>
-  data.frame() |>
-  setDT() |> 
-  print()
+### after egg-laying
+dx = dprm[period == "[4,10]"]
+
+# beta models only accept proportion in the (0,1) interval
+dx[interaction_per_day == 1, interaction_per_day := 0.9999]
+dx[interaction_per_day == 0, interaction_per_day := 0.0001]
+
+# model
+m <- glmmTMB(interaction_per_day ~ date_rel_pair * type + initiation_rel * type + 
+               (date_rel_pair | nestID),
+             family =  beta_family(link = "logit"), data = dx, REML = FALSE,
+             control = glmmTMBControl(parallel = 15)
+)
+
+
+plot(allEffects(m))
+summary(m)
+
+res <-simulateResiduals(m, plot = T)
+testDispersion(res) 
+acf(resid(m))
+
+
+# create clean summary table
+y = tidy(m) |> data.table()
+x = r2(m) |> data.table() 
+
+
+setnames(x, c('estimate'))
+x[, estimate := as.numeric(estimate)]
+x[, term :=  c('r2cond', 'r2marg')]
+y = rbindlist(list(y, x), use.names = TRUE, fill = TRUE)
+y[, row_order := rownames(y) |> as.numeric()]
+y = merge(y, pn, by.x = 'term', by.y = 'parname')
+setorder(y, row_order)
+y = y[, .(Parameter = parameter, Estimate = estimate, s.e. = std.error, Statistic = statistic, p = p.value)]
+y = y %>% mutate_if(is.numeric, ~round(., 3)) # round all numeric columns 
+
+# save table in word
+ft = flextable(y) |> autofit()
+ft = bold(ft, bold = TRUE, part = "header")
+ESM = ESM |> body_add_par(paste0('Table S9. GLMM together vs. randomized 4 to 10')) |>  body_add_par('') |> 
+  body_add_flextable(ft)
+ESM = ESM |> body_add_break(pos = 'after')
 
 
 #--------------------------------------------------------------------------------------------------------------

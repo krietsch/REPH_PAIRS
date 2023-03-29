@@ -353,7 +353,7 @@ d0a = d0a[Np_nb >= 0.5]
 ds = unique(d0a, by = c('pairID', 'date_', 'date_rel_pair'))
 
 # shuffle data
-set.seed(21)
+set.seed(210191)
 ds = ds[sample(dim(ds)[1])]
 
 # subset pairs
