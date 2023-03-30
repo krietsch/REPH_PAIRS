@@ -280,7 +280,7 @@ dp[breeding_pair == TRUE & sex1 == 'M',
      f_polyandrous_second, f_renesting_first, f_renesting_second, type = 'breeding pair')]
 
 # save data
-fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(dps, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Randomization for interaction base line
@@ -390,7 +390,7 @@ d0as = d0as[,
           initiation_day, initiation_rel, type = 'randomization')]
 
 # save data
-fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 
