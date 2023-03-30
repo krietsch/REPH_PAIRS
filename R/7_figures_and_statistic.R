@@ -136,6 +136,10 @@ dss = unique(du[date_rel_pair >= -10 & date_rel_pair <= 10],
 dss = dss[, .N, by = date_rel_pair]
 dss
 
+# samply size pairs and nests
+unique(du, by = 'nestID') |> nrow()
+unique(du, by = 'pairID') |> nrow()
+
 # plot data available
 dIDs[, sex := factor(sex, levels = c('F', 'M', 'pair'))]
 
@@ -190,6 +194,7 @@ dx = dm[period == "[-5,-1]"]
 unique(dx$nestID) |> length() # N nests
 dx |> nrow() # N observations
 
+
 # model
 m <- glmmTMB(interaction ~ sin(hh2rad(HH)) + cos(hh2rad(HH)) + 
                poly(initiation_rel, 2) + poly(datetime_rel_pair, 2) +
@@ -203,8 +208,8 @@ plot(allEffects(m))
 summary(m)
 
 res <-simulateResiduals(m, plot = T)
-testDispersion(res) # problems
-acf(resid(m), type = 'partial') # high autocorrelation
+testDispersion(res)
+acf(resid(m), type = 'partial') 
 
 
 # check effect of time of the day
@@ -223,7 +228,7 @@ ggplot(e, aes(y = fit, x = HH)) +
 # check effect size and when min and max
 e[, min(fit)]
 e[, max(fit)]
-e[, max(fit)] - e[, min(fit)] # not biological relevant
+(e[, max(fit)] - e[, min(fit)]) * 100 # not biological relevant
 
 e[fit == min(fit), .(HH)]
 e[fit == max(fit), .(HH)]
@@ -272,8 +277,8 @@ plot(allEffects(m))
 summary(m)
 
 res <-simulateResiduals(m, plot = T)
-testDispersion(res) # problems
-acf(resid(m), type = 'partial') # high autocorrelation
+testDispersion(res) 
+acf(resid(m), type = 'partial') 
 
 
 # check effect of time of the day
@@ -290,13 +295,12 @@ ggplot(e, aes(y = fit, x = HH)) +
   ylab("Proportion of time together") 
 
 # check effect size and when min and max
-e[, min(fit)]
-e[, max(fit)]
-e[, max(fit)] - e[, min(fit)] # biological relevant
+e[, min(fit)] * 100
+e[, max(fit)] * 100
+(e[, max(fit)] - e[, min(fit)]) * 100 # biological relevant
 
-e[fit == min(fit), .(HH)]
-e[fit == max(fit), .(HH)]
-
+e[fit == min(fit), .(HH, se)]
+e[fit == max(fit), .(HH, se)]
 
 # create clean summary table
 y = tidy(m) |> data.table()
@@ -378,6 +382,11 @@ ft = bold(ft, bold = TRUE, part = "header")
 ESM = ESM |> body_add_par(paste0('Table S3. GLMM together and year -5 to -1')) |>  body_add_par('') |> 
   body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
+
+# check effect of time of the day
+e = effect("year_", m, xlevels = 2) |>
+  data.frame() |>
+  setDT()
 
 
 ### during egg-laying
@@ -561,7 +570,7 @@ du = rbindlist(list(dpm[, .(pairID, nestID, year_, date_rel_pair, prop = interac
 
 # pairwise sample size
 ds = unique(dpm, by = c('pairID', 'nestID', 'date_rel_pair'))
-dss = unique(du[date_rel_pair >= -10 & date_rel_pair <= 10], 
+dss = unique(ds[date_rel_pair >= -10 & date_rel_pair <= 10], 
              by = c('nestID', 'date_rel_pair'))
 dss = dss[, .N, by = date_rel_pair]
 dss
@@ -609,7 +618,6 @@ dx |> nrow() # N observations
 dx[interaction_per_day == 1, interaction_per_day := 0.9999]
 dx[interaction_per_day == 0, interaction_per_day := 0.0001]
 
-dx[, year_ := as.character(year_)]
 
 # model
 m <- glmmTMB(interaction_per_day ~ poly(date_rel_pair, 2) + poly(initiation_rel, 2) + 
@@ -651,17 +659,16 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # descriptive part
-x = effect("poly(initiation_rel,2)", m, xlevels = 20) |>
+x = effect("poly(initiation_rel,2)", m, xlevels = 19) |>
   data.frame() |>
   setDT() |> 
   print()
 
-# more than 95% together 
-x[fit > 0.95] 
+x[fit > 0.90] 
 
 # before and after peak
 x[initiation_rel < -1, .(fit = mean(fit), se = mean(se))] * 100
-x[initiation_rel > 8, .(fit = mean(fit), se = mean(se))] * 100
+x[initiation_rel > 7, .(fit = mean(fit), se = mean(se))] * 100
 
 
 x = effect("poly(date_rel_pair,2)", m, xlevels = 5) |>
@@ -672,8 +679,10 @@ x = effect("poly(date_rel_pair,2)", m, xlevels = 5) |>
 x[, .(fit = mean(fit), se = mean(se))] * 100
 
 # pairs with more than 95% together
-dpm[date_rel_pair == -2 & interaction_per_day > 0.95] |> nrow()
+x[fit > 0.90] 
 
+dpm[date_rel_pair == -2 & interaction_per_day > 0.90] |> nrow()
+dpm[date_rel_pair == -2] |> nrow()
 
 
 # extract effect from model for plot
@@ -776,7 +785,7 @@ ESM = ESM |> body_add_break(pos = 'after')
 
 
 # descriptive part
-effect("poly(date_rel_pair,2)", m, xlevels = 4) |>
+effect("date_rel_pair", m, xlevels = 4) |>
   data.frame() |>
   setDT() |> 
   print() * 100
@@ -869,6 +878,10 @@ unique(dx$pairID) |> length() # N nests
 dx |> nrow() # N observations
 
 # by type
+dxu = unique(dx, by = c('nestID', 'type')) 
+dxu[, .N, by = type]
+dx[, .N, by = type]
+
 dxu = unique(dx, by = c('pairID', 'type')) 
 dxu[, .N, by = type]
 dx[, .N, by = type]
@@ -915,6 +928,11 @@ ESM = ESM |> body_add_par(paste0('Table S7. GLMM together vs. randomized -5 to -
   body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
+effect("type", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print() * 100
 
 ### during egg-laying
 dx = dprm[period == "[0,3]"]
@@ -924,6 +942,10 @@ unique(dx$pairID) |> length() # N nests
 dx |> nrow() # N observations
 
 # by type
+dxu = unique(dx, by = c('nestID', 'type')) 
+dxu[, .N, by = type]
+dx[, .N, by = type]
+
 dxu = unique(dx, by = c('pairID', 'type')) 
 dxu[, .N, by = type]
 dx[, .N, by = type]
@@ -970,6 +992,11 @@ ESM = ESM |> body_add_par(paste0('Table S8. GLMM together vs. randomized 0 to 3'
   body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
+effect("type", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print() * 100
 
 ### after egg-laying
 dx = dprm[period == "[4,10]"]
@@ -977,6 +1004,15 @@ dx = dprm[period == "[4,10]"]
 # sample size
 unique(dx$nestID) |> length() # N nests
 dx |> nrow() # N observations
+
+# by type
+dxu = unique(dx, by = c('nestID', 'type')) 
+dxu[, .N, by = type]
+dx[, .N, by = type]
+
+dxu = unique(dx, by = c('pairID', 'type')) 
+dxu[, .N, by = type]
+dx[, .N, by = type]
 
 # beta models only accept proportion in the (0,1) interval
 dx[interaction_per_day == 1, interaction_per_day := 0.9999]
@@ -1020,6 +1056,11 @@ ESM = ESM |> body_add_par(paste0('Table S9. GLMM together vs. randomized 4 to 10
   body_add_flextable(ft)
 ESM = ESM |> body_add_break(pos = 'after')
 
+# descriptive part
+effect("type", m, xlevels = 2) |>
+  data.frame() |>
+  setDT() |> 
+  print() * 100
 
 #--------------------------------------------------------------------------------------------------------------
 #' Female moves away
@@ -1397,6 +1438,7 @@ dms[, delta_split := split_distance - stay_distance]
 
 dms[stay_distance > 30, median(delta_split)]
 dms[stay_distance > 30, min(delta_split)]
+dms[stay_distance > 30, max(delta_split)]
 
 ggplot(data = dms[stay_distance > 30]) +
   geom_histogram(aes(x = delta_split)) +
@@ -2156,7 +2198,7 @@ du[anyEPY == FALSE & date_rel_pair >= 0 & date_rel_pair <= 3, quantile(int_prop,
 
 
 ### before clutch initiation
-dx = du[period == "[-5,-1]"]
+dx = du[!is.na(anyEPY) & period == "[-5,-1]"]
 dx[, prop := int_prop]
 
 # sample size
@@ -2219,7 +2261,7 @@ e1 = effect("anyEPY", m, xlevels = 2) |>
 
 
 ### during egg-laying fertile period
-dx = du[date_rel_pair >= 0 & date_rel_pair <= 2]
+dx = du[!is.na(anyEPY) & date_rel_pair >= 0 & date_rel_pair <= 2]
 dx[, prop := int_prop]
 
 # sample size
@@ -2420,7 +2462,7 @@ dus[anyEPY == FALSE & date_rel_pair >= -5 & date_rel_pair <= 3, mean(f_split_pro
 # Statistic females moving away
 
 ### before clutch initiation
-dx = dp[split == TRUE & period == "[-5,-1]"]
+dx = dp[!is.na(anyEPY) & split == TRUE & period == "[-5,-1]"]
 dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
@@ -2478,7 +2520,7 @@ e1 = effect("anyEPY", m, xlevels = 2) |>
 
 
 ### during egg-laying
-dx = dp[split == TRUE & date_rel_pair >= 0 & date_rel_pair <= 2]
+dx = dp[!is.na(anyEPY) & split == TRUE & date_rel_pair >= 0 & date_rel_pair <= 2]
 dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
@@ -2637,13 +2679,13 @@ p1 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', 
+  scale_x_date(date_breaks = '2 day', date_labels = '%d',  #  %b to add month
                limits = c(as.Date('2019-06-11'), as.Date('2019-07-01')), guide = "axis_minor" ) +
   theme_classic(base_size = 10) +
   theme(legend.position = c(0.9, 0.88), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank(), ggh4x.axis.ticks.length.minor = rel(1)) +
   guides(size = "none") +
-  ylab('Proportion of time together') +
+  ylab('') +
   xlab('')
 
 p1
@@ -2665,10 +2707,10 @@ p2 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '2 day', date_labels = '%d %b',guide = "axis_minor") +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d',guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
+  ylab('') +
   xlab('')
 
 p2
@@ -2688,10 +2730,10 @@ p3 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', guide = "axis_minor") +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d', guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
-  ylab('Proportion of time together') +
+  ylab('') +
   xlab('')
 p3
 
@@ -2710,11 +2752,11 @@ p4 =
   scale_y_continuous(limits = c(-0.07, 1.07), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0))) +
-  scale_x_date(date_breaks = '2 day', date_labels = '%d %b', guide = "axis_minor") +
+  scale_x_date(date_breaks = '2 day', date_labels = '%d', guide = "axis_minor") +
   theme_classic(base_size = 10) +
   theme(legend.position = 'none', legend.background = element_blank(), plot.margin = margin_) +
   ylab('Proportion of time together') +
-  xlab('Date')
+  xlab('Date (June)')
 
 p4
 
@@ -2724,7 +2766,7 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 129, height = 200, units = c('mm'), dpi = 'print')
 
 
 
@@ -2732,7 +2774,7 @@ ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = las
 
 
 # save word file
-print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
+# print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
 
 
