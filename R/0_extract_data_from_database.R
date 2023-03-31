@@ -370,10 +370,11 @@ st_transform_DT(d)
 point_over_poly_DT(d, poly = study_site, buffer = 0)
 setnames(d, 'poly_overlap', 'study_site')
 
+setorder(d, datetime_)
 
 # subset data relevant for this study
-d = d[, .(obs_id, datetime_, lat, lon, study_site, sex, UL, UR, LL, LR, ID, habitat, aggres, displ, cop, 
-          cop_inv, flight, voc, maint, spin, comments)]
+d = d[, .(obs_id, datetime_, lat = lat_dec, lon = lon_dec, study_site, sex, UL, UR, LL, LR, ID, habitat, 
+          aggres, displ, cop, cop_inv, flight, voc, maint, spin, comments)]
 
 # check data
 summary(d)
@@ -381,5 +382,4 @@ sapply(d, function(x) sum(is.na(x)))
 
 # save data
 # write.table(d, './DATA/OBSERVATIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
-
 

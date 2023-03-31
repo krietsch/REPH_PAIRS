@@ -2770,12 +2770,148 @@ p1 + p2 + p3 + p4 +
 
 
 
-
-
-
 # save word file
 # print(ESM, target = "./OUTPUTS/ESM/ESM_REPH_PAIRS.docx")
 
 
+#--------------------------------------------------------------------------------------------------------------
+#' Behavioural observations
+#--------------------------------------------------------------------------------------------------------------
+
+# Data
+d = fread('./DATA/OBSERVATIONS.txt', sep = '\t', header = TRUE) %>% data.table
+
+### Following flights
+
+# Total observations
+unique(d, by = 'obs_id') |> nrow()
+
+# How many ID at observations?
+d[, N_ind_int := .N, by = obs_id]
+
+# How many observations with at least two IDs and a flight?
+d[, any_flights := any(flight %like% 'F'), by = obs_id]
+
+# Total with at least 2 IDs
+unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
+
+# Total with a flight initiator scored
+d[, any_F1 := any(flight == 'F1'), by = obs_id]
+d[, any_F0 := any(flight == 'F0'), by = obs_id]
+
+# subset relevant data
+ds = d[!is.na(sex) & N_ind_int > 1 & any_F1 == TRUE]
+
+# Flight imitator scored
+ds[flight == 'F1'] |> nrow()
+
+# Female initiating
+ds[sex == 'F' & flight == 'F1'] |> nrow()
+
+# Any male following?
+ds[, any_male_F0 := any(flight == 'F0' & sex == 'M'), by = obs_id]
+unique(ds[N_ind_int > 1 & sex == 'F' & flight == 'F1' & any_male_F0 == TRUE], by = 'obs_id') |> nrow()
+
+# Male initiating
+ds[sex == 'M' & flight == 'F1'] |> nrow()
+
+# Any female following?
+ds[, any_female_F0 := any(flight == 'F0' & sex == 'F'), by = obs_id]
+unique(ds[N_ind_int > 1 & sex == 'M' & flight == 'F1' & any_female_F0 == TRUE], by = 'obs_id') |> nrow()
+
+# Summary  
+round(88/153 * 100, 0) # percent of females initiating when scored
+round(72/88 * 100, 0)  # percent male following 
+
+round(65/153 * 100, 0) # percent of males initiating when scored
+round(49/65 * 100, 0)  # percent female following 
 
 
+
+### Aggressive interactions 
+
+# How many observations with at least two IDs and a aggression?
+d[, any_aggres := any(!is.na(aggres)), by = obs_id]
+
+# Total with at least 2 IDs
+unique(d[N_ind_int > 1], by = 'obs_id') |> nrow()
+
+# Total with a aggression
+unique(d[N_ind_int > 1 & any_aggres == TRUE], by = 'obs_id') |> nrow()
+148/2876 * 100
+unique(d[N_ind_int > 2 & any_aggres == TRUE], by = 'obs_id') |> nrow()
+72/2876 * 100
+
+# Total with a aggression initiator scored
+d[, any_1_obs_id := any(aggres %like% '1'), by = obs_id]
+d[, any_0_obs_id := any(aggres %like% '0'), by = obs_id]
+
+# for each aggression
+d[, any_1 := any(aggres %like% '1'), by = 1:nrow(d)]
+d[, any_0 := any(aggres %like% '0'), by = 1:nrow(d)]
+
+# both sexes aggressive in one observation
+d[, pair_1 := any(any_1 == TRUE & sex == 'F') & any(any_1 == TRUE & sex == 'M'), by = obs_id]
+
+# Which sex was target?
+d[, any_female_0 := any(aggres %like% '0' & sex == 'F'), by = obs_id]
+d[, any_male_0 := any(aggres %like% '0' & sex == 'M'), by = obs_id]
+
+# subset relevant data
+ds = d[!is.na(sex) & N_ind_int > 1 & any_1_obs_id == TRUE]
+
+# Aggression imitator scored
+ds[any_1 == TRUE] |> nrow()
+
+# Male initiating
+ds[sex == 'M' & any_1 == TRUE] |> nrow()
+
+# Female initiating
+ds[sex == 'F' & any_1 == TRUE] |> nrow()
+
+# Pair initiating
+ds[pair_1 == TRUE & any_1 == TRUE] |> nrow()
+
+# Direction of aggression
+ds[sex == 'M' & any_1 == TRUE & any_female_0 == TRUE] |> nrow()
+ds[sex == 'M' & any_1 == TRUE & any_male_0 == TRUE] |> nrow()
+
+ds[sex == 'F' & any_1 == TRUE & any_female_0 == TRUE] |> nrow()
+ds[sex == 'F' & any_1 == TRUE & any_male_0 == TRUE] |> nrow()
+
+# Summary 
+round(62/144 * 100, 0) # male initiated
+round(40/61 * 100, 0) # percent of male aggression against females
+round(25/61 * 100, 0) # percent of male aggression against males
+
+round(82/144 * 100, 0) # female initiated
+round(46/80 * 100, 0) # percent of female aggression against females
+round(34/80 * 100, 0) # percent of female aggression against males
+
+round(9/144 * 100, 0) # pair initiated
+
+
+### Copulations
+
+# subset data
+ds = d[!is.na(cop)]
+
+# initiators
+ds[, initiator := like(cop, '1')]
+ds[, .(cop, initiator)]
+
+# N observations 
+ds |> nrow()
+ds[initiator == TRUE] |> nrow()
+ds[sex == 'M' & initiator == TRUE] |> nrow()
+ds[sex == 'F' & initiator == TRUE] |> nrow()
+
+# Summary
+round(82/113 * 100, 0) # Male initiated copulation
+round(31/113 * 100, 0) # Female initiated copulation
+
+
+
+
+# all packages used
+sessionInfo()
