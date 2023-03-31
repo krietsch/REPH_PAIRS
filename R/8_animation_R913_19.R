@@ -8,7 +8,7 @@
 source('./R/8_animation_data.R')
 
 # subset pair
-dIDs = dID[nestID == 'R913_19'] # pair with longest flight
+dIDs = dID[nestID == 'R913_19'] 
 
 # Set path to folder where it creates the pictures
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/PAIR_EXAMPLES/', dIDs$nestID)
