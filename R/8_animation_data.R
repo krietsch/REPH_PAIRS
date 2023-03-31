@@ -31,7 +31,6 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 
 # Data
 dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE) %>% data.table
-dID[, nest := substr(nestID, 1, nchar(nestID)-3)]
 
 d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 d = d[filtered == TRUE]
@@ -43,6 +42,8 @@ dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data
 st_transform_DT(dn) # change projection
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), 
                                 format = '%m-%d %H:%M:%S', tz = 'UTC')]
+dn[, nest := substr(nestID, 1, nchar(nestID)-3)]
+
 
 # add male and female symbol as legend
 # library(showtext)
@@ -101,7 +102,7 @@ x_symbol = ggplot() +
 du = unique(dp[, .(pairID, year_, ID1, ID2, sex1, sex2, nestID, initiation, initiation_rel)], by = 'nestID')
 
 # merge with nest location
-dID = merge(du, dn[, .(nestID, lat_n = lat, lon_n = lon, clutch_size, egg1, egg2, egg3, egg4, 
+dID = merge(du, dn[, .(nestID, nest, lat_n = lat, lon_n = lon, clutch_size, egg1, egg2, egg3, egg4, 
                        nest_state_date)], by = 'nestID', all.x = TRUE)
 
 # merge d with defined interactions

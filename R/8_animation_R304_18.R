@@ -84,9 +84,9 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
 
   # nest dot
   if(tmp_date < dIDs$initiation){
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 5)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#e3c099', size = 1.6)
   } else {
-    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 5)
+    p = bm + geom_point(data = dIDs, aes(lon_n, lat_n), color = '#c38452', size = 1.6)
   }
 
 

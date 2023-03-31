@@ -14,8 +14,7 @@ dIDs = dID[nestID == 'R220_19']
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/PAIR_EXAMPLES/', dIDs$nestID)
 
 # subset all data from this pair
-# dmf = d[nestID == dIDs[, nestID]]
-dmf = d[ID %in% c(dIDs$ID1, dIDs$ID2)]
+dmf = d[nestID == dIDs[, nestID]]
 
 # subset period around interactions
 dmf[, first_int := min(first_int, na.rm = TRUE)]
