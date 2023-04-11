@@ -76,7 +76,7 @@ reph_egg = image_read('./DATA/REPH_EGG.png')
 reph_egg = ggplot() +
   background_image(reph_egg) + 
   coord_fixed() +
-  theme_void()
+  theme_void() + theme(aspect.ratio = 144 / 109)
 
 # cross for predation event
 
