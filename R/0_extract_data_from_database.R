@@ -372,8 +372,11 @@ setnames(d, 'poly_overlap', 'study_site')
 
 setorder(d, datetime_)
 
+# year 
+d[, year_ := year(datetime_)]
+
 # subset data relevant for this study
-d = d[, .(obs_id, datetime_, lat = lat_dec, lon = lon_dec, study_site, sex, UL, UR, LL, LR, ID, habitat, 
+d = d[, .(year_, datetime_, obs_id, ID, UL, UR, LL, LR, sex, lat = lat_dec, lon = lon_dec, study_site, habitat, 
           aggres, displ, cop, cop_inv, flight, voc, maint, spin, comments)]
 
 # check data
