@@ -14,8 +14,13 @@ dIDs = dID[nestID == 'R913_19']
 tmp_path = paste0('//ds/grpkempenaers/Hannes/temp/PAIR_EXAMPLES/', dIDs$nestID)
 
 # subset all data from this pair
-# dmf = d[nestID == dIDs[, nestID]]
-dmf = d[ID %in% c(dIDs$ID1, dIDs$ID2)]
+dmf = d[nestID == dIDs[, nestID]]
+
+# add data after female left
+last_pairwise_data = dmf$datetime_ |> max()
+dmfs = d[ID %in% c(dIDs$ID1, dIDs$ID2) & datetime_ > last_pairwise_data]
+
+dmf = rbind(dmf, dmfs)
 
 # subset period around interactions
 dmf[, first_int := min(first_int, na.rm = TRUE)]
@@ -88,7 +93,7 @@ zoom_start1  = ts[139]$date
 zoom_length1 = 45 # number of 10 min intervals
 
 # zoom back in 
-zoom_start2  = ts[278]$date
+zoom_start2  = ts[285]$date
 zoom_length2 = 45 # number of 10 min intervals
 
 # first zoom out
@@ -140,18 +145,6 @@ dI[datetime_ > dIDs$egg4, egg := 4]
 dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(1.6, 20))), by = egg] # size
 
 
-# add nest predation animation
-dP = data.table( datetime_ = seq(round(dIDs$nest_state_date, '10 mins'), round(dIDs$nest_state_date, '10 mins') + 
-                                   60*60*10, by = '10 mins') )
-
-dP[, lat := dIDs$lat_n]
-dP[, lon := dIDs$lon_n]
-
-dP[, s:= rev(sizeAlong( datetime_, head = 10, to = c(1.6, 20)))] # size
-
-
-
-
 # subset for test
 # ts = ts[900:1150, ]
 # ts = ts[900:905, ]
@@ -192,7 +185,6 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
   tmp_date = ts[i]$date   # current date
   ds = dmf[datetime_ %between% c(tmp_date - 60*60*24, tmp_date)]
   dsI = dI[datetime_ %between% c(tmp_date - 60*10, tmp_date)]
-  dsP = dP[datetime_ %between% c(tmp_date - 60*10, tmp_date)]
   
   # create alpha and size
   if (nrow(ds) > 0) ds[, a:= alphaAlong(datetime_, head = 30, skew = -2) ,     by = ID] # alpha
@@ -210,10 +202,7 @@ foreach(i = 1:nrow(ts), .packages = c('scales', 'ggplot2', 'lubridate', 'stringr
     
     # egg laying animation
     geom_point(data = dsI, aes(lon, lat), color = '#c38452', size = dsI$s, shape = 21) + 
-    
-    # nest predation
-    geom_point(data = dsP, aes(lon, lat), color = 'indianred3', size = dsP$s, shape = 21) + 
-    
+
     # track
     geom_path(data = ds, aes(x = lon, y = lat, group = ID, color = sex), alpha = ds$a, linewidth = ds$s, 
               lineend = "round", show.legend = FALSE) +

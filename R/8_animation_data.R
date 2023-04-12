@@ -127,6 +127,7 @@ d[, ID := as.character(ID)]
 
 # distance label
 d[!is.na(distance_pair), distance_pair_label := paste0(distance_pair, ' m  ')]
+d[is.na(distance_pair), distance_pair_label := '']
 
 # plot all pairs to check
 # bm = create_colored_bm(d[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)

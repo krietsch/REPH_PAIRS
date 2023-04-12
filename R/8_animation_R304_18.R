@@ -52,7 +52,7 @@ dI[datetime_ %between% c(dIDs$egg2, dIDs$egg3), egg := 2]
 dI[datetime_ %between% c(dIDs$egg3, dIDs$egg4), egg := 3]
 dI[datetime_ > dIDs$egg4, egg := 4]
 
-dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(2.5, 20))), by = egg] # size
+dI[, s:= rev(sizeAlong( datetime_, head = 10, to = c(1.6, 20))), by = egg] # size
 
 
 
