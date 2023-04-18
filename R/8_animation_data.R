@@ -63,7 +63,7 @@ dn[, nest := substr(nestID, 1, nchar(nestID)-3)]
 # showtext_auto(enable = FALSE, record = TRUE)
 
 # load as png
-fm_symbol = image_read('./DATA/FM_SYMBOL.png')
+fm_symbol = image_read('./DATA/ILLUSTRATIONS/FM_SYMBOL.png')
 
 fm_symbol = ggplot() +
   background_image(fm_symbol) + 
@@ -71,7 +71,7 @@ fm_symbol = ggplot() +
   theme_void()
 
 # add egg image
-reph_egg = image_read('./DATA/REPH_EGG.png')
+reph_egg = image_read('./DATA/ILLUSTRATIONS/REPH_EGG.png')
 
 reph_egg = ggplot() +
   background_image(reph_egg) + 
@@ -86,7 +86,7 @@ reph_egg = ggplot() +
 # 
 # ggsave('./DATA/X_SYMBOL.png', plot = last_plot(), width = 500, height = 500, units = c('px'), dpi = 'print')
 
-x_symbol = image_read('./DATA/X_SYMBOL.png')
+x_symbol = image_read('./DATA/ILLUSTRATIONS/X_SYMBOL.png')
 
 x_symbol = ggplot() +
   background_image(x_symbol) + 
