@@ -31,6 +31,11 @@ margin_top = unit(c(2, 2, 6, 2), 'pt')
 sample_size_label = 2.5
 egg_laying_color = 'grey85'
 
+male_col = 'steelblue4'
+female_col = 'indianred3'# 'firebrick3'
+col1 = '#7aa048' # '#7aa048'
+col2 = '#E69F00' 
+
 # assign periods
 dp[, period := fcase(
   date_rel_pair >= -5 & date_rel_pair <= -1, "[-5,-1]", 
@@ -156,7 +161,7 @@ dp[interaction == TRUE, max(datetime_rel_pair)]
 ggplot(data = dp) +
   geom_rect(aes(xmin = 0, xmax = 3, ymin = -Inf, ymax = Inf), fill = egg_laying_color) +
   geom_tile(aes(datetime_rel_pair, nestID, fill = interaction), width = 0.5, show.legend = TRUE) +
-  scale_fill_manual(values = c('TRUE' = 'steelblue4', 'FALSE' = 'darkorange'), name = '', 
+  scale_fill_manual(values = c('TRUE' = col1, 'FALSE' = col2), name = '', 
                     labels = c('Not together', 'Together'), drop = FALSE) +
   geom_vline(aes(xintercept = 0), color = 'black', size = 0.2) +
   geom_vline(aes(xintercept = 3), color = 'black', size = 0.2) +
@@ -166,7 +171,7 @@ ggplot(data = dp) +
   theme(legend.position = c(0.07, 0.95), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank())
 
-# ggsave('./OUTPUTS/FIGURES/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, units = c('mm'), dpi = 'print')
 
 dp[, nestID := as.character(nestID)]
 
@@ -485,7 +490,7 @@ p1 =
              aes(date_rel_pair, interaction_per_day, group = interaction(date_rel_pair, year_cha), 
                  color = year_cha), # shape = data_quality
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('2018', '2019'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -531,9 +536,9 @@ p2 =
   geom_linerange(data = dss, aes(y = year_, xmin = q75, xmax = q25, color = year_), size = 0.3) +
   
   geom_text(data = dss, aes(Inf, year_, label = N), hjust = 1, size = sample_size_label) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('2018', '2019'), drop = FALSE) +
-  scale_fill_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_fill_manual(values = c(col1, col2), name = '', 
                     labels = c('2018', '2019'), drop = FALSE) +
   scale_x_continuous(limits = c(-16, 16), breaks = seq(-16, 16, 1), 
                      labels = xy$seq2,
@@ -551,7 +556,7 @@ p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 
-# ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -587,7 +592,7 @@ pa =
              aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type),
              position=position_jitterdodge(), size = 0.2) +
   # scale_shape_manual(values=c(20, 19)) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('Breeding pair', 'Random pair'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -711,10 +716,10 @@ du[, .(min(N_ini), max(N_ini))]
 pb = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = col1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = col1) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'steelblue4') +
+              fill = col1) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -820,10 +825,10 @@ du[, .(min(N_ini), max(N_ini))]
 pc = 
   ggplot() +
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
-  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+  geom_point(data = du, aes(initiation_rel, int_prop, size = N_ini), shape = 1, color = col1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = col1) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'steelblue4') +
+              fill = col1) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -849,7 +854,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1102,9 +1107,9 @@ pa =
   geom_text(data = dss, aes(date_rel_pair, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_rect(aes(xmin = -0.5, xmax = 3.5, ymin = -0.01, ymax = 1), fill = egg_laying_color) +
   geom_boxplot(data = du, 
-               aes(date_rel_pair, f_split_prop, group = interaction(date_rel_pair)), colour = 'steelblue4',
+               aes(date_rel_pair, f_split_prop, group = interaction(date_rel_pair)), colour = col1,
                lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0) +
-  geom_jitter(data = du, aes(date_rel_pair, f_split_prop), colour = 'steelblue4', size = 0.5) + 
+  geom_jitter(data = du, aes(date_rel_pair, f_split_prop), colour = col1, size = 0.5) + 
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10'),
@@ -1217,10 +1222,10 @@ pb =
   geom_text(aes(-7.8, Inf, label = 'Day -5 to -1'), vjust = 1, hjust = 0, size = 3.3) +
   geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1, 
-             color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+             color = col1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = col1) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'steelblue4') +
+              fill = col1) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -1334,10 +1339,10 @@ pc =
   geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
   geom_hline(yintercept = 0.5, color = 'black', linetype = 'dashed') +
   geom_point(data = du, aes(initiation_rel, split_prop, size = N_splits_season), shape = 1, 
-             color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+             color = col1) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = col1) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'steelblue4') +
+              fill = col1) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -1363,7 +1368,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
 #' Number of separating flights 
@@ -1390,9 +1395,9 @@ ggplot() +
   geom_text(data = dss, aes(date_rel_pair, Inf, label = N), vjust = 1, size = sample_size_label) +
   geom_boxplot(data = dms, 
                aes(date_rel_pair, N_split, group = interaction(date_rel_pair)),
-               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0, color = 'steelblue4') +
+               lwd = 0.4, outlier.size = 0.7, outlier.alpha = 0, color = col1) +
   geom_point(data = dms, 
-             aes(date_rel_pair, N_split, group = interaction(date_rel_pair)), color = 'steelblue4', 
+             aes(date_rel_pair, N_split, group = interaction(date_rel_pair)), color = col1, 
              position=position_jitter(height = 0), size = 0.2) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -1407,7 +1412,7 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -1474,7 +1479,7 @@ ggplot() +
   geom_point(data = dms, 
              aes(date_rel_pair, split_distance1000, group = interaction(date_rel_pair, sex), 
                  color = sex), position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'steelblue4'), name = '',
+  scale_color_manual(values = c(female_col, male_col), name = '',
                      labels = c('Female moves away', 'Male moves away'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -1487,7 +1492,7 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-# ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -1784,7 +1789,7 @@ ggplot() +
   geom_point(data = dus, 
              aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'firebrick3'), name = '', 
+  scale_color_manual(values = c(female_col, male_col), name = '', 
                      labels = c('Male', 'Female'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -1812,7 +1817,7 @@ pd =
   geom_point(data = du[type == 'm_alone_prop' | type == 'm_alone_at_nest_prop'], 
              aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(male_col, col2), name = '', 
                      labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
@@ -1839,7 +1844,7 @@ pe =
   geom_point(data = du[type == 'f_alone_prop' | type == 'f_alone_at_nest_prop'], 
              aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('firebrick3', 'darkorange'), name = '', 
+  scale_color_manual(values = c(female_col, col2), name = '', 
                      labels = c('at nest', 'not at nest'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
@@ -1955,12 +1960,12 @@ dus[, .(min(N_nest_season), max(N_nest_season))]
 
 pb = 
   ggplot() +
-  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3 (Male)'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = dus, aes(initiation_rel, m_at_nest_prop, size = N_nest_season), shape = 1, 
-             color = 'steelblue4') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'steelblue4') +
+             color = male_col) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = male_col) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'steelblue4') +
+              fill = male_col) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -2076,12 +2081,12 @@ dus[, .(min(N_nest_season), max(N_nest_season))]
 
 pc = 
   ggplot() +
-  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3'), vjust = 1, hjust = 0, size = 3.3) +
+  geom_text(aes(-7.8, Inf, label = 'Day 0 to 3 (Female)'), vjust = 1, hjust = 0, size = 3.3) +
   geom_point(data = dus, aes(initiation_rel, f_at_nest_prop, size = N_nest_season), shape = 1, 
-             color = 'firebrick3') +
-  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = 'firebrick3') +
+             color = female_col) +
+  geom_line(data = e, aes(y = fit, x = initiation_rel), size = 0.8, color = female_col) +
   geom_ribbon(data = e, aes(y = fit, x = initiation_rel, ymin = lower, ymax = upper), alpha = 0.2, 
-              fill = 'firebrick3') +
+              fill = female_col) +
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
@@ -2109,7 +2114,7 @@ pa + pb + pc + pd + pe +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
@@ -2165,7 +2170,7 @@ ggplot() +
              aes(date_rel_pair, int_prop, group = interaction(date_rel_pair, any_EPY_plot), 
                  color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('No EPP', 'EPP'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-5, 5, 1), 
                      labels = c('', '-4', '', '-2', '', '0', 
@@ -2354,7 +2359,7 @@ p1 =
              position = position_dodge(width = 0.5)) +
   geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = anyEPY), size = 0.3, 
                  position = position_dodge(width = 0.5)) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                        labels = c('No EPP', 'EPP'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   geom_text(data = dsp, aes(type, c(0.8, 0.55), label = p_value), vjust = 1, size = sample_size_label) +
@@ -2410,7 +2415,7 @@ ggplot() +
              aes(date_rel_pair, f_split_prop, group = interaction(date_rel_pair, any_EPY_plot), 
                  color = any_EPY_plot), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('No EPP', 'EPP'), drop = FALSE) +
   scale_x_continuous(limits = c(-5.4, 5.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
@@ -2430,7 +2435,7 @@ pa + pb +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -2611,7 +2616,7 @@ ggplot() +
              position = position_dodge(width = 0.5)) +
   geom_linerange(data = e, aes(x = type, ymin = upper, ymax = lower, color = anyEPY), size = 0.3, 
                  position = position_dodge(width = 0.5)) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '', 
+  scale_color_manual(values = c(col1, col2), name = '', 
                      labels = c('No EPP', 'EPP'), drop = FALSE) +
   geom_text(data = dsss, aes(type, Inf, label = N_epy_label), vjust = 1, size = sample_size_label) +
   geom_text(data = dsp, aes(type, c(0.3, 0.35), label = p_value), vjust = 1, size = sample_size_label) +
@@ -2639,7 +2644,7 @@ gt = patchworkGrob(p)
 g = arrangeGrob(gt, bottom = textGrob('          Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
 
 
-# ggsave('./OUTPUTS/FIGURES/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -2672,7 +2677,7 @@ p1 =
             fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145121], aes(date_, int_prop, group = nestID, 
                                              color = f_polyandrous_first_plot), linewidth = 1) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+  scale_color_manual(values = c(col1, col2), name = '',
                      labels = c(bquote("1"^st~ mate), bquote("2"^nd~ mate))) +
   geom_point(data = du[ID2 == 273145121], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
@@ -2699,7 +2704,7 @@ p2 =
             fill = egg_laying_color) +
   geom_path(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], 
             aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+  scale_color_manual(values = c(col1, col2), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 270170935 & nestID == 'R405_19' | nestID == 'R406_19'], 
              aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
@@ -2723,7 +2728,7 @@ p3 =
             fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145036], 
             aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+  scale_color_manual(values = c(col1, col2), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145036], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
@@ -2745,7 +2750,7 @@ p4 =
             fill = egg_laying_color) +
   geom_path(data = du[ID2 == 273145109], 
             aes(date_, int_prop, group = nestID, color = f_polyandrous_first_plot), linewidth = 1) +
-  scale_color_manual(values = c('steelblue4', 'darkorange'), name = '',
+  scale_color_manual(values = c(col1, col2), name = '',
                      labels = c('1st mate', '2nd mate')) +
   geom_point(data = du[ID2 == 273145109], aes(date_, int_prop, color = f_polyandrous_first_plot, size = N)) +
   scale_size_area(max_size = 4, breaks=c(10, 50, 100)) +
@@ -2766,7 +2771,7 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 129, height = 200, units = c('mm'), dpi = 'print')
+ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 129, height = 200, units = c('mm'), dpi = 'print')
 
 
 
