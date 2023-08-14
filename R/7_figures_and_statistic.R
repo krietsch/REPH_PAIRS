@@ -144,6 +144,8 @@ dss
 # samply size pairs and nests
 unique(du, by = 'nestID') |> nrow()
 unique(du, by = 'pairID') |> nrow()
+unique(du, by = 'ID1') |> nrow()
+unique(du, by = 'ID2') |> nrow()
 
 # plot data available
 dIDs[, sex := factor(sex, levels = c('F', 'M', 'pair'))]
@@ -197,6 +199,8 @@ dx = dm[period == "[-5,-1]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 
@@ -267,6 +271,8 @@ dx = dm[period == "[0,3]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # model
@@ -337,6 +343,8 @@ dx = dpm[period == "[-5,-1]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by year
@@ -399,6 +407,8 @@ dx = dpm[period == "[0,3]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by year
@@ -617,6 +627,8 @@ dx = dpm[period == "[-5,-1]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # beta models only accept proportion in the (0,1) interval
@@ -742,6 +754,8 @@ dx = dpm[period == "[0,3]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # beta models only accept proportion in the (0,1) interval
@@ -868,9 +882,9 @@ ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width
 dmr[, nestID := pairID]
 
 # merge data
-dprm = rbindlist(list(dpm[, .(pairID, nestID, year_, date_rel_pair, initiation_rel, interaction_per_day, 
+dprm = rbindlist(list(dpm[, .(pairID, nestID, ID1, ID2, year_, date_rel_pair, initiation_rel, interaction_per_day, 
                               period, type = 'breeder')],
-                      drm[, .(pairID, nestID, year_, date_rel_pair, initiation_rel, interaction_per_day, 
+                      drm[, .(pairID, nestID, ID1, ID2, year_, date_rel_pair, initiation_rel, interaction_per_day, 
                               period, type = 'randomization')]
 ))
 
@@ -880,6 +894,8 @@ dx = dprm[period == "[-5,-1]"]
 
 # sample size
 unique(dx$pairID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by type
@@ -944,6 +960,8 @@ dx = dprm[period == "[0,3]"]
 
 # sample size
 unique(dx$pairID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by type
@@ -1008,6 +1026,8 @@ dx = dprm[period == "[4,10]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by type
@@ -1135,6 +1155,8 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # model
@@ -1250,6 +1272,8 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # model
@@ -1423,9 +1447,9 @@ ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plo
 dms = dm[split == TRUE]
 
 # merge male and female data for plot
-dms_m = dms[IDsplitting == 'ID1', .(pairID, nestID, date_rel_pair, period, initiation_rel, sex = sex1, 
+dms_m = dms[IDsplitting == 'ID1', .(pairID, nestID, ID1, ID2, date_rel_pair, period, initiation_rel, sex = sex1, 
                                      split_distance = distance1_before, stay_distance = distance2_before)]
-dms_f = dms[IDsplitting == 'ID2', .(pairID, nestID, date_rel_pair, period, initiation_rel, sex = sex2, 
+dms_f = dms[IDsplitting == 'ID2', .(pairID, nestID, ID1, ID2, date_rel_pair, period, initiation_rel, sex = sex2, 
                                      split_distance = distance2_before, stay_distance = distance1_before)]
 
 dms = rbindlist(list(dms_m, dms_f))
@@ -1504,6 +1528,8 @@ dx = dms[period == "[-5,-1]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by sex
@@ -1564,6 +1590,8 @@ dx = dms[period == "[0,3]"]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by sex
@@ -1696,17 +1724,17 @@ du[, f_alone_at_nest_prop := N_f_alone_at_nest / N]
 d5 = copy(du)
 
 # male alone and not at the nest
-d6 = merge(d0[, .(pairID, nestID, date_rel_pair, int_prop)], 
-           d4[, .(pairID, nestID, date_rel_pair, m_alone_at_nest_prop)], 
-           by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+d6 = merge(d0[, .(pairID, nestID, ID1, ID2, date_rel_pair, int_prop)], 
+           d4[, .(pairID, nestID, ID1, ID2, date_rel_pair, m_alone_at_nest_prop)], 
+           by = c('pairID', 'nestID', 'ID1', 'ID2','date_rel_pair'), all.x = TRUE)
 d6[, m_alone_prop := 1 - c(int_prop + m_alone_at_nest_prop)]
 
 d6[, total := m_alone_prop + int_prop + m_alone_at_nest_prop]
 
 # female alone and not at the nest
-d7 = merge(d0[, .(pairID, nestID, date_rel_pair, int_prop)], 
-           d5[, .(pairID, nestID, date_rel_pair, f_alone_at_nest_prop)], 
-           by = c('pairID', 'nestID', 'date_rel_pair'), all.x = TRUE)
+d7 = merge(d0[, .(pairID, nestID, ID1, ID2, date_rel_pair, int_prop)], 
+           d5[, .(pairID, nestID, ID1, ID2, date_rel_pair, f_alone_at_nest_prop)], 
+           by = c('pairID', 'nestID', 'ID1', 'ID2', 'date_rel_pair'), all.x = TRUE)
 d7[, f_alone_prop := 1 - c(int_prop + f_alone_at_nest_prop)]
 
 d7[, total := f_alone_prop + int_prop + f_alone_at_nest_prop]
@@ -1714,14 +1742,14 @@ d7[, total := f_alone_prop + int_prop + f_alone_at_nest_prop]
 
 
 # merge data
-du = rbindlist(list(d0[, .(pairID, nestID, date_rel_pair, prop = int_prop, type = 'm_f_together')],
-                    d1[, .(pairID, nestID, date_rel_pair, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
-                    d2[, .(pairID, nestID, date_rel_pair, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
-                    d3[, .(pairID, nestID, date_rel_pair, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
-                    d4[, .(pairID, nestID, date_rel_pair, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
-                    d5[, .(pairID, nestID, date_rel_pair, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')],
-                    d6[, .(pairID, nestID, date_rel_pair, prop = m_alone_prop, type = 'm_alone_prop')],
-                    d7[, .(pairID, nestID, date_rel_pair, prop = f_alone_prop, type = 'f_alone_prop')]
+du = rbindlist(list(d0[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = int_prop, type = 'm_f_together')],
+                    d1[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = m_at_nest_prop, type = 'm_at_nest_prop')],
+                    d2[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = f_at_nest_prop, type = 'f_at_nest_prop')],
+                    d3[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = both_at_nest_prop, type = 'both_at_nest_prop')],
+                    d4[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = m_alone_at_nest_prop, type = 'm_alone_at_nest_prop')],
+                    d5[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = f_alone_at_nest_prop, type = 'f_alone_at_nest_prop')],
+                    d6[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = m_alone_prop, type = 'm_alone_prop')],
+                    d7[, .(pairID, nestID, ID1, ID2, date_rel_pair, prop = f_alone_prop, type = 'f_alone_prop')]
 ))
 
 
@@ -1872,6 +1900,8 @@ dx = du[type == 'm_at_nest_prop' & date_rel_pair >= 0 & date_rel_pair <= 3]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # beta models only accept proportion in the (0,1) interval
@@ -1989,6 +2019,8 @@ dx = du[type == 'f_at_nest_prop' & date_rel_pair >= 0 & date_rel_pair <= 3]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # beta models only accept proportion in the (0,1) interval
@@ -2208,6 +2240,8 @@ dx[, prop := int_prop]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by anyEPY
@@ -2271,6 +2305,8 @@ dx[, prop := int_prop]
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by anyEPY
@@ -2472,6 +2508,8 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by anyEPY
@@ -2530,6 +2568,8 @@ dx[, IDsplitting := ifelse(IDsplitting == 'ID1', 0, 1)] # males = 0
 
 # sample size
 unique(dx$nestID) |> length() # N nests
+unique(dx$ID1) |> length() # N males
+unique(dx$ID2) |> length() # N females
 dx |> nrow() # N observations
 
 # by anyEPY
