@@ -30,7 +30,7 @@ When using the data or code please cite the associated manuscript (in review) an
 All data used in this analysis (**click on the black arrows** to see column definitions). Extracted from our database (see below).
 
 <details>
-  <summary> <b><code>CAPTURES</code></b> – a table of all captures data</summary>
+  <summary> <b><code>CAPTURES</code></b> – A table of all captures data</summary>
   
   Columns are defined as:
 
@@ -51,7 +51,7 @@ All data used in this analysis (**click on the black arrows** to see column defi
 
 
 <details>
-  <summary> <b><code>NESTS</code></b> – a table of all nests data</summary>
+  <summary> <b><code>NESTS</code></b> – A table of all nests data</summary>
   
   Columns are defined as:
 
@@ -94,7 +94,7 @@ All data used in this analysis (**click on the black arrows** to see column defi
 
 
 <details>
-  <summary> <b><code>OBSERVATIONS</code></b> – a table of all observations data</summary>
+  <summary> <b><code>OBSERVATIONS</code></b> – A table of all observations data</summary>
   
   Columns are defined as:
 
@@ -130,7 +130,7 @@ All data used in this analysis (**click on the black arrows** to see column defi
 
 
 <details>
-  <summary> <b><code>NANO_TAGS</code></b> – a table of all GPS (Nano tag) data</summary>
+  <summary> <b><code>NANO_TAGS</code></b> – A table of all GPS (Nano tag) data</summary>
   
   Columns are defined as:
 
@@ -155,33 +155,68 @@ All data used in this analysis (**click on the black arrows** to see column defi
 
 **`R/`**:
 
-  - TO UPDATE! 
-  - [`2_R_script_data_anaylsis.R`](https://github.com/krietsch/REPH_PATERNITY/blob/master/R/2_R_script_data_anaylsis.R). 
-  The main script to reproduce all analysis and figures of this project. It contains a detailed commented workflow and 
-  follows the order in the manuscript. Each main block of the script can be run independently. 
-  ([view in browser](https://raw.githack.com/krietsch/REPH_PATERNITY/master/OUTPUTS/2_R_script_data_anaylsis.html "html"))
+   - [`7_figures_and_statistic.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/2_R_script_data_anaylsis.R). 
+  The main script to reproduce all figures and statistic of this project. It contains a detailed commented workflow and 
+  follows the order in the manuscript.
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/7_figures_and_statistic.html "html"))
   
-  - [`0_functions.R`](https://github.com/krietsch/REPH_PATERNITY/blob/master/R/0_functions.R) The workflow script 
+  - [`0_functions.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/0_functions.R) The workflow script 
   sources this script, which is only needed to create a base map using OpenStreetMap data stored in the R package 
   [`auksRuak`](https://github.com/krietsch/auksRuak). 
   
-  - [`1_extract_data_from_database.R`](https://github.com/krietsch/REPH_PATERNITY/blob/master/R/1_extract_data_from_database.R) 
-  Contains the script which with the data were extracted from our database. This script can only be run with access 
+  - [`0_extract_data_from_database.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/0_extract_data_from_database.R) 
+  Script used to extract the data from our database. This script can only be run with access 
   to our database and is only stored to document the process. 
+  
+  - [`1_tag_accuracy.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/1_tag_accuracy.R) 
+  Describes how I calculated the accuracy of the tags using data from a known location on the ground and actually on a bird. 
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/1_tag_accuracy.html "html"))
+
+  - [`2_filter_GPS_data.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/2_filter_GPS_data.R) 
+  The procedure of how I filtered the data. 
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/2_filter_GPS_data.html "html"))
+
+  - [`3_spatio_temporal_distance.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/3_spatio_temporal_distance.R) 
+  Calculating the distance between points. 
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/3_spatio_temporal_distance.html "html"))  
+  
+  - [`4_interaction_method.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/4_interaction_method.R) 
+  Testing different methods and thresholds.
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/4_interaction_method.html "html"))
+  
+  - [`5_pair_wise_interactions.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/5_pair_wise_interactions.R) 
+  Using the final decided method to define when birds were together. See manuscript for detailed description. 
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/5_pair_wise_interactions.html "html"))
+  
+  - [`6_subset_breeders.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/6_subset_breeders.R) 
+  Subset all relevant data for further analysis and bind with nest information. 
+  ([View compiled](https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/6_subset_breeders.html "html"))  
+  
+  - [`8_animation_data.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_data.R) 
+  Prepare data for scripts creating example animations of tracks.
+  
+  - [`8_animation_R220_19.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R220_19.R) 
+  Create example animation of nest R220_19.
+
+  - [`8_animation_R304_18.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R304_18.R) 
+  Create example animation of nest R304_18.
+  
+  - [`8_animation_R913_19.R`](https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R913_19.R) 
+  Create example animation of nest R913_19.
+   
   
 <p>&nbsp;</p>
 
   
 **`OUTPUTS/`**:
 
-  - TO UPDATE! 
-  - `2_R_script_data_anaylsis.html` – a compiled interactive html output of the workflow 
-  ([view in browser](https://raw.githack.com/krietsch/REPH_PATERNITY/master/OUTPUTS/2_R_script_data_anaylsis.html "html"))
+  - `FIGURES/` – Contains all figures created for publication
   
-  - `FIGURES/` – contains all figures created for publication
+  - `ESM/` – Contains all supplementary tables created for publication
   
-  - `TABLES/` – contains all tables created for publication
+  - `R_COMPILED/` – Contains all compiled html flies describing the whole workflow 
   
+  - `INSPECTION/` – Contains all figures created to check the filtering of the data
 
 <p>&nbsp;</p>
 
@@ -193,7 +228,7 @@ For any publication making substantial use of the data or code, the authors welc
 
 If you use the code or data, please cite the OSF repository linked to this github project: 
 
-Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Data and code from ‘Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird’. Open Science Framework. ADD LINK
+Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Data and code from ‘Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird’. Open Science Framework. https://doi.org/10.17605/OSF.IO/BW94C
 
 and the corresponding article:
 

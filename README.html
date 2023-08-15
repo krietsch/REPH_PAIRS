@@ -391,7 +391,7 @@ arrows</strong> to see column definitions). Extracted from our database
 (see below).</p>
 <details>
 <summary>
-<b><code>CAPTURES</code></b> – a table of all captures data
+<b><code>CAPTURES</code></b> – A table of all captures data
 </summary>
 <p>Columns are defined as:</p>
 <ol style="list-style-type: decimal">
@@ -413,7 +413,7 @@ male)</li>
 </details>
 <details>
 <summary>
-<b><code>NESTS</code></b> – a table of all nests data
+<b><code>NESTS</code></b> – A table of all nests data
 </summary>
 <p>Columns are defined as:</p>
 <ol style="list-style-type: decimal">
@@ -478,7 +478,7 @@ tag</li>
 </details>
 <details>
 <summary>
-<b><code>OBSERVATIONS</code></b> – a table of all observations data
+<b><code>OBSERVATIONS</code></b> – A table of all observations data
 </summary>
 <p>Columns are defined as:</p>
 <ol style="list-style-type: decimal">
@@ -527,7 +527,7 @@ BW = Distraction Display (e.g. Broken Wing)</li>
 </details>
 <details>
 <summary>
-<b><code>NANO_TAGS</code></b> – a table of all GPS (Nano tag) data
+<b><code>NANO_TAGS</code></b> – A table of all GPS (Nano tag) data
 </summary>
 <p>Columns are defined as:</p>
 <ol style="list-style-type: decimal">
@@ -551,31 +551,54 @@ procedure (see Methods section in manuscript)</li>
 </p>
 <p><strong><code>R/</code></strong>:</p>
 <ul>
-<li><p>TO UPDATE!</p></li>
-<li><p><a href="https://github.com/krietsch/REPH_PATERNITY/blob/master/R/2_R_script_data_anaylsis.R"><code>2_R_script_data_anaylsis.R</code></a>.
-The main script to reproduce all analysis and figures of this project.
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/2_R_script_data_anaylsis.R"><code>7_figures_and_statistic.R</code></a>.
+The main script to reproduce all figures and statistic of this project.
 It contains a detailed commented workflow and follows the order in the
-manuscript. Each main block of the script can be run independently. (<a href="https://raw.githack.com/krietsch/REPH_PATERNITY/master/OUTPUTS/2_R_script_data_anaylsis.html" title="html">view in browser</a>)</p></li>
-<li><p><a href="https://github.com/krietsch/REPH_PATERNITY/blob/master/R/0_functions.R"><code>0_functions.R</code></a>
+manuscript. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/7_figures_and_statistic.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/0_functions.R"><code>0_functions.R</code></a>
 The workflow script sources this script, which is only needed to create
 a base map using OpenStreetMap data stored in the R package <a href="https://github.com/krietsch/auksRuak"><code>auksRuak</code></a>.</p></li>
-<li><p><a href="https://github.com/krietsch/REPH_PATERNITY/blob/master/R/1_extract_data_from_database.R"><code>1_extract_data_from_database.R</code></a>
-Contains the script which with the data were extracted from our
-database. This script can only be run with access to our database and is
-only stored to document the process.</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/0_extract_data_from_database.R"><code>0_extract_data_from_database.R</code></a>
+Script used to extract the data from our database. This script can only
+be run with access to our database and is only stored to document the
+process.</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/1_tag_accuracy.R"><code>1_tag_accuracy.R</code></a>
+Describes how I calculated the accuracy of the tags using data from a
+known location on the ground and actually on a bird. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/1_tag_accuracy.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/2_filter_GPS_data.R"><code>2_filter_GPS_data.R</code></a>
+The procedure of how I filtered the data. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/2_filter_GPS_data.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/3_spatio_temporal_distance.R"><code>3_spatio_temporal_distance.R</code></a>
+Calculating the distance between points. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/3_spatio_temporal_distance.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/4_interaction_method.R"><code>4_interaction_method.R</code></a>
+Testing different methods and thresholds. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/4_interaction_method.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/5_pair_wise_interactions.R"><code>5_pair_wise_interactions.R</code></a>
+Using the final decided method to define when birds were together. See
+manuscript for detailed description. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/5_pair_wise_interactions.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/6_subset_breeders.R"><code>6_subset_breeders.R</code></a>
+Subset all relevant data for further analysis and bind with nest
+information. (<a href="https://raw.githack.com/krietsch/REPH_PAIRS/master/OUTPUTS/R_COMPILED/6_subset_breeders.html" title="html">View compiled</a>)</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_data.R"><code>8_animation_data.R</code></a>
+Prepare data for scripts creating example animations of tracks.</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R220_19.R"><code>8_animation_R220_19.R</code></a>
+Create example animation of nest R220_19.</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R304_18.R"><code>8_animation_R304_18.R</code></a>
+Create example animation of nest R304_18.</p></li>
+<li><p><a href="https://github.com/krietsch/REPH_PAIRS/blob/master/R/8_animation_R913_19.R"><code>8_animation_R913_19.R</code></a>
+Create example animation of nest R913_19.</p></li>
 </ul>
 <p>
  
 </p>
 <p><strong><code>OUTPUTS/</code></strong>:</p>
 <ul>
-<li><p>TO UPDATE!</p></li>
-<li><p><code>2_R_script_data_anaylsis.html</code> – a compiled
-interactive html output of the workflow (<a href="https://raw.githack.com/krietsch/REPH_PATERNITY/master/OUTPUTS/2_R_script_data_anaylsis.html" title="html">view in browser</a>)</p></li>
-<li><p><code>FIGURES/</code> – contains all figures created for
+<li><p><code>FIGURES/</code> – Contains all figures created for
 publication</p></li>
-<li><p><code>TABLES/</code> – contains all tables created for
+<li><p><code>ESM/</code> – Contains all supplementary tables created for
 publication</p></li>
+<li><p><code>R_COMPILED/</code> – Contains all compiled html flies
+describing the whole workflow</p></li>
+<li><p><code>INSPECTION/</code> – Contains all figures created to check
+the filtering of the data</p></li>
 </ul>
 <p>
  
@@ -594,7 +617,7 @@ this github project:</p>
 <p>Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier &amp;
 Kempenaers, B. (2023). Data and code from ‘Mutual mate guarding and
 limited sexual conflict in a sex-role reversed shorebird’. Open Science
-Framework. ADD LINK</p>
+Framework. <a href="https://doi.org/10.17605/OSF.IO/BW94C" class="uri">https://doi.org/10.17605/OSF.IO/BW94C</a></p>
 <p>and the corresponding article:</p>
 <p>Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier &amp;
 Kempenaers, B. (2023). Mutual mate guarding and limited sexual conflict
