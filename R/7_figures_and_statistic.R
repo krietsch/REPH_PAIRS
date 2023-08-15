@@ -1,9 +1,19 @@
-#==============================================================================================================
-# Figures & Statistics
-#==============================================================================================================
+#' ---
+#' title: Figures and Statistic
+#' subtitle: 
+#' author: Johannes Krietsch
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
 
-# Summary
-# 
+#==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I created all figures 
+#' (stored in ./OUTPUTS/FIGURES) and performed all statistical analysis (summary tables stored in./OUTPUTS/ESM).
+#==============================================================================================================
 
 # Packages
 sapply( c('data.table', 'magrittr', 'ggplot2', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
@@ -13,13 +23,13 @@ sapply( c('data.table', 'magrittr', 'ggplot2', 'viridis', 'auksRuak', 'foreach',
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/7_figures_and_statistic.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Data
 dID = fread('./DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', sep = '\t', header = TRUE) %>% data.table
 dp  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS.txt', sep = '\t', header = TRUE) %>% data.table
 dr  = fread('./DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', sep = '\t', header = TRUE) %>% data.table
-dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dn  = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 st_transform_DT(dn) # change projection
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), 
                                 format = '%m-%d %H:%M:%S', tz = 'UTC')]
@@ -126,7 +136,7 @@ pn = fread("parname;                                                          pa
 ", sep = ';')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Data available relative to clutch initiation
+#' # Data available relative to clutch initiation
 #--------------------------------------------------------------------------------------------------------------
 
 dIDs = unique(dID[date_rel_pair >= -10 & date_rel_pair <= 10], 
@@ -173,12 +183,13 @@ ggplot(data = dp) +
   theme(legend.position = c(0.07, 0.95), legend.background = element_blank(), plot.margin = margin_, 
         legend.spacing.y = unit(-0.2, "cm"), legend.title = element_blank())
 
-ggsave('./OUTPUTS/FIGURES/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_eachID.tiff', plot = last_plot(),  width = 238, height = 177, 
+#        units = c('mm'), dpi = 'print')
 
 dp[, nestID := as.character(nestID)]
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to daily patterns
+#' # Mate guarding intensity in relation to daily patterns
 #--------------------------------------------------------------------------------------------------------------
 
 # Function to deal with time
@@ -335,7 +346,7 @@ ESM = ESM |> body_add_par(paste0('Table S2. GLMM together and time 0 to 3')) |> 
 ESM = ESM |> body_add_break(pos = 'after')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation year
+#' # Mate guarding intensity in relation year
 #--------------------------------------------------------------------------------------------------------------
 
 ### before clutch initiation
@@ -566,11 +577,12 @@ p1 + p2 +
   plot_annotation(tag_levels = 'a')
 
 
-ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/prop_time_together_season_year.tiff', plot = last_plot(),  width = 177, height = 120, 
+#        units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state 
+#' # Mate guarding intensity in relation to breeding state 
 #--------------------------------------------------------------------------------------------------------------
 
 # plot time together
@@ -868,11 +880,12 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, 
+#        units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity in relation to breeding state breeders vs. random pairs
+#' # Mate guarding intensity in relation to breeding state breeders vs. random pairs
 #--------------------------------------------------------------------------------------------------------------
 
 
@@ -1088,7 +1101,7 @@ effect("type", m, xlevels = 2) |>
   print() * 100
 
 #--------------------------------------------------------------------------------------------------------------
-#' Female moves away
+#' # Female moves away
 #--------------------------------------------------------------------------------------------------------------
 
 # Proportion of split events
@@ -1392,10 +1405,11 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, 
+#        units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
-#' Number of separating flights 
+#' # Number of separating flights 
 #--------------------------------------------------------------------------------------------------------------
 
 # subset data
@@ -1436,11 +1450,12 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_split_events_number.tiff', plot = last_plot(),  width = 177, height = 89, 
+#        units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Distance moved away by sex
+#' # Distance moved away by sex
 #--------------------------------------------------------------------------------------------------------------
 
 # moved away
@@ -1516,7 +1531,8 @@ ggplot() +
   xlab('Day relative to clutch initiation (= 0)')
 
 
-ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_split_events_distance_moved.tiff', plot = last_plot(),  width = 177, 
+#        height = 89, units = c('mm'), dpi = 'print')
 
 
 
@@ -1648,7 +1664,7 @@ x = effect("date_rel_pair", m, xlevels = 9) |>
   print()
 
 #--------------------------------------------------------------------------------------------------------------
-#' Nest attendance by sex
+#' # Nest attendance by sex
 #--------------------------------------------------------------------------------------------------------------
 
 # assign parameters
@@ -2146,11 +2162,12 @@ pa + pb + pc + pd + pe +
   # plot_layout(heights = c(1, 4, 4)) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_at_nest.tiff', plot = last_plot(),  width = 177, height = 238,
+#        units = c('mm'), dpi = 'print')
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity and extra-pair paternity
+#' # Mate guarding intensity and extra-pair paternity
 #--------------------------------------------------------------------------------------------------------------
 
 # pairwise sample size
@@ -2412,7 +2429,7 @@ p1
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Split events and extra-pair paternity
+#' # Split events and extra-pair paternity
 #--------------------------------------------------------------------------------------------------------------
 
 # pairwise sample size
@@ -2471,7 +2488,8 @@ pa + pb +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together_epy.tiff', plot = last_plot(),  width = 177, height = 89, 
+#        units = c('mm'), dpi = 'print')
 
 
 
@@ -2684,12 +2702,13 @@ gt = patchworkGrob(p)
 g = arrangeGrob(gt, bottom = textGrob('          Day relative to clutch initiation (= 0)', gp = gpar(fontsize = 10)))
 
 
-ggsave('./OUTPUTS/FIGURES/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/male_female_together_female_moving_epy.tiff', plot = g,  width = 89, height = 89, 
+#        units = c('mm'), dpi = 'print')
 
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Mate guarding intensity of polyandrous females
+#' # Mate guarding intensity of polyandrous females
 #--------------------------------------------------------------------------------------------------------------
 
 # Proportion of time together breeders
@@ -2811,7 +2830,8 @@ p1 + p2 + p3 + p4 +
   plot_layout(nrow = 4, ncol = 1) +
   plot_annotation(tag_levels = 'a')
 
-ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 129, height = 200, units = c('mm'), dpi = 'print')
+# ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = last_plot(),  width = 129, 
+#        height = 200, units = c('mm'), dpi = 'print')
 
 
 
@@ -2820,7 +2840,7 @@ ggsave('./OUTPUTS/FIGURES/MG_over_season_polyandrous_4_females.tiff', plot = las
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Behavioural observations
+#' # Behavioural observations
 #--------------------------------------------------------------------------------------------------------------
 
 # Data
@@ -2957,6 +2977,5 @@ round(31/113 * 100, 0) # Female initiated copulation
 
 
 
-
-# all packages used
+# version information
 sessionInfo()

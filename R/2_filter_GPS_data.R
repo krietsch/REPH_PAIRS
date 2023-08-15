@@ -1,18 +1,18 @@
+#' ---
+#' title: Filter the GPS data
+#' subtitle: 
+#' author: Johannes Krietsch
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
+
 #==============================================================================================================
 #' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-#' Contributor: Johannes Krietsch
-#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
-#' the presented results and figures presented in this study.  
-#' The order follows the appearance in the manuscript (as much as possible).  
-#' Data were extracted from our database (see script) and are in the DATA folder.  
-#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
-#' Each section in the summary below can be run independently.  
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I filtered the data.
 #==============================================================================================================
-
-
-### Summary
-# NANO_TAGS_TEST data
-# NANO_TAGS data
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'auksRuak', 'viridis', 'ggplot2', 'knitr'),
@@ -25,18 +25,11 @@ source('./R/0_functions.R')
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
 # rmarkdown::render('./R/2_filter_GPS_data.R', output_dir = './OUTPUTS/R_COMPILED')
 
-
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
-# Change projection to equal area
-st_transform_DT(d)
-
-# 821 were filtered NA or duplicates
-821 / (d %>% nrow + 821) * 100
-
 #--------------------------------------------------------------------------------------------------------------
-# NANO_TAGS data
+#' # NANO_TAGS data
 #--------------------------------------------------------------------------------------------------------------
 
 # Data
@@ -286,7 +279,7 @@ d = d[, .(year_, tagID, ID, datetime_, lat, lon, gps_speed, altitude, batvolt)]
 # assign filtered positions
 da = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 da[, datetime_ := as.POSIXct(as.character(datetime_), tz = 'UTC')]
-
+da[, filtered := NULL]
 
 da = merge(da, d[, .(ID, datetime_, filtered = TRUE)], by = c('ID', 'datetime_'), all.x = TRUE)
 da[is.na(filtered), filtered:= FALSE]

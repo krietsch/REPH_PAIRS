@@ -1,5 +1,5 @@
 #' ---
-#' title: Calculate pair-wise interactions
+#' title: Define when birds were together
 #' subtitle: 
 #' author: Johannes Krietsch
 #' output:
@@ -10,18 +10,9 @@
 
 #==============================================================================================================
 #' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-#' Contributor: Johannes Krietsch
-#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
-#' the presented results and figures presented in this study.  
-#' The order follows the appearance in the manuscript (as much as possible).  
-#' Data were extracted from our database (see script) and are in the DATA folder.  
-#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
-#' Each section in the summary below can be run independently.  
-#==============================================================================================================
-
-
-#==============================================================================================================
-# Calculate spatio-temporal distance of points
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I calculated ultimately 
+#' when birds were "together". 
 #==============================================================================================================
 
 # Packages
@@ -33,13 +24,13 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/5_pair_wise_interactions.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
 
 # Data
-dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dp = fread('./DATA/PRODUCTS/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Define interactions
@@ -112,5 +103,8 @@ dp[split == TRUE, IDsplitting := ifelse(distance1_before > distance2_before, 'ID
 dp[merge == TRUE, IDmerging := ifelse(distance1_before > distance2_before, 'ID1', 'ID2')]
 
 # save data
-fwrite(dp, './DATA/PAIR_WISE_INTERACTIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(dp, './DATA/PRODUCTS/PAIR_WISE_INTERACTIONS.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
+
+# version information
+sessionInfo()

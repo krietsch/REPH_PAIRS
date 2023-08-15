@@ -1,3 +1,10 @@
+#==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I created the animation for 
+#' R913_19. Single png's are created in tmp_path and later merged in a video using ffmpeg. 
+#==============================================================================================================
+
 #--------------------------------------------------------------------------------------------------------------
 #' Animation for R913_19
 #--------------------------------------------------------------------------------------------------------------

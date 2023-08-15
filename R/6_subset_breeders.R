@@ -1,8 +1,19 @@
-#==============================================================================================================
-# Subset breeders and merge with nest data
-#==============================================================================================================
+#' ---
+#' title: Subset data from breeding pairs and bind with metadata
+#' subtitle: 
+#' author: Johannes Krietsch
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
 
-# Summary
+#==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I subset the breeding pairs 
+#' and bind them with them metadata.
+#==============================================================================================================
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'viridis', 'auksRuak', 'sf', 'foreach', 'knitr', 
@@ -14,7 +25,7 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/6_subset_breeders.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -24,7 +35,7 @@ d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% d
 d = d[filtered == TRUE]
 st_transform_DT(d)
 
-dp = fread('./DATA/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dp = fread('./DATA/PRODUCTS/PAIR_WISE_INTERACTIONS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 dp[, year_ := year(datetime_1)]
 
 dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
@@ -34,7 +45,7 @@ st_transform_DT(dn)
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Define breeding pairs
+#' # Define breeding pairs
 #--------------------------------------------------------------------------------------------------------------
 
 # start and end of the data
@@ -55,8 +66,10 @@ dn[, both_tagged_overlapping := overlap > 0, by = nestID]
 dn[is.na(both_tagged_overlapping), both_tagged_overlapping := FALSE]
 
 # check overlap with initiation date
-dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), 
+   by = nestID]
+dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), 
+   by = nestID]
 dn[, both_tagged_at_initiation := overlap_initiation_m > 0 & overlap_initiation_f > 0, by = nestID]
 dn[is.na(both_tagged_at_initiation), both_tagged_at_initiation := FALSE]
 
@@ -112,7 +125,7 @@ dID[, Np := N / 142]
 # fwrite(dID, './DATA/NANO_TAGS_UNIQUE_BY_DAY.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 #--------------------------------------------------------------------------------------------------------------
-#' How many breeders with overlap? Divide first and second clutch nest data
+#' # How many breeders with overlap? Divide first and second clutch nest data
 #--------------------------------------------------------------------------------------------------------------
 
 ds = dnID[!is.na(male_id) & !is.na(female_id) & year_ > 2017 & !is.na(overlap) & overlap > 0] %>% 
@@ -167,7 +180,7 @@ ggplot(data = dp[ID1 == 273145139 & ID2 == 270170970]) +
 dnID[, overlap := NULL]
 
 #--------------------------------------------------------------------------------------------------------------
-#' Merge dp with nest data
+#' # Merge dp with nest data
 #--------------------------------------------------------------------------------------------------------------
 
 # merge with first nest number
@@ -229,7 +242,8 @@ dp[nestID %in% x2, f_renesting_second := TRUE]
 
 # relative timing 
 dn[, initiation_day := as.Date(initiation)]
-di = dn[!is.na(year_) & data_type == 'study_site', .(initiation_mean = mean(initiation_day, na.rm = TRUE)), by = year_]
+di = dn[!is.na(year_) & data_type == 'study_site', .(initiation_mean = mean(initiation_day, na.rm = TRUE)), 
+        by = year_]
 di[, initiation_mean := as.character(initiation_mean) |> as.Date()]
 
 dp = merge(dp, di, by = 'year_', all.x = TRUE)
@@ -238,7 +252,7 @@ dp = merge(dp, di, by = 'year_', all.x = TRUE)
 dp[, initiation_rel := difftime(initiation_day, initiation_mean, units = 'days') %>% as.numeric]
 
 #--------------------------------------------------------------------------------------------------------------
-#' Nest attendance 
+#' # Nest attendance 
 #--------------------------------------------------------------------------------------------------------------
 
 # distance to nest
@@ -255,7 +269,7 @@ dp = merge(dp, dps[, .(ID1, ID2, datetime_1, nestID, at_nest1, at_nest2)],
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Subset relevant data
+#' # Subset relevant data
 #--------------------------------------------------------------------------------------------------------------
 
 # N pairwise data per day
@@ -392,5 +406,6 @@ d0as = d0as[,
 # save data
 # fwrite(d0as, './DATA/PAIR_WISE_INTERACTIONS_BREEDING_PAIRS_RANDOM.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
-
+# version information
+sessionInfo()
 

@@ -8,26 +8,11 @@
 #'      highlight: tango
 #' ---
 
-
 #==============================================================================================================
 #' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-#' Contributor: Johannes Krietsch
-#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
-#' the presented results and figures presented in this study.  
-#' The order follows the appearance in the manuscript (as much as possible).  
-#' Data were extracted from our database (see script) and are in the DATA folder.  
-#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
-#' Each section in the summary below can be run independently.  
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes the accuracy of the tags.
 #==============================================================================================================
-
-
-#==============================================================================================================
-#'  Analyse the accuracy of the tags
-#==============================================================================================================
-
-# Summary
-# 1. Tag accuracy based on test data
-# 2. Tag accuracy based on incubation data
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'sf', 'ggplot2', 'knitr', 'patchwork', 'auksRuak', 'anytime'),

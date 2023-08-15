@@ -1,5 +1,5 @@
 #' ---
-#' title: Calculate spatio-temporal distance of points
+#' title: Calculate spatio-temporal distance between points
 #' subtitle: 
 #' author: Johannes Krietsch
 #' output:
@@ -10,25 +10,10 @@
 
 #==============================================================================================================
 #' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
-#' Contributor: Johannes Krietsch
-#' 📍 This script runs relative to the project's root directory and contains all steps to get from the data to
-#' the presented results and figures presented in this study.  
-#' The order follows the appearance in the manuscript (as much as possible).  
-#' Data were extracted from our database (see script) and are in the DATA folder.  
-#' Outputs are written to OUTPUTS in the FIGURES or TABLES folder.  
-#' Each section in the summary below can be run independently.  
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I calculated the 
+#' spatio-temporal distance between points. 
 #==============================================================================================================
-
-
-
-#==============================================================================================================
-# Calculate spatio-temporal distance of points
-#==============================================================================================================
-
-# Summary
-# 1. Apply speed filter 
-# 2. Apply distance filter 
-# 3. Check altitudes
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'sf','foreach', 'doFuture', 'knitr'), 
@@ -140,7 +125,7 @@ anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_1'))
 anyDuplicated(dp, by = c('ID1', 'ID2', 'datetime_2')) # okay
 
 # save data
-fwrite(dp, './DATA/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
+# fwrite(dp, './DATA/PRODUCTS/PAIR_WISE_DIST_CLOSEST.txt', quote = TRUE, sep = '\t', row.names = FALSE)
 
 
 # version information

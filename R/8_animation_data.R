@@ -1,18 +1,9 @@
-#' ---
-#' title: Animation
-#' subtitle: 
-#' author: Johannes Krietsch
-#' output:
-#'    html_document:
-#'      toc: true
-#'      highlight: tango
-#' ---
-
 #==============================================================================================================
-# Animation of pairs
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I prepared the data used for 
+#' the three example animation of pair movements. 
 #==============================================================================================================
-
-# Summary
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'auksRuak', 'foreach', 'sf', 'knitr', 
@@ -24,7 +15,7 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/8_animation_data.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -95,7 +86,7 @@ x_symbol = ggplot() +
 
 
 #--------------------------------------------------------------------------------------------------------------
-#' Connect ID data with pairwise comparison and nest data
+#' # Connect ID data with pairwise comparison and nest data
 #--------------------------------------------------------------------------------------------------------------
 
 # all pairs with overlap
@@ -114,8 +105,10 @@ dp[interaction == TRUE, last_int  := max(datetime_1), by = nestID]
 dp[, last_int := min(last_int, na.rm = TRUE), by = nestID]
 
 # reshape for merge
-dpID = rbind(dp[, .(ID = ID1, sex = sex1, nestID, datetime_ = datetime_1, interaction, first_int, last_int, distance_pair)], 
-             dp[, .(ID = ID2, sex = sex2, nestID, datetime_ = datetime_2, interaction, first_int, last_int, distance_pair)])
+dpID = rbind(dp[, .(ID = ID1, sex = sex1, nestID, datetime_ = datetime_1, interaction, first_int, last_int, 
+                    distance_pair)], 
+             dp[, .(ID = ID2, sex = sex2, nestID, datetime_ = datetime_2, interaction, first_int, last_int, 
+                    distance_pair)])
 dpID[, distance_pair := round(distance_pair, 0)]
 
 # merge with d
@@ -131,5 +124,5 @@ d[is.na(distance_pair), distance_pair_label := '']
 
 # plot all pairs to check
 # bm = create_colored_bm(d[interaction == TRUE], lat = 'lat', lon = 'lon', buffer = 1000)
-# bm + 
+# bm +
 #   geom_point(data = d[interaction == TRUE], aes(lon, lat, group = ID, colour = ID), show.legend = FALSE)

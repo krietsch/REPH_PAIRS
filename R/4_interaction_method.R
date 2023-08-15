@@ -1,8 +1,19 @@
-#==============================================================================================================
-# Mate guarding closest distance
-#==============================================================================================================
+#' ---
+#' title: Test different interaction methods
+#' subtitle: 
+#' author: Johannes Krietsch
+#' output:
+#'    html_document:
+#'      toc: true
+#'      highlight: tango
+#' ---
 
-# Summary
+#==============================================================================================================
+#' Data and code from "Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird"
+#' Contributor: Johannes Krietsch  
+#' 📍 This script runs relative to the project's root directory and describes how I tested different methods 
+#' to find the best way to define if birds were "together". 
+#==============================================================================================================
 
 # Packages
 sapply( c('data.table', 'magrittr', 'sdb', 'ggplot2', 'anytime', 'viridis', 'auksRuak', 'foreach', 'sf', 'knitr', 
@@ -14,7 +25,7 @@ source('./R/0_functions.R')
 
 # Lines to run to create html output
 opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
-# rmarkdown::render('./R/3_spatio_temporal_distance.R', output_dir = './OUTPUTS/R_COMPILED')
+# rmarkdown::render('./R/4_interaction_method.R', output_dir = './OUTPUTS/R_COMPILED')
 
 # Projection
 PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 '
@@ -23,18 +34,9 @@ PROJ = '+proj=laea +lat_0=90 +lon_0=-156.653428 +x_0=0 +y_0=0 +datum=WGS84 +unit
 d = fread('./DATA/NANO_TAGS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 d = d[filtered == TRUE]
 st_transform_DT(d)
-dp = fread('./DATA/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-# dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
-# dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
-
-con = dbcon('jkrietsch', db = 'REPHatBARROW')
-dg = dbq(con, 'select * FROM SEX')
-dn = dbq(con, 'select * FROM NESTS')
-dn[, nestID := paste0(nest, '_', substr(year_, 3, 4))]
-dn = dn[year_ > 2017]
-dn[, initiation := as.POSIXct(initiation, tz = 'UTC')]
+dp = fread('./DATA/PRODUCTS/PAIR_WISE_DIST_CLOSEST.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
+dn = fread('./DATA/NESTS.txt', sep = '\t', header = TRUE, nThread = 20) %>% data.table
 dn[, initiation_y := as.POSIXct(format(initiation, format = '%m-%d %H:%M:%S'), format = '%m-%d %H:%M:%S', tz = 'UTC')]
-DBI::dbDisconnect(con)
 
 # change projection
 st_transform_DT(dn)
@@ -60,8 +62,10 @@ dn[, overlap := DescTools::Overlap(c(start_m, end_m), c(start_f, end_f)), by = n
 dn = dn[overlap > 0]
 
 # check overlap with initiation date
-dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), by = nestID]
-dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), by = nestID]
+dn[, overlap_initiation_m := DescTools::Overlap(c(start_m, end_m), c(initiation - 86400, initiation + 86400)), 
+   by = nestID]
+dn[, overlap_initiation_f := DescTools::Overlap(c(start_f, end_f), c(initiation - 86400, initiation + 86400)), 
+   by = nestID]
 dn = dn[overlap_initiation_m > 0 & overlap_initiation_f > 0]
 
 # nest data
@@ -72,9 +76,9 @@ dnID = unique(dnID, by = 'nestID')
 dnID[, male_id := as.integer(male_id)]
 dnID[, female_id := as.integer(female_id)]
 
-# create directory for each of these breeding pairs
-dnID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION_EACH/', nestID)]
-dnID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dnID)]
+# # create directory for each of these breeding pairs
+# dnID[, directory := paste0('//ds/grpkempenaers/Hannes/temp/PAIRS_ANIMATION_EACH/', nestID)]
+# dnID[, dir.create(file.path(directory), showWarnings = FALSE), by = 1:nrow(dnID)]
 
 # unique IDs
 IDu = unique(c(dnID[,  male_id], dnID[,  female_id]))
@@ -86,7 +90,8 @@ d = d[ID %in% IDu]
 dnIDu = rbind(dnID[, .(year_, ID = female_id, nestID, initiation, sex = 'F')], 
               dnID[, .(year_, ID = male_id, nestID, initiation, sex = 'M')])
 
-d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, allow.cartesian = TRUE)
+d = merge(d, dnIDu[, .(year_, ID, nestID, initiation, sex)], by = c('ID', 'year_'), all.x = TRUE, 
+          allow.cartesian = TRUE)
 d = d[!is.na(nestID)]
 
 #--------------------------------------------------------------------------------------------------------------
@@ -138,6 +143,7 @@ ggplot(data = dp) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
+dpc = copy(dp)
 
 #--------------------------------------------------------------------------------------------------------------
 #' # Interactions using different distance thresholds
@@ -194,8 +200,10 @@ o = foreach(i = 1:length(threshold), .combine = 'rbind') %do% {
 setorder(o, initiation_rel)
 
 ggplot(data = o) +
-  geom_point(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), size = 1, alpha = 0.5) +
+  geom_point(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), 
+             size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, color = distance_threshold, group = distance_threshold), 
+            size = 1, alpha = 0.5) +
   scale_color_viridis(direction = -1, limits = c(10, 150), name = 'distance threshold') +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
@@ -259,8 +267,10 @@ o = foreach(i = 1:length(bout_seq_max_value), .combine = 'rbind') %do% {
 setorder(o, initiation_rel)
 
 ggplot(data = o) +
-  geom_point(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), size = 2, alpha = 1) +
-  geom_path(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), size = 1, alpha = 0.5) +
+  geom_point(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), 
+             size = 2, alpha = 1) +
+  geom_path(aes(initiation_rel, per_together, color = bout_seq_max_value, group = bout_seq_max_value), 
+            size = 1, alpha = 0.5) +
   scale_color_viridis(direction = -1, limits = c(0, 5), name = 'min bout lenght') +
   geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
   geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
@@ -269,11 +279,11 @@ ggplot(data = o) +
   theme(legend.position = c(0.8, 0.8))
 
 
-
-
 #--------------------------------------------------------------------------------------------------------------
 #' # Include movement before
 #--------------------------------------------------------------------------------------------------------------
+
+dp = copy(dpc)
 
 ### positions before and after
 
@@ -316,35 +326,11 @@ dp[, interaction_before := shift(interaction, type = 'lag'), by = nestID]
 # correct for true splits
 dp[interaction == TRUE & interaction_next == FALSE & distance_pair > distance_threshold, interaction := FALSE]
 
-
-dp
-
 # datetime relative to nest initiation date
 dp[, datetime_rel_pair := difftime(datetime_1, initiation, units = 'days') %>% as.numeric()]
 dp[, datetime_rel_pair0 := round(datetime_rel_pair, 0)]
 
-# subset data 10 days around clutch initiation
-dm = dp[datetime_rel_pair0 >= -10 & datetime_rel_pair0 <= 10]
-
-# Male and female together
-dms = dm[interaction == TRUE, .(N_int = .N), by = .(nestID, datetime_rel_pair0)]
-du = unique(dm, by = c('nestID', 'datetime_rel_pair0'))
-du = merge(du, dms, by = c('nestID', 'datetime_rel_pair0'), all.x = TRUE)
-du[is.na(N_int), N_int := 0]
-du[, int_prop := N_int / N_daily]
-
-
-ggplot(data = du) +
-  geom_point(aes(datetime_rel_pair0, int_prop, color = nestID, group = nestID), size = 2, alpha = 1) +
-  geom_path(aes(datetime_rel_pair0, int_prop, color = nestID, group = nestID), size = 1, alpha = 0.5) +
-  scale_color_viridis(direction = -1, limits = c(0, 5), name = 'min bout lenght') +
-  geom_vline(aes(xintercept = 0), color = 'firebrick2', size = 3, alpha = 0.3) +
-  geom_vline(aes(xintercept = 3), color = 'firebrick2', size = 1, alpha = 0.3) +
-  xlab('Day relative to clutch initiation (= 0)') + ylab('Percentage of positions together') +
-  theme_classic(base_size = 8) +
-  theme(legend.position = c(0.8, 0.8))
-
-
+# with buffer
 ggplot(data = dp) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction_buffer), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
@@ -353,6 +339,7 @@ ggplot(data = dp) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
+# without buffer
 ggplot(data = dp) +
   geom_tile(aes(initiation_rel, nestID, fill = interaction), width = 0.5, show.legend = FALSE) +
   scale_fill_manual(values = c('TRUE' = 'green4', 'FALSE' = 'firebrick3', 'NA' = 'grey50')) +
@@ -361,4 +348,5 @@ ggplot(data = dp) +
   xlab('Date relative to initiation') + ylab('Nest') +
   theme_classic()
 
-
+# version information
+sessionInfo()
