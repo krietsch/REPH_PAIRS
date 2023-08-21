@@ -1,6 +1,6 @@
 # **Data and code from:**
 
-### Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird
+### Mutual mate guarding with limited sexual conflict in a sex-role reversed shorebird
 
 <p align="center">
   <img width="600" src="./DATA/ILLUSTRATIONS/reph_pair.jpg">
@@ -10,7 +10,7 @@
 
 ### **Description**
 
-This repository contains all data and code used for data analysis and figure production in *Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird* by 
+This repository contains all data and code used for data analysis and figure production in *Mutual mate guarding with limited sexual conflict in a sex-role reversed shorebird* by 
 Johannes Krietsch [![ORCID_ID](./DATA/ILLUSTRATIONS/ORCID_ID_logo.png)](https://orcid.org/0000-0002-8080-1734), 
 Mihai Valcu [![ORCID_ID](./DATA/ILLUSTRATIONS/ORCID_ID_logo.png)](https://orcid.org/0000-0002-6907-7802)
 Margherita Cragnolini, 
@@ -228,11 +228,11 @@ For any publication making substantial use of the data or code, the authors welc
 
 If you use the code or data, please cite the OSF repository linked to this github project: 
 
-Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Data and code from ‘Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird’. Open Science Framework. https://doi.org/10.17605/OSF.IO/BW94C
+Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Data and code from ‘Mutual mate guarding with limited sexual conflict in a sex-role reversed shorebird’. Open Science Framework. https://doi.org/10.17605/OSF.IO/BW94C
 
 and the corresponding article:
 
-Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Mutual mate guarding and limited sexual conflict in a sex-role reversed shorebird. submitted manuscript.
+Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2023). Mutual mate guarding with limited sexual conflict in a sex-role reversed shorebird. submitted manuscript.
 
 
 <p>&nbsp;</p>
