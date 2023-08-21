@@ -243,7 +243,7 @@ Krietsch, J., Valcu, M., Cragnolini, M., Wolfgang Forstmeier & Kempenaers, B. (2
 
 This work was funded by the [Max Planck Society](https://www.mpg.de/en) (to B.K.). J.K. was supported by the International Max Planck Research School for Organismal Biology. 
 
-We thank Kristina Beck, Eunbi Kwon, Pietro D'Amelio, Giulia Bambini, Peter Santema, Fenja Squirrell, Alice Pintaric, Carol Gilsenan, Anne Cillard, Kim Teltscher, Martin Bulla, Andrea Wittenzellner, Luisana Carballo, Sylvia Kuhn and Sabine Spehn for help in the field (ordered by days in the field), and Emmi Schlicht, Eunbi Kwon, Martin Bulla and Anne Aulsebrook for discussions. We also thank Richard B. Lanctot for always helping out with advice, logistics, permits and equipment, the state and federal committees that reviewed and approved permits for this study, and the Ukpeaġvik Iñupiat Corporation for logistic support and access to their lands. 
+We thank Kristina Beck, Eunbi Kwon, Pietro D'Amelio, Giulia Bambini, Peter Santema, Fenja Squirrell, Alice Pintaric, Carol Gilsenan, Anne Cillard, Kim Teltscher, Martin Bulla, Andrea Wittenzellner, Luisana Carballo, Sylvia Kuhn and Sabine Spehn for help in the field (ordered by days in the field), Emmi Schlicht, Eunbi Kwon, Martin Bulla and Anne Aulsebrook for discussions, and Wolfgang Goymann, Emilie Snell-Rood and two anonymous reviewers for comments that improved the manuscript. We also thank Richard B. Lanctot for advice and help with logistics, permits and equipment. We are grateful to the state and federal committees that reviewed and approved permits for this study, and to the Ukpeaġvik Iñupiat Corporation for logistic support and access to their lands. 
 
 <p>&nbsp;</p>
 
