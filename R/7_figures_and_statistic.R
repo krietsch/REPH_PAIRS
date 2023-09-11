@@ -1833,7 +1833,7 @@ ggplot() +
   geom_point(data = dus, 
              aes(date_rel_pair, prop, group = interaction(date_rel_pair, type), color = type), 
              position=position_jitterdodge(), size = 0.2) +
-  scale_color_manual(values = c(female_col, male_col), name = '', 
+  scale_color_manual(values = c(male_col, female_col), name = '', 
                      labels = c('Male', 'Female'), drop = FALSE) +
   scale_x_continuous(limits = c(-10.4, 10.4), breaks = seq(-10, 10, 1), 
                      labels = c('-10', '', '-8', '', '-6', '', '-4', '', '-2', '', '0', 
