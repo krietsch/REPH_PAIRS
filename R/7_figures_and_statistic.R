@@ -747,7 +747,7 @@ pb =
   scale_x_continuous(limits = c(-8, 12), breaks = seq(-8, 12, 1), 
                      labels = c('-8', '', '-6', '', '-4', '', '-2', '', '0', 
                                 '', '2', '', '4', '', '6', '', '8', '', '10', '', '12'),
-                     expand = expansion(add = c(0.2, 0.2))) +
+                     expand = expansion(add = c(0.4, 0.4))) +
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0.05, 0.05))) +
@@ -880,7 +880,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177, 
+# ggsave('./OUTPUTS/FIGURES/male_female_together.tiff', plot = last_plot(),  width = 177, height = 177,
 #        units = c('mm'), dpi = 'print')
 
 
@@ -1150,7 +1150,7 @@ pa =
   scale_y_continuous(limits = c(-0.01, 1.01), breaks = seq(0, 1, 0.1), 
                      labels = c('0.0', '', '0.2', '', '0.4', '', '0.6', '', '0.8', '', '1.0'),
                      expand = expansion(add = c(0, 0.05))) +
-  theme_classic(base_size = 11) +
+  theme_classic(base_size = 10) +
   theme(legend.position = c(0.9, 0.15), legend.background = element_blank(), plot.margin = margin_top) +
   ylab('Proportion female moves away') +
   xlab('Day relative to clutch initiation (= 0)')
@@ -1405,7 +1405,7 @@ pa + pb + pc +
 ") +
   plot_annotation(tag_levels = 'a')
 
-# ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177, 
+# ggsave('./OUTPUTS/FIGURES/female_moving_away.tiff', plot = last_plot(),  width = 177, height = 177,
 #        units = c('mm'), dpi = 'print')
 
 #--------------------------------------------------------------------------------------------------------------
